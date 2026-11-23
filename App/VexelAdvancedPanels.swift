@@ -403,3 +403,106 @@ struct VexelEffectDetailSheet: View {
         }
     }
 }
+
+
+struct VexelRealCameraWorkspace: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var followX = true
+    @State private var followY = true
+    @State private var followZ = false
+    @State private var intensity = 1.0
+    @State private var smoothing = 0.65
+    @State private var simplify = true
+    @State private var tolerance = 0.5
+    @State private var calibrateAtStart = true
+    @State private var recordPosition = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VexelSectionLabel(title: "Real camera motion", trailing: "SENSOR INPUT")
+                    Text("Capture device movement and convert it into camera keyframes. The sensor capture and keyframe pipeline are not connected yet.")
+                        .font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
+                    VexelPanel {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Follow axes").font(.system(size: 12, weight: .bold)).foregroundStyle(VexelPalette.text)
+                            HStack {
+                                axisToggle("X", value: $followX)
+                                axisToggle("Y", value: $followY)
+                                axisToggle("Z", value: $followZ)
+                            }
+                            realCameraSlider("Intensity", value: $intensity, range: 0.1...3, suffix: "×")
+                        }
+                    }
+                    VexelSectionLabel(title: "Smoothing")
+                    VexelPanel {
+                        VStack(alignment: .leading, spacing: 12) {
+                            realCameraSlider("Smoothing", value: $smoothing, range: 0...1, suffix: "%", multiplier: 100)
+                            Toggle("Simplify keyframes", isOn: $simplify).tint(VexelPalette.accent)
+                            if simplify {
+                                realCameraSlider("Tolerance", value: $tolerance, range: 0.05...3, suffix: "°")
+                            }
+                        }
+                    }
+                    VexelSectionLabel(title: "Capture options")
+                    VexelPanel {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle("Calibrate at start", isOn: $calibrateAtStart).tint(VexelPalette.accent)
+                            Toggle("Record position", isOn: $recordPosition).tint(VexelPalette.accent)
+                        }
+                    }
+                    VexelActionButton(title: "Record motion", systemImage: "record.circle", prominent: true) {}
+                        .disabled(true)
+                    Text("Recording, countdown, review, retry, accept and discard states will be enabled with the CoreMotion capture controller.")
+                        .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+                }
+                .padding(16)
+            }
+            .background(VexelPalette.background)
+            .navigationTitle("Real camera")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+        }
+    }
+
+    private func axisToggle(_ title: String, value: Binding<Bool>) -> some View {
+        Toggle(title, isOn: value).labelsHidden().toggleStyle(.button).tint(VexelPalette.accent)
+    }
+
+    private func realCameraSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, suffix: String, multiplier: Double = 1) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text(title).font(.system(size: 11, weight: .medium)).foregroundStyle(VexelPalette.text)
+                Spacer()
+                Text("\(value.wrappedValue * multiplier, specifier: "%.2f")\(suffix)")
+                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
+            }
+            Slider(value: value, in: range).tint(VexelPalette.accent)
+        }
+    }
+}
+
+struct VexelSavedVersionsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 12) {
+                Spacer()
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 36, weight: .light)).foregroundStyle(VexelPalette.secondary)
+                Text("No saved versions").font(.system(size: 15, weight: .bold)).foregroundStyle(VexelPalette.text)
+                Text("Recovery snapshots and restorable project versions will appear here after the project snapshot store is implemented.")
+                    .font(.system(size: 11)).foregroundStyle(VexelPalette.secondary).multilineTextAlignment(.center)
+                    .frame(maxWidth: 280)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(20).background(VexelPalette.background)
+            .navigationTitle("Saved versions")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+        }
+    }
+}
