@@ -122,8 +122,8 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             issues.append(ProjectIssue(severity: .error, path: "composition.duration", message: "Duration must be greater than zero and no more than one hour." ))
         }
 
+        var assetTypes: [String: String] = [:]
         if let assets = fields["assets"]?.arrayValue {
-            var identifiers = Set<String>()
             for (index, asset) in assets.enumerated() {
                 guard let object = asset.objectValue else {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)]", message: "Asset must be an object."))
@@ -133,15 +133,17 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].id", message: "Asset ID is required."))
                     continue
                 }
-                if !identifiers.insert(id).inserted {
+                if assetTypes[id] != nil {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].id", message: "Asset IDs must be unique."))
                 }
+                assetTypes[id] = object["type"]?.stringValue
                 guard let path = object["path"]?.stringValue, Self.isSafeAssetPath(path) else {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].path", message: "Asset path must be a safe relative path under assets/."))
                     continue
                 }
             }
         }
+        validateAssetReferences(fields, assetTypes: assetTypes, issues: &issues)
 
         if let layers = fields["layers"]?.arrayValue {
             var identifiers = Set<String>()
@@ -186,6 +188,57 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 validateLayers(children, path: "\(location).layers", identifiers: &identifiers, issues: &issues)
             }
         }
+    }
+
+    private func validateAssetReferences(
+        _ fields: [String: JSONValue],
+        assetTypes: [String: String],
+        issues: inout [ProjectIssue]
+    ) {
+        func check(_ value: JSONValue?, expectedType: String, path: String) {
+            guard let id = value?.stringValue else { return }
+            guard let actualType = assetTypes[id] else {
+                issues.append(ProjectIssue(severity: .error, path: path, message: "Referenced asset '\(id)' does not exist."))
+                return
+            }
+            if actualType != expectedType {
+                issues.append(ProjectIssue(severity: .error, path: path, message: "Asset '\(id)' must be of type '\(expectedType)', not '\(actualType)'."))
+            }
+        }
+
+        let composition = fields["composition"]?.objectValue
+        check(composition?["environment"]?.objectValue?["asset"], expectedType: "image", path: "composition.environment.asset")
+
+        func validateLayers(_ values: [JSONValue], path: String) {
+            for (index, value) in values.enumerated() {
+                guard let layer = value.objectValue else { continue }
+                let location = "\(path)[\(index)]"
+                switch layer["type"]?.stringValue {
+                case "text":
+                    check(layer["text"]?.objectValue?["font"]?.objectValue?["asset"], expectedType: "font", path: "\(location).text.font.asset")
+                case "image":
+                    check(layer["image"]?.objectValue?["asset"], expectedType: "image", path: "\(location).image.asset")
+                case "video":
+                    let video = layer["video"]?.objectValue
+                    check(video?["asset"], expectedType: "video", path: "\(location).video.asset")
+                    check(video?["cutout"]?.objectValue?["source"], expectedType: "video", path: "\(location).video.cutout.source")
+                case "audio":
+                    check(layer["audio"]?.objectValue?["asset"], expectedType: "audio", path: "\(location).audio.asset")
+                case "object3d":
+                    let object3d = layer["object3d"]?.objectValue
+                    check(object3d?["material"]?.objectValue?["texture"], expectedType: "image", path: "\(location).object3d.material.texture")
+                    check(object3d?["text"]?.objectValue?["font"]?.objectValue?["asset"], expectedType: "font", path: "\(location).object3d.text.font.asset")
+                case "model3d":
+                    let model = layer["model3d"]?.objectValue
+                    check(model?["asset"], expectedType: "model", path: "\(location).model3d.asset")
+                    check(model?["material"]?.objectValue?["texture"], expectedType: "image", path: "\(location).model3d.material.texture")
+                default:
+                    break
+                }
+                validateLayers(layer["layers"]?.arrayValue ?? [], path: "\(location).layers")
+            }
+        }
+        validateLayers(fields["layers"]?.arrayValue ?? [], path: "layers")
     }
 
     private func validateFiniteNumbers(_ value: JSONValue, path: String, issues: inout [ProjectIssue]) {
