@@ -25,7 +25,7 @@ The core targets Kotlin/JVM/Java 17. It is not a Kotlin Multiplatform module. A 
 
 Observed in core/model/Project.kt:
 
-- Format ID: knsproj; current format version: 12.
+- Legacy Android format ID: `knsproj`; current source format version: 12. This identifier is accepted only by the compatibility importer.
 - Root document contains generator, metadata, composition, assets, timeline markers, editor viewport state and ordered top-level layers.
 - Composition includes dimensions, floating-point FPS, duration, background, motion-blur settings and 3D environment.
 - Assets are typed as image, video, audio, model or font and carry a relative archive path plus optional media metadata and SHA-256.
@@ -162,7 +162,7 @@ The existing SwiftUI port has all 73 effect IDs with matching English names and 
 ## Known source discrepancies / audit cautions
 
 - Repository prose mentions a 69-effect library in at least one place, but the generated registry at the pinned commit contains 73. Treat the generated registry and its tests as canonical.
-- The current iOS ProjectDocument is a generic JSON container with a Vexel-specific version 1 validation contract. It is not yet a typed model of KnsProject v12 and must not be treated as a completed .knsproj importer.
+- The current iOS ProjectDocument is a generic JSON container with a Vexel-specific version 1 validation contract. It is not yet a typed VexelProject model or a complete legacy Android compatibility importer.
 - A new source field matrix now records root/composition/layer/content contracts, local-time rules, transform semantics, animation/easing, effect serialization, expression sandbox limits, validator issue families, archive limits and source tests to port.
 - The current Swift validator is materially less strict than the source semantic validator. Do not rely on it for untrusted project import.
 - No source build, Android runtime, iOS build, or device comparison was executed during this source audit.
