@@ -13,12 +13,12 @@ Port every source screen, modal, panel, inspector group and workflow to native S
 Exit: every source UI route has a SwiftUI counterpart or documented intentional redesign, with iPhone/iPad layout smoke tests and a successful CI build.
 
 ## Stage 2 - Source contract and compatibility audit
-Pin source files, read KnsprojJson serializers and every migration, inspect schemas and representative valid/invalid fixtures, map ViewModel commands to core operations, inspect every effect implementation and shader, and trace media/export behavior. Record unknowns and evidence labels.
+Pin source files, read source project serializers and every migration, inspect schemas and representative valid/invalid fixtures, map ViewModel commands to core operations, inspect every effect implementation and shader, and trace media/export behavior. Record unknowns and evidence labels.
 
 Exit: typed field matrix for format v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
 
 ## Stage 3 - Project foundation
-Create typed Swift project models with unknown-field preservation. Implement secure ZIP read/write for .vexelproj, .knsproj v12 importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
+Create typed Swift project models with unknown-field preservation. Implement secure native `.vexelproj` read/write and legacy Android archive importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
 
 Exit: source projects import, preserve unknown data, save/reopen and pass structural equivalence tests.
 
