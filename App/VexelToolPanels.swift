@@ -760,6 +760,7 @@ struct VexelPropertiesPanel: View {
             }
             .padding(.bottom, 12)
         }
+        .disabled(tab != "Effects")
     }
 
     private func propertyGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
