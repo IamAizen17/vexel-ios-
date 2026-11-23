@@ -144,6 +144,64 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(SceneEvaluator.evaluate(project, at: 0.5).layers.isEmpty)
     }
 
+    func testSceneEvaluatorResolvesParentTransforms() {
+        var project = ProjectDocument.starter(title: "Parent transforms")
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("null-parent"),
+                "type": .string("null"),
+                "start": .number(0),
+                "duration": .number(5),
+                "transform": .object(["position": .array([.number(20), .number(10)])])
+            ]),
+            .object([
+                "id": .string("child"),
+                "type": .string("shape"),
+                "parent": .string("null-parent"),
+                "start": .number(0),
+                "duration": .number(5),
+                "transform": .object(["position": .array([.number(5), .number(3)])]),
+                "shape": .object(["kind": .string("rectangle")])
+            ])
+        ])
+
+        let scene = SceneEvaluator.evaluate(project, at: 1)
+        XCTAssertEqual(scene.layers.count, 1)
+        XCTAssertEqual(scene.layers.first?.position, ScenePoint(x: 25, y: 13))
+    }
+
+    func testSceneEvaluatorAppliesKeyframeLoopAndPresetEasing() {
+        var project = ProjectDocument.starter(title: "Looped animation")
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("looped"),
+                "type": .string("shape"),
+                "start": .number(0),
+                "duration": .number(5),
+                "transform": .object([
+                    "position": .object([
+                        "loop": .string("cycle"),
+                        "keyframes": .array([
+                            .object([
+                                "time": .number(0),
+                                "value": .array([.number(0), .number(0)]),
+                                "easing": .string("easeInOut")
+                            ]),
+                            .object([
+                                "time": .number(1),
+                                "value": .array([.number(100), .number(0)])
+                            ])
+                        ])
+                    ])
+                ]),
+                "shape": .object(["kind": .string("rectangle")])
+            ])
+        ])
+
+        let scene = SceneEvaluator.evaluate(project, at: 1.5)
+        XCTAssertEqual(scene.layers.first?.position.x ?? -1, 50, accuracy: 0.1)
+    }
+
     func testNativeDocumentRejectsForeignFormatIdentifiers() {
         let project = ProjectDocument(fields: [
             "format": .string("foreign-format"),
