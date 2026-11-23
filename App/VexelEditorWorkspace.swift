@@ -121,18 +121,14 @@ struct VexelEditorWorkspace: View {
         }
         .sheet(isPresented: $showingMediaPicker) {
             MediaPicker { _ in
-                layerNames.insert("Image Layer", at: 0)
-                project.layerNames = layerNames
-                onProjectChange(project)
+                showingNotice = "Media selected. Asset ingestion and timeline insertion will be connected in the media-engine milestone."
             }
         }
         .fileImporter(isPresented: $showingAudioPicker, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
-                guard !urls.isEmpty else { return }
-                layerNames.insert("Audio Layer", at: 0)
-                project.layerNames = layerNames
-                onProjectChange(project)
+                guard let url = urls.first else { return }
+                showingNotice = "Selected \(url.lastPathComponent). Audio decoding and timeline insertion are not connected yet."
             case .failure(let error):
                 showingNotice = error.localizedDescription
             }
