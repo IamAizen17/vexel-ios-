@@ -21,6 +21,8 @@ private enum VexelAdvancedEditorPage: Identifiable {
 struct VexelToolSheet: View {
     let tool: VexelEditorTool
     @Binding var layerNames: [String]
+    let selectedLayerName: String?
+    let selectedLayerKind: VexelTimelineTrack.Kind?
     let onAction: (String) -> Void
     let onGraph: () -> Void
     let onCurve: () -> Void
@@ -73,7 +75,7 @@ struct VexelToolSheet: View {
             case .expression: VexelExpressionWorkspace().presentationDetents([.large])
             case .speech: VexelTextToSpeechWorkspace().presentationDetents([.large])
             case .effect(let effect):
-                VexelEffectDetailSheet(effect: effect) { onAction("effect:\(effect.id)") }
+                VexelEffectDetailSheet(effect: effect, targetLayerName: selectedLayerName) { onAction("effect:\(effect.id)") }
                     .presentationDetents([.medium, .large])
             }
         }
@@ -235,12 +237,7 @@ struct VexelToolSheet: View {
 
                 VexelSectionLabel(title: "Effect shortcuts", trailing: "EDITOR TOOLS")
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                    ForEach([
-                        ("Mask", "circle.dotted", "shortcut:mask"),
-                        ("Track matte", "square.on.square", "shortcut:track-matte"),
-                        ("Transitions", "arrow.left.arrow.right", "shortcut:transitions"),
-                        ("Text animators", "textformat.abc", "shortcut:text-animators")
-                    ], id: \.2) { item in
+                    ForEach(visibleShortcuts, id: \.2) { item in
                         Button { onAction(item.2) } label: {
                             Label(item.0, systemImage: item.1)
                                 .font(.system(size: 10, weight: .semibold))
@@ -249,6 +246,8 @@ struct VexelToolSheet: View {
                                 .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
                         }
                         .buttonStyle(.plain)
+                        .disabled(!shortcutAvailable(item.2))
+                        .opacity(shortcutAvailable(item.2) ? 1 : 0.4)
                     }
                 }
 
@@ -274,25 +273,57 @@ struct VexelToolSheet: View {
                                 .padding(9).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                             }
                             .buttonStyle(.plain)
+                            .disabled(effect.target == "layer_3d" && selectedLayerKind != .rendered3D)
+                            .opacity(effect.target == "layer_3d" && selectedLayerKind != .rendered3D ? 0.4 : 1)
                         }
                     }
                 }
             }
 
-            if !layerNames.isEmpty {
+            if let selectedLayerName {
                 HStack(spacing: 8) {
                     Image(systemName: "square.3.layers.3d").foregroundStyle(VexelPalette.secondary)
-                    Text("Effect target").font(.system(size: 10, weight: .semibold)).foregroundStyle(VexelPalette.soft)
-                    Text("Selected layer")
+                    Text("Apply to").font(.system(size: 10, weight: .semibold)).foregroundStyle(VexelPalette.soft)
+                    Text(selectedLayerName)
                         .font(.system(size: 10, weight: .medium)).foregroundStyle(VexelPalette.text).lineLimit(1)
                     Spacer()
                 }
                 .padding(10)
                 .background(VexelPalette.bar, in: RoundedRectangle(cornerRadius: 9))
             } else {
-                Text("Add a layer before selecting an effect.")
+                Text("Select a layer before selecting an effect.")
                     .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
             }
+        }
+    }
+
+    private var visibleShortcuts: [(String, String, String)] {
+        let all: [(String, String, String, String)] = [
+            ("Mask", "circle.dotted", "shortcut:mask", "keying"),
+            ("Track matte", "square.on.square", "shortcut:track-matte", "keying"),
+            ("Transitions", "arrow.left.arrow.right", "shortcut:transitions", "time"),
+            ("Text animators", "textformat.abc", "shortcut:text-animators", "text")
+        ]
+        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return all.filter { $0.0.localizedCaseInsensitiveContains(search) || $0.2.localizedCaseInsensitiveContains(search) }
+                .map { ($0.0, $0.1, $0.2) }
+        }
+        guard let category = effectCategory else { return [] }
+        return all.filter { category == "All effects" || VexelEffectCatalog.categoryName(for: $0.3) == category }
+            .map { ($0.0, $0.1, $0.2) }
+    }
+
+    private func shortcutAvailable(_ id: String) -> Bool {
+        guard let selectedLayerKind else { return false }
+        switch id {
+        case "shortcut:mask", "shortcut:track-matte":
+            return selectedLayerKind == .visual || selectedLayerKind == .text || selectedLayerKind == .group
+        case "shortcut:text-animators":
+            return selectedLayerKind == .text
+        case "shortcut:transitions":
+            return true
+        default:
+            return false
         }
     }
 
