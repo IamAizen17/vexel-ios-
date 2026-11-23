@@ -1,37 +1,54 @@
-# Vexel for iOS
+# Vexel iOS
 
-Native iPhone and iPad motion-graphics editor, targeting full functional parity with the Kinesis Editor reference while introducing an original Vexel interface.
+A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
+rendering, and AVFoundation media pipeline.
 
-## Project status
+**Current status:** foundation milestone. The repository now contains a Swift package for loss-preserving project
+documents, an initial universal SwiftUI workspace, and a GitHub Actions workflow that tests the core and builds an
+unsigned device IPA on GitHub-hosted macOS runners. Full editor parity is not implemented yet.
 
-**Stage:** Architecture and source-reconstruction planning.
+## Repository structure
 
-This repository is the destination for the iOS port. The Android reference is [IamAizen17/vexel-editor](https://github.com/IamAizen17/vexel-editor). This repository is not yet a functioning iOS application.
+- `App/`: SwiftUI iOS application.
+- `Packages/VexelCore/`: platform-independent project and editing core.
+- `.github/workflows/ios-ipa.yml`: CI tests and unsigned IPA packaging.
+- `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
-## Product decisions
+## Build without owning a Mac
 
-- iPhone and iPad from the beginning.
-- Full feature parity is the target.
-- Original Vexel interface, designed for touch and adaptive iPad workspaces.
-- Native Apple technologies: SwiftUI, Metal, AVFoundation and AVAudioEngine.
-- Native project extension: .vexelproj.
-- Import compatibility for existing .knsproj projects.
+Push a commit or run **Actions → iOS Build → Run workflow**. After the workflow succeeds, download the
+`Vexel-unsigned-IPA` artifact. It is an unsigned build artifact, not directly installable on a physical iPhone.
+Device installation requires signing and a provisioning profile. See [docs/BUILDING.md](docs/BUILDING.md).
 
-## Engineering approach
+## Development
 
-Reconstruct project format, editing semantics, scene evaluation, renderer, effects and media pipeline from source and tests. Record evidence and unknowns. Implement each subsystem natively and validate it against compatibility fixtures and deterministic golden tests.
+Run core tests with:
 
-The reference project is GPL-3.0. Review [Licensing and Attribution](docs/LICENSING_AND_ATTRIBUTION.md) before distributing derivative code or binaries.
+```sh
+swift test --package-path Packages/VexelCore
+```
 
-## Documentation
+Generate the Xcode project with XcodeGen:
+
+```sh
+xcodegen generate
+```
+
+## Engineering references
 
 - [Architecture](docs/ARCHITECTURE.md)
-- [Source reconstruction plan](docs/REVERSE_ENGINEERING_PLAN.md)
-- [Full parity roadmap](docs/PORTING_ROADMAP.md)
-- [Project format](docs/PROJECT_FORMAT.md)
+- [Reverse-engineering plan and evidence](docs/REVERSE_ENGINEERING_PLAN.md)
+- [Porting roadmap](docs/PORTING_ROADMAP.md)
+- [Vexel project format](docs/PROJECT_FORMAT.md)
 - [Testing strategy](docs/TESTING.md)
 - [Licensing and attribution](docs/LICENSING_AND_ATTRIBUTION.md)
+- [Build and IPA workflow](docs/BUILDING.md)
 
-## Current limitations
+## Compatibility and licensing
 
-No Swift application target, Metal renderer, media pipeline or project importer has been implemented yet. The source audit has begun, but the complete reference repository and runtime behavior have not yet been exhaustively investigated. Simulator builds, device tests and export tests are not yet available.
+The Android reference format is `.knsproj` version 12. Vexel's own `.vexelproj` format is versioned separately.
+Unknown JSON fields are retained by the initial Swift document model to avoid discarding future project data.
+
+The Android reference repository declares GPL-3.0. Porting or adapting covered implementation code requires a
+careful GPL compliance and distribution review before shipping binaries. See
+[docs/LICENSING_AND_ATTRIBUTION.md](docs/LICENSING_AND_ATTRIBUTION.md).
