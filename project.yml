@@ -43,6 +43,24 @@ targets:
         product: VexelExport
       - package: VexelPlugins
         product: VexelPlugins
+    info:
+      properties:
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.iamAizen17.vexel.project
+            UTTypeDescription: Vexel Project
+            UTTypeConformsTo:
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - vexelproj
+              public.mime-type:
+                - application/vnd.vexel.project+zip
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Vexel Project
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.iamAizen17.vexel.project
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel
