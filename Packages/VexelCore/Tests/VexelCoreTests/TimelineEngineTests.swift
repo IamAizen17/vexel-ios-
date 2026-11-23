@@ -20,12 +20,14 @@ final class TimelineEngineTests: XCTestCase {
         _ = try await engine.moveLayer("a", to: 4)
         var current = await engine.snapshot()
         XCTAssertEqual(layer("a", in: current)?["start"]?.numberValue, 4)
-        XCTAssertTrue(await engine.canUndo)
+        let canUndo = await engine.canUndo
+        XCTAssertTrue(canUndo)
 
         _ = await engine.undo()
         current = await engine.snapshot()
         XCTAssertEqual(layer("a", in: current)?["start"]?.numberValue, 0)
-        XCTAssertTrue(await engine.canRedo)
+        let canRedo = await engine.canRedo
+        XCTAssertTrue(canRedo)
 
         _ = await engine.redo()
         current = await engine.snapshot()
