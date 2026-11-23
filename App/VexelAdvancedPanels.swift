@@ -1,4 +1,5 @@
 import SwiftUI
+import VexelCore
 
 struct VexelPropertiesSheet: View {
     let layerName: String
