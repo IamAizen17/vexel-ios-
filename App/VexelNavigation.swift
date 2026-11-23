@@ -153,7 +153,7 @@ struct VexelHomeView: View {
     @State private var showingNewProject = false
     @State private var showingPlugins = false
     @State private var deletingProject: VexelProjectItem?
-    @State private var importedDocument: URL?
+    @State private var showingImporter = false
     @State private var notice: String?
 
     var body: some View {
@@ -185,8 +185,8 @@ struct VexelHomeView: View {
                 .presentationDragIndicator(.visible)
         }
         .fileImporter(isPresented: Binding(
-            get: { importedDocument != nil },
-            set: { if !$0 { importedDocument = nil } }
+            get: { showingImporter },
+            set: { showingImporter = $0 }
         ), allowedContentTypes: [.data, .item], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
@@ -238,7 +238,7 @@ struct VexelHomeView: View {
                         Text("\(projects.count) compositions").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
                     }
                     Spacer()
-                    Button { importedDocument = URL(fileURLWithPath: "import") } label: {
+                    Button { showingImporter = true } label: {
                         Label("Import", systemImage: "square.and.arrow.down")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(VexelPalette.soft)
@@ -375,9 +375,9 @@ private struct ProjectCard: View {
             }
             Spacer(minLength: 0)
             Menu {
-                Button("Open", systemImage: "arrow.up.right.square", action: onOpen)
-                Button("Duplicate", systemImage: "plus.square.on.square", action: onDuplicate)
-                Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+                Button(action: onOpen) { Label("Open", systemImage: "arrow.up.right.square") }
+                Button(action: onDuplicate) { Label("Duplicate", systemImage: "plus.square.on.square") }
+                Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
             } label: {
                 Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold))
                     .foregroundStyle(VexelPalette.secondary).frame(width: 34, height: 44)
@@ -599,7 +599,7 @@ struct VexelPluginsPage: View {
             .background(VexelPalette.background)
             .navigationTitle("Plugins")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .fileImporter(isPresented: $showingInstall, allowedContentTypes: [.data, .zip], allowsMultipleSelection: false) { _ in }
         }
         .preferredColorScheme(.dark)
