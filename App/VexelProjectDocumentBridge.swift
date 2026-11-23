@@ -34,8 +34,11 @@ extension VexelProjectItem {
             document = ProjectDocument.starter(title: title)
         }
         var fields = document.fields
-        fields["format"] = .string(ProjectDocument.format)
-        fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
+        let documentFormat = fields["format"]?.stringValue ?? ProjectDocument.format
+        fields["format"] = .string(documentFormat)
+        if documentFormat != "knsproj" {
+            fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
+        }
         fields["generator"] = .string("Vexel iOS")
         var meta = fields["meta"]?.objectValue ?? [:]
         meta["title"] = .string(title)
@@ -96,7 +99,9 @@ extension VexelProjectItem {
         }
         let children = (object["layers"]?.arrayValue ?? []).compactMap(Self.track(from:))
         let effects = (object["effects"]?.arrayValue ?? []).compactMap { $0.objectValue?["type"]?.stringValue }
-        let keyframes = Self.keyframeTimes(in: value).sorted()
+        var animatableFields = object
+        animatableFields.removeValue(forKey: "layers")
+        let keyframes = Self.keyframeTimes(in: .object(animatableFields)).sorted()
         let sourceJSON = (try? JSONEncoder().encode(value)).flatMap { String(data: $0, encoding: .utf8) }
         let stableID = UUID(uuidString: sourceID) ?? UUID()
         return VexelTimelineTrack(
