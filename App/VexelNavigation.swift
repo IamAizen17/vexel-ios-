@@ -514,6 +514,7 @@ struct VexelSettingsPage: View {
     @AppStorage("vexel.theme") private var theme = "dark"
     @AppStorage("vexel.language") private var language = "system"
     @AppStorage("vexel.safeSnapshots") private var safeSnapshots = true
+    @AppStorage("vexel.savedEasings") private var savedEasingsData = "[]"
 
     var body: some View {
         ScrollView {
