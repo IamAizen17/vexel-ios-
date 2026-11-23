@@ -590,6 +590,13 @@ struct VexelPropertiesPanel: View {
     @State private var transitionIn = "None"
     @State private var transitionOut = "None"
     @State private var transitionDuration = 0.5
+    @State private var compositionWidth = 1080.0
+    @State private var compositionHeight = 1920.0
+    @State private var compositionFPS = 30.0
+    @State private var compositionDuration = 10.0
+    @State private var compositionMotionBlur = true
+    @State private var shutterAngle = 180.0
+    @State private var motionBlurSamples = 8.0
 
     var body: some View {
         ScrollView {
@@ -716,6 +723,20 @@ struct VexelPropertiesPanel: View {
                     Text("Transition easing and duration will be stored in the layer model.")
                         .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
 
+                case "Composition":
+                    propertyGroup("COMPOSITION FORMAT") {
+                        valueField("Width", value: $compositionWidth, unit: "px")
+                        valueField("Height", value: $compositionHeight, unit: "px")
+                        valueField("Frame rate", value: $compositionFPS, unit: "fps")
+                        valueField("Duration", value: $compositionDuration, unit: "s")
+                    }
+                    propertyGroup("MOTION BLUR") {
+                        Toggle("Enabled", isOn: $compositionMotionBlur).tint(VexelPalette.accent)
+                        valueField("Shutter angle", value: $shutterAngle, unit: "°")
+                        valueField("Samples", value: $motionBlurSamples, unit: "")
+                    }
+                    Text("Composition controls are presentation state until the project model is connected.")
+                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                 default:
                     VexelEmptyState(symbol: "slider.horizontal.3", title: "Inspector", detail: "Select a layer to inspect its properties.")
                 }
