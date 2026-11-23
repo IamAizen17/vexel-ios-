@@ -70,9 +70,10 @@ struct VexelTimelinePanel: View {
     private var contentWidth: CGFloat { max(320, CGFloat(duration) * zoom + 32) }
 
     private var snapPoints: [Double] {
-        func collect(_ values: [VexelTimelineTrack]) -> [Double] {
+        func collect(_ values: [VexelTimelineTrack], offset: Double = 0) -> [Double] {
             values.flatMap { track in
-                [track.start, track.start + track.duration] + collect(track.children)
+                let start = offset + track.start
+                return [start, start + track.duration] + collect(track.children, offset: start)
             }
         }
         return [0, duration, currentTime] + markers.map(\.time) + collect(tracks)
