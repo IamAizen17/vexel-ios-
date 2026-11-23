@@ -98,6 +98,9 @@ public struct ZIPProjectArchive: Sendable {
     }
 
     public func write(_ project: ProjectDocument, assetsDirectory: URL? = nil, to archiveURL: URL) throws {
+        guard project.fields["format"]?.stringValue == ProjectDocument.format else {
+            throw ZIPProjectArchiveError.legacyFormatExportNotSupported
+        }
         let issues = project.validate().filter { $0.severity == .error }
         guard issues.isEmpty else {
             throw EncodingError.invalidValue(project, .init(codingPath: [], debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")))
