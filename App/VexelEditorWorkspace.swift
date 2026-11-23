@@ -552,7 +552,8 @@ struct VexelEditorWorkspace: View {
             left.duration = splitTime - source.start
             left.keyframes = source.keyframes.filter { $0 <= splitTime }
             let rightName = uniqueLayerName(source.name + " Split")
-            let right = cloneTrack(source, name: rightName, start: splitTime, duration: end - splitTime)
+            var right = cloneTrack(source, name: rightName, start: splitTime, duration: end - splitTime)
+            right.keyframes = source.keyframes.filter { $0 >= splitTime }.map { $0 - splitTime }
 
             project.timelineTracks[index] = left
             project.timelineTracks.insert(right, at: index + 1)
