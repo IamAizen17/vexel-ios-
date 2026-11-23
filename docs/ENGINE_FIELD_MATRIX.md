@@ -25,7 +25,7 @@ Source: `core/model/Project.kt`.
 | `editorView` | Viewport mode and free editor camera | Persisted editor-only state, excluded from rendered output |
 | `layers` | Top-level painter-order layers | Recursive typed layer tree |
 
-The root uses `project.json` inside a ZIP archive. Unknown JSON must be retained by the iOS importer, even when the current Vexel renderer cannot interpret it. The existing generic `ProjectDocument` is only a preservation scaffold and is not the source model.
+The Android source archive uses `project.json`. Vexel's native archive uses `vexel.json`; the old entry name is accepted only by `VexelCompatibilityImporter`. Unknown JSON must be retained by the importer, even when the current Vexel renderer cannot interpret it. The generic `ProjectDocument` remains a preservation scaffold, not the complete source model.
 
 ## 2. Composition contract
 
@@ -233,12 +233,12 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 Source: the Android archive implementation.
 
 ZIP entries:
-- Required `project.json`.
+- Native Vexel export: required `vexel.json`. The legacy Android `project.json` entry is import-only.
 - Referenced `assets/<file>`.
 - Optional `thumbnail.jpg`.
 
 Source limits:
-- `project.json`: 64 MiB.
+- Native `vexel.json` and imported legacy document: 64 MiB.
 - Aggregate uncompressed entry data: 8 GiB.
 - Entry count: 10,000.
 - Unsafe absolute paths, drive/colon paths and parent traversal are rejected.
