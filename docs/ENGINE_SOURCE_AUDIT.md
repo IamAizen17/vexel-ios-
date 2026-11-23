@@ -125,13 +125,13 @@ Observed in core/plugin/**, app/plugins/** and native/**:
 
 The existing SwiftUI port has all 73 effect IDs with matching English names and categories. The main navigation areas and major tool surfaces exist, but this is not yet a one-to-one interaction port:
 
-- Reference onboarding has four pages, skip, language selection (System/English/Portuguese) and theme selection. Current iOS onboarding has three pages and no choices.
+- Reference onboarding has four pages, skip, language selection (System/English/Portuguese) and theme selection. iOS now represents all four pages, skip and the preference controls; localization is not yet implemented.
 - Reference home includes a two-column project grid, import/export, duplicate/delete, recovery and import warnings/errors, presets, settings and plugin installation. iOS home currently uses an in-memory project list and its import path is a placeholder.
-- Reference settings include language, appearance, preview resolution/3D quality, proxy usage, storage safety/mirroring/snapshots, fonts, third-party licenses, app version and project format. iOS settings currently omit several of these.
+- Reference settings include language, appearance, preview resolution/3D quality, proxy usage, storage safety/mirroring/snapshots, fonts, third-party licenses, app version and project format. iOS now represents language, appearance, preview scale/quality, proxies, auto-keyframe, layer names, mirroring and snapshots; font management and a full license browser remain missing, and several preferences are not engine-bound.
 - Reference timeline includes gesture-driven navigation, clip selection, markers, snapping, keyframe diamonds, waveform, layer visibility/lock and layer-name display controls. iOS timeline is a visual mock with a time slider and placeholder clips.
 - Reference editor connects selection, multi-selection, undo/redo, split/duplicate, keyframes, transforms, viewport modes, real camera, layer tree and export to a ViewModel. iOS controls are mostly local presentation state.
-- Reference effect picker includes target-compatibility filtering, apply-to selection, search, category grid and shortcuts. iOS has the catalogue but not complete parameter editing or shortcut parity.
-- Reference plugin sheet exposes installed plugin commands, animation/text/transition presets, TTS and plugin manager. iOS plugin page is currently sample data and a file-picker shell.
+- Reference effect picker includes target-compatibility filtering, apply-to selection, search, category grid and shortcuts. iOS has all 73 catalogue entries and now displays the four shortcut affordances, but target filtering, apply-to selection, parameter schema editing and actual insertion are pending.
+- Reference plugin sheet exposes installed plugin commands, animation/text/transition presets, TTS and plugin manager. iOS has TTS UI and a plugin page shell, but installed-plugin discovery, preset application and package installation are pending. The current plugin list is sample data.
 
 ## Known source discrepancies / audit cautions
 
