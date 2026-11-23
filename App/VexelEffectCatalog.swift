@@ -1,101 +1,98 @@
 import Foundation
+import VexelCore
 
-struct VexelEffectItem: Identifiable, Hashable {
+struct VexelEffectCategory: Decodable, Identifiable {
     let id: String
+    let en: String
+    let pt: String
+}
+
+struct VexelEffectParameter: Decodable, Equatable, Identifiable {
     let name: String
+    let type: String
+    let defaultValue: JSONValue
+    let min: Double?
+    let max: Double?
+    let choices: [String]?
+
+    var id: String { name }
+
+    enum CodingKeys: String, CodingKey {
+        case name, type, min, max, choices
+        case defaultValue = "default"
+    }
+
+    var displayName: String {
+        name
+            .replacingOccurrences(of: "([A-Z])", with: " $1", options: .regularExpression)
+            .replacingOccurrences(of: "_", with: " ")
+            .capitalized
+    }
+}
+
+struct VexelEffectDefinition: Decodable, Identifiable {
+    let id: String
     let category: String
+    let pt: String
+    let en: String
+    let target: String
+    let needsBackdrop: Bool
+    let params: [VexelEffectParameter]
+}
+
+private struct VexelEffectRegistryDocument: Decodable {
+    let categories: [VexelEffectCategory]
+    let effects: [VexelEffectDefinition]
+}
+
+struct VexelEffectItem: Identifiable {
+    let definition: VexelEffectDefinition
+
+    var id: String { definition.id }
+    var name: String { definition.en }
+    var category: String {
+        VexelEffectCatalog.categoryName(for: definition.category)
+    }
+    var target: String { definition.target }
+    var needsBackdrop: Bool { definition.needsBackdrop }
+    var params: [VexelEffectParameter] { definition.params }
 }
 
 enum VexelEffectCatalog {
-    static let categories = [
-        "All effects",
-        "Color & light",
-        "Blur & sharpen",
-        "Distort",
-        "Move & transform",
-        "Stylize",
-        "Glitch",
-        "Drawing & edges",
-        "Procedural",
-        "Matte, mask & key",
-        "Time & transition",
-        "Text",
-        "Utility & expression"
-    ]
+    private static let registry: VexelEffectRegistryDocument = {
+        guard
+            let url = Bundle.main.url(forResource: "effects", withExtension: "json"),
+            let data = try? Data(contentsOf: url),
+            let value = try? JSONDecoder().decode(VexelEffectRegistryDocument.self, from: data)
+        else {
+            assertionFailure("The canonical effects.json registry is missing or invalid.")
+            return VexelEffectRegistryDocument(categories: [], effects: [])
+        }
+        return value
+    }()
 
-    static let all: [VexelEffectItem] = [
-        VexelEffectItem(id: "gradientMap", name: "Gradient Map", category: "Color & light"),
-        VexelEffectItem(id: "exposure", name: "Exposure", category: "Color & light"),
-        VexelEffectItem(id: "brightnessContrast", name: "Brightness & Contrast", category: "Color & light"),
-        VexelEffectItem(id: "saturation", name: "Saturation", category: "Color & light"),
-        VexelEffectItem(id: "hueShift", name: "Hue Shift", category: "Color & light"),
-        VexelEffectItem(id: "invert", name: "Invert Colors", category: "Color & light"),
-        VexelEffectItem(id: "fill", name: "Fill", category: "Color & light"),
-        VexelEffectItem(id: "deepGlow", name: "Wide Glow", category: "Color & light"),
-        VexelEffectItem(id: "lensFlare", name: "Lens Flare", category: "Color & light"),
-        VexelEffectItem(id: "tint", name: "Tint", category: "Color & light"),
-        VexelEffectItem(id: "colorize", name: "Colorize", category: "Color & light"),
-        VexelEffectItem(id: "glow", name: "Glow", category: "Color & light"),
-        VexelEffectItem(id: "colorBalance", name: "Color Balance", category: "Color & light"),
-        VexelEffectItem(id: "vibrance", name: "Vibrance", category: "Color & light"),
-        VexelEffectItem(id: "blur", name: "Gaussian Blur", category: "Blur & sharpen"),
-        VexelEffectItem(id: "sharpen", name: "Sharpen", category: "Blur & sharpen"),
-        VexelEffectItem(id: "lensBlur", name: "Lens Blur", category: "Blur & sharpen"),
-        VexelEffectItem(id: "directionalBlur", name: "Directional Blur", category: "Blur & sharpen"),
-        VexelEffectItem(id: "radialBlur", name: "Radial Blur", category: "Blur & sharpen"),
-        VexelEffectItem(id: "pinchBulge", name: "Pinch/Bulge", category: "Distort"),
-        VexelEffectItem(id: "glass", name: "Glass", category: "Distort"),
-        VexelEffectItem(id: "warp", name: "Warp", category: "Distort"),
-        VexelEffectItem(id: "bendWarp", name: "Bend Warp", category: "Distort"),
-        VexelEffectItem(id: "mirror", name: "Mirror", category: "Distort"),
-        VexelEffectItem(id: "twirl", name: "Twirl", category: "Distort"),
-        VexelEffectItem(id: "ripple", name: "Ripple", category: "Distort"),
-        VexelEffectItem(id: "autoShake", name: "Auto-Shake", category: "Move & transform"),
-        VexelEffectItem(id: "spin", name: "Spin", category: "Move & transform"),
-        VexelEffectItem(id: "oscillate", name: "Oscillate", category: "Move & transform"),
-        VexelEffectItem(id: "float", name: "Float", category: "Move & transform"),
-        VexelEffectItem(id: "pulse", name: "Pulse", category: "Move & transform"),
-        VexelEffectItem(id: "swing", name: "Swing", category: "Move & transform"),
-        VexelEffectItem(id: "scaleAssist", name: "Scale Multiplier", category: "Move & transform"),
-        VexelEffectItem(id: "pixelate", name: "Pixelate", category: "Stylize"),
-        VexelEffectItem(id: "dropShadow", name: "Drop Shadow", category: "Stylize"),
-        VexelEffectItem(id: "vignette", name: "Vignette", category: "Stylize"),
-        VexelEffectItem(id: "halftone", name: "Halftone", category: "Stylize"),
-        VexelEffectItem(id: "posterize", name: "Posterize", category: "Stylize"),
-        VexelEffectItem(id: "filmGrain", name: "Film Grain", category: "Stylize"),
-        VexelEffectItem(id: "scanlines", name: "Scanlines/CRT", category: "Stylize"),
-        VexelEffectItem(id: "eightBit", name: "8-bit", category: "Stylize"),
-        VexelEffectItem(id: "pixDither", name: "PixDither", category: "Stylize"),
-        VexelEffectItem(id: "pixelEncoder", name: "Pixel Encoder", category: "Stylize"),
-        VexelEffectItem(id: "kernel", name: "Kernel", category: "Stylize"),
-        VexelEffectItem(id: "blockGlitch", name: "Block Glitch", category: "Glitch"),
-        VexelEffectItem(id: "lineGlitch", name: "Line Glitch", category: "Glitch"),
-        VexelEffectItem(id: "vhs", name: "VHS Tape", category: "Glitch"),
-        VexelEffectItem(id: "chromaticAberration", name: "Chromatic Aberration", category: "Glitch"),
-        VexelEffectItem(id: "rgbSplit", name: "RGB Split", category: "Glitch"),
-        VexelEffectItem(id: "staticNoise", name: "Static Noise", category: "Glitch"),
-        VexelEffectItem(id: "signalAnalog", name: "Signal Analog", category: "Glitch"),
-        VexelEffectItem(id: "glitchify", name: "Glitchify", category: "Glitch"),
-        VexelEffectItem(id: "dissolveShake", name: "Dissolve Shake", category: "Glitch"),
-        VexelEffectItem(id: "findEdges", name: "Find Edges", category: "Drawing & edges"),
-        VexelEffectItem(id: "outline", name: "Outline", category: "Drawing & edges"),
-        VexelEffectItem(id: "emboss", name: "Emboss", category: "Drawing & edges"),
-        VexelEffectItem(id: "sketch", name: "Sketch", category: "Drawing & edges"),
-        VexelEffectItem(id: "fractalNoise", name: "Fractal Noise", category: "Procedural"),
-        VexelEffectItem(id: "gradientRamp", name: "Two-point Gradient", category: "Procedural"),
-        VexelEffectItem(id: "checkerboard", name: "Checkerboard", category: "Procedural"),
-        VexelEffectItem(id: "grid", name: "Grid", category: "Procedural"),
-        VexelEffectItem(id: "chromaKey", name: "Chroma Key", category: "Matte, mask & key"),
-        VexelEffectItem(id: "lumaKey", name: "Luma Key", category: "Matte, mask & key"),
-        VexelEffectItem(id: "spillSuppressor", name: "Spill Remover", category: "Matte, mask & key"),
-        VexelEffectItem(id: "matteChoker", name: "Matte Edge Trim", category: "Matte, mask & key"),
-        VexelEffectItem(id: "echo", name: "Echo", category: "Time & transition"),
-        VexelEffectItem(id: "posterizeTime", name: "Frame Rate Reducer", category: "Time & transition"),
-        VexelEffectItem(id: "strobe", name: "Strobe", category: "Time & transition"),
-        VexelEffectItem(id: "timeSlice", name: "TimeSlice", category: "Time & transition"),
-        VexelEffectItem(id: "depthMap", name: "Depth Map", category: "Utility & expression"),
-        VexelEffectItem(id: "channelShuffle", name: "Channel Shuffle", category: "Utility & expression"),
-        VexelEffectItem(id: "alphaFromLuma", name: "Set Alpha from Luma", category: "Utility & expression"),
-        VexelEffectItem(id: "copyBackground", name: "Copy Background", category: "Utility & expression")
-    ]
+    static let categories: [String] = registry.categories.map(\.en)
+    static let all: [VexelEffectItem] = registry.effects.map(VexelEffectItem.init)
+    static let effectCount = all.count
+
+    static func categoryName(for id: String) -> String {
+        registry.categories.first(where: { $0.id == id })?.en ?? id
+    }
+
+    static func effects(in category: String) -> [VexelEffectItem] {
+        guard category == "All effects" else {
+            return all.filter { $0.category == category }
+        }
+        return all
+    }
+
+    static func search(_ query: String) -> [VexelEffectItem] {
+        let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return all }
+        return all.filter {
+            $0.name.localizedCaseInsensitiveContains(value) ||
+            $0.id.localizedCaseInsensitiveContains(value) ||
+            $0.category.localizedCaseInsensitiveContains(value)
+        }
+    }
 }
