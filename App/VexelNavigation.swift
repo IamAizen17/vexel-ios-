@@ -40,6 +40,7 @@ enum HomeDestination: String, CaseIterable {
 
 struct VexelRootView: View {
     @AppStorage("vexel.onboarding.complete") private var onboardingComplete = false
+    @AppStorage("vexel.theme") private var theme = "dark"
     @State private var activeProject: VexelProjectItem?
     @State private var projects: [VexelProjectItem] = []
 
@@ -66,7 +67,7 @@ struct VexelRootView: View {
                 )
             }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(theme == "system" ? nil : (theme == "light" ? .light : .dark))
         .tint(VexelPalette.accent)
     }
 }
@@ -460,7 +461,6 @@ private struct NewProjectSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     private func numericField(_ label: String, value: Binding<Double>) -> some View {
@@ -608,6 +608,5 @@ struct VexelPluginsPage: View {
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .fileImporter(isPresented: $showingInstall, allowedContentTypes: [.data, .zip], allowsMultipleSelection: false) { _ in }
         }
-        .preferredColorScheme(.dark)
     }
 }
