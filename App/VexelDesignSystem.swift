@@ -36,10 +36,10 @@ extension Color {
 }
 
 enum VexelMotion {
-    static let navigation = Animation.spring(response: 0.48, dampingFraction: 0.88, blendDuration: 0.12)
-    static let panel = Animation.spring(response: 0.38, dampingFraction: 0.82, blendDuration: 0.1)
-    static let interactive = Animation.spring(response: 0.3, dampingFraction: 0.76, blendDuration: 0.08)
-    static let timeline = Animation.spring(response: 0.24, dampingFraction: 0.9, blendDuration: 0.05)
+    static let navigation = Animation.interpolatingSpring(stiffness: 170, damping: 25)
+    static let panel = Animation.interpolatingSpring(stiffness: 220, damping: 28)
+    static let interactive = Animation.interpolatingSpring(stiffness: 320, damping: 24)
+    static let timeline = Animation.interpolatingSpring(stiffness: 420, damping: 32)
 }
 
 struct VexelPressStyle: ButtonStyle {
