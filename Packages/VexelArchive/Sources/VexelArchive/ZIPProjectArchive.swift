@@ -22,7 +22,6 @@ public enum ZIPProjectArchiveError: Error, Equatable {
     case archiveTooLarge
     case missingProjectDocument
     case missingAsset(String)
-    case legacyFormatExportNotSupported
 }
 
 public struct ZIPProjectArchive: Sendable {
@@ -81,15 +80,10 @@ public struct ZIPProjectArchive: Sendable {
                 }
             }
             guard let projectData else { throw ZIPProjectArchiveError.missingProjectDocument }
-            let project = try ProjectDocument(data: projectData)
+            let project = try LegacyProjectAdapter.importDocument(from: projectData)
             let issues = project.validate().filter { $0.severity == .error }
             guard issues.isEmpty else {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")))
-            }
-            let archivedAssets = Set(seen)
-            for asset in project.fields["assets"]?.arrayValue ?? [] {
-                guard let path = asset.objectValue?["path"]?.stringValue else { continue }
-                guard archivedAssets.contains(path) else { throw ZIPProjectArchiveError.missingAsset(path) }
             }
             let archivedAssets = Set(seen)
             for asset in project.fields["assets"]?.arrayValue ?? [] {
@@ -104,10 +98,6 @@ public struct ZIPProjectArchive: Sendable {
     }
 
     public func write(_ project: ProjectDocument, assetsDirectory: URL? = nil, to archiveURL: URL) throws {
-        let format = project.fields["format"]?.stringValue
-        guard format == ProjectDocument.format || format == "knsproj" else {
-            throw ZIPProjectArchiveError.legacyFormatExportNotSupported
-        }
         let issues = project.validate().filter { $0.severity == .error }
         guard issues.isEmpty else {
             throw EncodingError.invalidValue(project, .init(codingPath: [], debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")))
