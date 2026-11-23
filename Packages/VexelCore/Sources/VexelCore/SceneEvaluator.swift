@@ -218,6 +218,11 @@ public enum SceneEvaluator {
            let x = array[0].numberValue, let y = array[1].numberValue {
             return ScenePoint(x: x, y: y)
         }
+        if let object = value.objectValue,
+           let x = object["x"]?.numberValue,
+           let y = object["y"]?.numberValue {
+            return ScenePoint(x: x, y: y)
+        }
         if let number = value.numberValue { return ScenePoint(x: number, y: number) }
         return fallback
     }
