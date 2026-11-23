@@ -110,6 +110,43 @@ final class VexelProjectImporterTests: XCTestCase {
         XCTAssertThrowsError(try VexelProjectImporter.importDocument(from: project.encoded()))
     }
 
+
+    func testAndroidReferenceFixturesImportAndRoundTripPreservesNestedData() throws {
+        for name in ["android-v2-group", "android-v2-video-audio", "android-v2-track-matte-transitions"] {
+            let imported = try VexelProjectImporter.importDocument(from: androidFixture(name))
+            XCTAssertEqual(imported.fields["format"]?.stringValue, ProjectDocument.format, name)
+            XCTAssertEqual(imported.fields["compatibility"]?.objectValue?["sourceVersion"]?.numberValue, 2, name)
+
+            let exported = try imported.encoded()
+            let reopened = try ProjectDocument(data: exported)
+            XCTAssertEqual(reopened, imported, name)
+        }
+    }
+
+    func testAndroidGroupFixturePreservesUnknownFieldsRecursively() throws {
+        let imported = try VexelProjectImporter.importDocument(from: androidFixture("android-v2-group"))
+        let group = try XCTUnwrap(imported.fields["layers"]?.arrayValue?.first?.objectValue)
+        XCTAssertEqual(group["futureGroupField"]?.objectValue?["revision"]?.numberValue, 7)
+
+        let child = try XCTUnwrap(group["layers"]?.arrayValue?.first?.objectValue)
+        let nested = try XCTUnwrap(group["layers"]?.arrayValue?[1].objectValue)
+        XCTAssertEqual(nested["futureNestedField"]?.objectValue?["mustSurvive"]?.arrayValue?.count, 2)
+        XCTAssertEqual(child["id"]?.stringValue, "plate")
+    }
+
+    func testAndroidAudioLayerWithoutPayloadKeepsAudioDiscriminator() throws {
+        let imported = try VexelProjectImporter.importDocument(from: androidFixture("android-v2-video-audio"))
+        let layers = try XCTUnwrap(imported.fields["layers"]?.arrayValue)
+        let audio = try XCTUnwrap(layers.first { $0.objectValue?["id"]?.stringValue == "audio-without-payload" }?.objectValue)
+        XCTAssertEqual(audio["type"]?.stringValue, "audio")
+        XCTAssertNil(audio["audio"])
+    }
+
+    private func androidFixture(_ name: String) throws -> Data {
+        let url = try XCTUnwrap(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
+        return try Data(contentsOf: url)
+    }
+
     private func legacyProject(version: Int, layers: [JSONValue] = []) -> ProjectDocument {
         var fields = ProjectDocument.starter(title: "Legacy fixture").fields
         fields["format"] = .string("knsproj")
