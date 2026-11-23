@@ -10,6 +10,7 @@ extension VexelProjectItem {
         let duration = composition["duration"]?.numberValue ?? 10
         self.init(title: document.title, width: width, height: height, fps: fps, duration: duration)
         documentJSON = String(data: (try? document.encoded()) ?? Data(), encoding: .utf8)
+        assetsDirectory = nil
         timelineTracks = (document.fields["layers"]?.arrayValue ?? []).compactMap(Self.track(from:))
         layerNames = Self.flattenNames(timelineTracks)
         markers = (document.fields["markers"]?.arrayValue ?? []).compactMap { value in
