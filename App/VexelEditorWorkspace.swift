@@ -11,7 +11,8 @@ enum VexelEditorTool: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var isAvailable: Bool {
         switch self {
-        case .layers, .shapes, .text, .media, .effects: return true
+        case .layers, .shapes, .text, .effects: return true
+        case .media: return false
         case .model3D, .motion, .audio, .camera, .captions, .elements, .plugins: return false
         }
     }
@@ -341,7 +342,7 @@ struct VexelEditorWorkspace: View {
                 actionItem("Group", symbol: "square.3.layers.3d") { groupSelectedWithNextTrack() }
                 actionItem("Duplicate", symbol: "plus.square.on.square") { duplicateSelectedTrack() }
                 Menu {
-                    Button { selectedTool = .audio } label: { Label("Audio controls", systemImage: "waveform") }
+                    Button {} label: { Label("Audio controls (unavailable)", systemImage: "waveform") }.disabled(true)
                     Button {} label: { Label("Extract audio (unavailable)", systemImage: "waveform.badge.plus") }.disabled(true)
                     Button {} label: { Label("Remove background (unavailable)", systemImage: "person.crop.rectangle") }.disabled(true)
                     Button {} label: { Label("Stabilize (unavailable)", systemImage: "scope") }.disabled(true)
