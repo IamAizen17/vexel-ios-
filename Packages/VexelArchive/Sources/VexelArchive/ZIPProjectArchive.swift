@@ -50,7 +50,7 @@ public struct ZIPProjectArchive: Sendable {
             for entry in archive {
                 entryCount += 1
                 guard entryCount <= Self.maximumEntries else { throw ZIPProjectArchiveError.tooManyEntries }
-                let path = try Self.normalizedPath(entry.path)
+                let path = try Self.normalizedPath(entry.path, isDirectory: entry.type == .directory)
                 guard seen.insert(path).inserted else { throw ZIPProjectArchiveError.duplicateEntry(path) }
                 guard entry.type != .symlink else { throw ZIPProjectArchiveError.unsupportedEntryType(path) }
                 if entry.type == .directory { continue }
