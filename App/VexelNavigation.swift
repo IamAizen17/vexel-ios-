@@ -75,11 +75,14 @@ struct VexelRootView: View {
 struct VexelOnboardingView: View {
     let onComplete: () -> Void
     @State private var page = 0
+    @AppStorage("vexel.theme") private var theme = "dark"
+    @AppStorage("vexel.language") private var language = "system"
 
     private let slides: [(String, String, String)] = [
         ("square.stack.3d.up", "Motion without limits", "Build layered 2D and 3D compositions with a timeline designed for precision."),
         ("waveform.path", "Animate every detail", "Keyframes, curves, effects, masks and audio tools work together in one workspace."),
-        ("square.and.arrow.up", "Create. Refine. Export.", "Bring your media in, shape the motion, and prepare a clean final render.")
+        ("curlybraces", "Expressions and control", "Create repeatable motion with keyframes, easing and procedural expressions."),
+        ("slider.horizontal.3", "Make it yours", "Choose your interface language and appearance before entering the workspace.")
     ]
 
     var body: some View {
@@ -87,7 +90,9 @@ struct VexelOnboardingView: View {
             HStack {
                 Text("VEXEL").font(.system(size: 15, weight: .black, design: .rounded)).tracking(3)
                 Spacer()
-                Text("INTRODUCTION").font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundStyle(VexelPalette.secondary)
+                Button("Skip", action: onComplete)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(VexelPalette.secondary)
             }
             .foregroundStyle(VexelPalette.text)
             .padding(22)
@@ -111,6 +116,31 @@ struct VexelOnboardingView: View {
                 .lineSpacing(5)
                 .frame(maxWidth: 310)
                 .padding(.top, 10)
+
+            if page == 3 {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("LANGUAGE").font(.system(size: 9, weight: .bold)).tracking(1.3).foregroundStyle(VexelPalette.secondary)
+                        Picker("Language", selection: $language) {
+                            Text("System").tag("system")
+                            Text("English").tag("en")
+                            Text("Português").tag("pt")
+                        }.pickerStyle(.segmented)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("APPEARANCE").font(.system(size: 9, weight: .bold)).tracking(1.3).foregroundStyle(VexelPalette.secondary)
+                        Picker("Appearance", selection: $theme) {
+                            Text("Dark").tag("dark")
+                            Text("Light").tag("light")
+                            Text("System").tag("system")
+                        }.pickerStyle(.segmented)
+                    }
+                }
+                .padding(16)
+                .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 22)
+                .padding(.top, 20)
+            }
             Spacer()
 
             HStack(spacing: 7) {
@@ -191,9 +221,7 @@ struct VexelHomeView: View {
                 guard let url = urls.first else { return }
                 let access = url.startAccessingSecurityScopedResource()
                 defer { if access { url.stopAccessingSecurityScopedResource() } }
-                let project = VexelProjectItem(title: url.deletingPathExtension().lastPathComponent)
-                projects.insert(project, at: 0)
-                notice = "Imported file selected. The .knsproj parser will be connected in the project-format milestone."
+                notice = "Selected \(url.lastPathComponent). Import will be enabled when the secure .knsproj archive adapter is connected."
             case .failure(let error):
                 notice = error.localizedDescription
             }
@@ -480,6 +508,8 @@ struct VexelSettingsPage: View {
     @AppStorage("vexel.previewQuality") private var previewQuality = 1.0
     @AppStorage("vexel.previewScale") private var previewScale = 1.0
     @AppStorage("vexel.theme") private var theme = "dark"
+    @AppStorage("vexel.language") private var language = "system"
+    @AppStorage("vexel.safeSnapshots") private var safeSnapshots = true
 
     var body: some View {
         ScrollView {
@@ -492,6 +522,11 @@ struct VexelSettingsPage: View {
                     settingRow("Theme", detail: theme.capitalized + " appearance", symbol: "moon.stars") {
                         Picker("Theme", selection: $theme) {
                             Text("Dark").tag("dark"); Text("Light").tag("light"); Text("System").tag("system")
+                        }.pickerStyle(.menu).tint(VexelPalette.accent)
+                    }
+                    settingRow("Language", detail: language == "system" ? "Follow device language" : (language == "pt" ? "Português" : "English"), symbol: "globe") {
+                        Picker("Language", selection: $language) {
+                            Text("System").tag("system"); Text("English").tag("en"); Text("Português").tag("pt")
                         }.pickerStyle(.menu).tint(VexelPalette.accent)
                     }
                 }
@@ -516,8 +551,17 @@ struct VexelSettingsPage: View {
                     }
                     .font(.system(size: 12)).foregroundStyle(VexelPalette.text).padding(.vertical, 5)
                 }
-                settingsGroup("STORAGE") {
+                settingsGroup("STORAGE & SAFETY") {
                     settingToggle("Mirror projects to Files", detail: "Keep project copies in the Files app", symbol: "folder", value: $mirrorProjects)
+                    settingToggle("Recovery snapshots", detail: "Keep periodic recovery copies while editing", symbol: "clock.arrow.circlepath", value: $safeSnapshots)
+                }
+                settingsGroup("INFORMATION") {
+                    settingRow("Project format", detail: ".vexelproj · native project", symbol: "doc.zipper") {
+                        Text("v1").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
+                    }
+                    settingRow("Third-party licenses", detail: "Open-source notices and attributions", symbol: "text.book.closed") {
+                        Text("GPL-3.0").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
+                    }
                 }
                 settingsGroup("EXTENSIONS") {
                     Button(action: onPlugins) {
