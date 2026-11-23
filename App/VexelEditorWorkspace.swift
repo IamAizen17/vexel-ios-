@@ -736,9 +736,9 @@ struct VexelEditorWorkspace: View {
         duration: Double
     ) -> VexelTimelineTrack {
         let transform: JSONValue = .object([
-            "anchor": .array([.number(0), .number(0)]),
-            "position": .array([.number(0), .number(0)]),
-            "scale": .array([.number(1), .number(1)]),
+            "anchor": .object(["x": .number(0), "y": .number(0)]),
+            "position": .object(["x": .number(0), "y": .number(0)]),
+            "scale": .object(["x": .number(1), "y": .number(1)]),
             "rotation": .number(0),
             "opacity": .number(1)
         ])
