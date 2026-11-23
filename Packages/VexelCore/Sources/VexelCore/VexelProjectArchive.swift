@@ -213,33 +213,29 @@ public struct VexelProjectArchive {
     ) throws {
         let fileManager = FileManager.default
         try fileManager.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
-        guard let enumerator = fileManager.enumerator(
-            at: assetsDirectory,
-            includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey],
-            options: [.skipsPackageDescendants]
-        ) else {
-            throw VexelProjectArchiveError.cannotWriteArchive
-        }
 
         var files: [(String, URL)] = []
         var totalBytes = UInt64(projectData.count)
         let referencedAssets = Set((try JSONDecoder().decode(JSONValue.self, from: projectData))
             .objectValue?["assets"]?.arrayValue?.compactMap { $0.objectValue?["path"]?.stringValue } ?? [])
 
-        for case let fileURL as URL in enumerator {
-            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
-            if values.isSymbolicLink == true {
-                throw VexelProjectArchiveError.symbolicLinkNotAllowed(fileURL.lastPathComponent)
-            }
-            guard values.isRegularFile == true else { continue }
-            let relativePath = String(fileURL.path.dropFirst(assetsDirectory.path.count + 1))
+        for relativePath in try fileManager.subpathsOfDirectory(atPath: assetsDirectory.path) {
             guard let safePath = KnsprojArchiveImporter.normalizedPath(relativePath), safePath == relativePath else {
                 throw VexelProjectArchiveError.unsafePath(relativePath)
             }
             if safePath == "project.json" { continue }
             if safePath == "thumbnail.jpg", thumbnailJPEG != nil { continue }
-            let size = try fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-            let (next, overflow) = totalBytes.addingReportingOverflow(UInt64(size))
+
+            let fileURL = assetsDirectory.appendingPathComponent(relativePath)
+            let attributes = try fileManager.attributesOfItem(atPath: fileURL.path)
+            let type = attributes[.type] as? FileAttributeType
+            if type == .typeSymbolicLink {
+                throw VexelProjectArchiveError.symbolicLinkNotAllowed(relativePath)
+            }
+            guard type == .typeRegular else { continue }
+
+            let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
+            let (next, overflow) = totalBytes.addingReportingOverflow(size)
             guard !overflow, next <= Self.maximumUncompressedBytes else {
                 throw VexelProjectArchiveError.archiveTooLarge
             }
