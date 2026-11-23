@@ -34,8 +34,8 @@ extension VexelProjectItem {
             document = ProjectDocument.starter(title: title)
         }
         var fields = document.fields
-        fields["format"] = .string("knsproj")
-        fields["formatVersion"] = .number(12)
+        fields["format"] = .string(ProjectDocument.format)
+        fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
         fields["generator"] = .string("Vexel iOS")
         var meta = fields["meta"]?.objectValue ?? [:]
         meta["title"] = .string(title)
