@@ -2,7 +2,7 @@
 
 ## Locked product decisions
 - iPhone and iPad from the first supported release.
-- Full feature parity with the accessible Kinesis Editor reference.
+- Full feature parity with the accessible Android reference editor reference.
 - Original Vexel interface designed for touch and adaptive iPad workspaces.
 - Native project extension: .vexelproj.
 - Development workflow supports phone-based editing and cloud macOS builds.
