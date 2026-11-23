@@ -5,7 +5,7 @@ enum VexelPalette {
     static let background = Color.adaptive(dark: 0x06050E, light: 0xF4F2FC)
     static let bar = Color.adaptive(dark: 0x0E0C1A, light: 0xFFFFFF)
     static let sheet = Color.adaptive(dark: 0x12102A, light: 0xFFFFFF)
-    static let card = Color.adaptive(dark: 0x14112B, light: 0xE9E5F7)
+    static let card = Color.adaptive(dark: 0x14112B, light: 0xFFFFFF)
     static let field = Color.adaptive(dark: 0x1C1840, light: 0xEEEAFB)
     static let line = Color.adaptive(dark: 0x2C2650, light: 0xD3CCEB)
     static let text = Color.adaptive(dark: 0xF1EEFF, light: 0x1A1530)
@@ -17,7 +17,7 @@ enum VexelPalette {
     static let amber = Color.adaptive(dark: 0xFFC857, light: 0xC98A00)
     static let blue = Color.adaptive(dark: 0x5EA8FF, light: 0x2D6BC5)
     static let preview = Color(hex: 0x0E1016)
-    static let lane = Color(hex: 0x14112B)
+    static let lane = Color.adaptive(dark: 0x14112B, light: 0xE9E5F7)
     static let clipAudio = Color.adaptive(dark: 0xC2385E, light: 0xC2385E)
     static let clipText = Color.adaptive(dark: 0x6D45E8, light: 0x5B3FD6)
 }
