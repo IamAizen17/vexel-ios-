@@ -120,8 +120,9 @@ public struct ZIPProjectArchive: Sendable {
         try manager.moveItem(at: partialURL, to: archiveURL)
     }
 
-    private static func normalizedPath(_ raw: String) throws -> String {
-        let path = raw.replacingOccurrences(of: "\\", with: "/")
+    private static func normalizedPath(_ raw: String, isDirectory: Bool = false) throws -> String {
+        var path = raw.replacingOccurrences(of: "\\", with: "/")
+        if isDirectory { while path.hasSuffix("/") { path.removeLast() } }
         let components = path.split(separator: "/", omittingEmptySubsequences: false)
         guard !path.isEmpty, !path.hasPrefix("/"), !path.contains(":"),
               !components.isEmpty,
