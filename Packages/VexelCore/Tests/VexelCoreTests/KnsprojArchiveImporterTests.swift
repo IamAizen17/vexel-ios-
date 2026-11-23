@@ -113,6 +113,52 @@ final class KnsprojArchiveImporterTests: XCTestCase {
         }
     }
 
+
+    func testAppliesKinesisDefaultsToSparseLegacyProject() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let archiveURL = root.appendingPathComponent("sparse.knsproj")
+        let json = """
+        {"format":"knsproj","formatVersion":2}
+        """.data(using: .utf8)!
+        try createArchive(at: archiveURL, entries: [("project.json", json)])
+
+        let result = try KnsprojArchiveImporter().importProject(from: archiveURL, into: root)
+
+        XCTAssertTrue(result.project.validate().isEmpty)
+        XCTAssertEqual(result.project.title, "Untitled")
+        XCTAssertEqual(result.project.compositionSize.width, 1080)
+        XCTAssertEqual(result.project.compositionSize.height, 1920)
+        XCTAssertEqual(result.project.layerCount, 0)
+    }
+
+    func testMigratesVersionOneColorAdjustEffect() throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let archiveURL = root.appendingPathComponent("v1.knsproj")
+        let json = """
+        {
+          "format": "knsproj",
+          "formatVersion": 1,
+          "composition": {"width": 1080, "height": 1920, "fps": 30, "duration": 5},
+          "layers": [{
+            "id": "title",
+            "type": "text",
+            "effects": [{"type": "colorAdjust", "hue": 12, "brightness": 0.2, "contrast": 1.1, "saturation": 0.4}]
+          }]
+        }
+        """.data(using: .utf8)!
+        try createArchive(at: archiveURL, entries: [("project.json", json)])
+
+        let result = try KnsprojArchiveImporter().importProject(from: archiveURL, into: root)
+        let effects = result.project.fields["layers"]?.arrayValue?.first?.objectValue?["effects"]?.arrayValue
+
+        XCTAssertEqual(effects?.count, 3)
+        XCTAssertEqual(effects?[0].objectValue?["type"]?.stringValue, "hueShift")
+        XCTAssertEqual(effects?[1].objectValue?["type"]?.stringValue, "brightnessContrast")
+        XCTAssertEqual(effects?[2].objectValue?["type"]?.stringValue, "saturation")
+    }
+
     private func validProjectJSON() -> Data {
         """
         {

@@ -145,7 +145,26 @@ public struct KnsprojArchiveImporter {
             throw KnsprojImportError.missingOrInvalidFormat
         }
         let sourceVersion = Int(versionNumber)
-        let migratedFields = Self.migrate(originalFields, from: sourceVersion)
+        var migratedFields = Self.migrate(originalFields, from: sourceVersion)
+        var meta = migratedFields["meta"]?.objectValue ?? [:]
+        if meta["title"] == nil { meta["title"] = .string("Untitled") }
+        migratedFields["meta"] = .object(meta)
+
+        var composition = migratedFields["composition"]?.objectValue ?? [:]
+        let compositionDefaults: [String: JSONValue] = [
+            "width": .number(1080),
+            "height": .number(1920),
+            "fps": .number(30),
+            "duration": .number(10),
+            "background": .array([.number(0.05), .number(0.05), .number(0.07)])
+        ]
+        for (key, value) in compositionDefaults where composition[key] == nil {
+            composition[key] = value
+        }
+        migratedFields["composition"] = .object(composition)
+        for key in ["assets", "markers", "layers"] where migratedFields[key] == nil {
+            migratedFields[key] = .array([])
+        }
 
         let projectDirectory = destination.appendingPathComponent("Imported-\(UUID().uuidString)", isDirectory: true)
         do {

@@ -3,15 +3,16 @@
 A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
 rendering, and AVFoundation media pipeline.
 
-**Current status:** foundation milestone. The repository now contains a Swift package for loss-preserving project
-documents, an initial universal SwiftUI workspace, and a GitHub Actions workflow that tests the core and builds an
-unsigned device IPA on GitHub-hosted macOS runners. Full editor parity is not implemented yet.
+**Current status:** project-import milestone. The repository contains a universal SwiftUI app, a testable Swift core,
+a secure .knsproj ZIP importer with version 1–12 migration handling, and a GitHub Actions workflow that builds an
+unsigned device IPA. Timeline editing, rendering, effects, audio and export parity remain in progress.
 
 ## Repository structure
 
 - `App/`: SwiftUI iOS application.
 - `Packages/VexelCore/`: platform-independent project and editing core.
 - `.github/workflows/ios-ipa.yml`: CI tests and unsigned IPA packaging.
+- `KnsprojArchiveImporter`: Kinesis project import, migration and asset extraction.
 - `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
 ## Build without owning a Mac
@@ -19,6 +20,13 @@ unsigned device IPA on GitHub-hosted macOS runners. Full editor parity is not im
 Push a commit or run **Actions → iOS Build → Run workflow**. After the workflow succeeds, download the
 `Vexel-unsigned-IPA` artifact. It is an unsigned build artifact, not directly installable on a physical iPhone.
 Device installation requires signing and a provisioning profile. See [docs/BUILDING.md](docs/BUILDING.md).
+
+## Current import capability
+
+Use the folder icon in the workspace to select a .knsproj file. Vexel extracts its media into Application Support,
+migrates supported source versions to the v12 document shape, and retains the original source document in the
+compatibility metadata. The imported project is not yet fully editable or renderable; the layer and effect engines
+are being ported separately.
 
 ## Development
 
