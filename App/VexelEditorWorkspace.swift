@@ -71,13 +71,12 @@ struct VexelEditorWorkspace: View {
     }
 
     private var availablePropertyTabs: [String] {
+        guard let kind = selectedTimelineTrack?.kind else { return ["Composition"] }
         var tabs = ["Transform"]
-        if selectedTimelineTrack?.kind == .text { tabs.append("Text") }
-        if selectedTimelineTrack?.kind != .audio { tabs.append("Effects") }
-        if selectedTimelineTrack?.kind == .visual || selectedTimelineTrack?.kind == .text || selectedTimelineTrack?.kind == .group {
-            tabs.append("Masks")
-        }
-        if selectedTimelineTrack?.kind != .audio { tabs.append("Transitions") }
+        if kind == .text { tabs.append("Text") }
+        if kind != .audio { tabs.append("Effects") }
+        if kind == .visual || kind == .text || kind == .group { tabs.append("Masks") }
+        if kind != .audio { tabs.append("Transitions") }
         return tabs
     }
 
@@ -175,6 +174,7 @@ struct VexelEditorWorkspace: View {
             layerNames = project.layerNames
             synchronizeTimelineTracks(project.layerNames)
         }
+        .onChange(of: selectedTrackID) { _ in selectedTab = "Transform" }
         .onChange(of: layerNames) { names in
             project.layerNames = names
             project.modified = Date()
