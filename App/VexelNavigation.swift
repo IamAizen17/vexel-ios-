@@ -52,25 +52,30 @@ struct VexelRootView: View {
         Group {
             if !onboardingComplete {
                 VexelOnboardingView {
-                    onboardingComplete = true
+                    withAnimation(VexelMotion.navigation) { onboardingComplete = true }
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.985)))
             } else if let project = activeProject {
                 VexelEditorWorkspace(
                     project: project,
-                    onClose: { activeProject = nil },
+                    onClose: { withAnimation(VexelMotion.navigation) { activeProject = nil } },
                     onProjectChange: { updated in
                         if let index = projects.firstIndex(where: { $0.id == updated.id }) {
                             projects[index] = updated
                         }
                     }
                 )
+                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .trailing).combined(with: .opacity)))
             } else {
                 VexelHomeView(
                     projects: $projects,
-                    onOpen: { activeProject = $0 }
+                    onOpen: { project in withAnimation(VexelMotion.navigation) { activeProject = project } }
                 )
+                .transition(.asymmetric(insertion: .move(edge: .leading).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
             }
         }
+        .animation(VexelMotion.navigation, value: activeProject?.id)
+        .animation(VexelMotion.navigation, value: onboardingComplete)
         .preferredColorScheme(theme == "system" ? nil : (theme == "light" ? .light : .dark))
         .tint(VexelPalette.accent)
     }
