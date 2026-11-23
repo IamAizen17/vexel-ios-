@@ -72,7 +72,7 @@ public struct ZIPProjectArchive: Sendable {
                     var data = Data()
                     _ = try archive.extract(entry, consumer: { chunk in data.append(chunk) })
                     let decoded = try ProjectDocument(data: data)
-                    project = try LegacyAndroidProjectAdapter.importDocument(decoded)
+                    project = try VexelCompatibilityImporter.importDocument(decoded)
                     continue
                 }
 
