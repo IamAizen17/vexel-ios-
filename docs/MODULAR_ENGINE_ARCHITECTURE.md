@@ -115,7 +115,7 @@ Errors are typed by subsystem: project decoding/validation, unsupported feature,
 ## Delivery sequence
 
 1. Module boundaries and compileable package graph.
-2. Canonical typed project model, v12 importer and secure archive.
+2. Canonical typed project model, legacy schema v12 importer and secure Vexel archive.
 3. Animation sampler, timeline commands, history and scene evaluator.
 4. Metal device/pipeline/resource layer and baseline 2D graph.
 5. Effect registry execution and shader families, with pixel goldens.
