@@ -387,9 +387,12 @@ struct VexelHomeView: View {
                             }, onDelete: { deletingProject = project }, onExport: {
                                 do {
                                     let document = try project.makeProjectDocument()
-                                    let fileExtension = "vexelproj"
+                                    let safeTitle = project.title
+                                        .replacingOccurrences(of: "/", with: "-")
+                                        .replacingOccurrences(of: "\\", with: "-")
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
                                     let destination = FileManager.default.temporaryDirectory
-                                        .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).\(fileExtension)")
+                                        .appendingPathComponent("\(safeTitle.isEmpty ? "Untitled" : safeTitle).vexelproj")
                                     let assets = project.assetsDirectory.map(URL.init(fileURLWithPath:))
                                     try ZIPProjectArchive().write(document, assetsDirectory: assets, to: destination)
                                     sharingProjectURL = destination
