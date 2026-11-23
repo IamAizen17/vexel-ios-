@@ -18,7 +18,7 @@ Pin source files, read source project serializers and every migration, inspect s
 Exit: typed field matrix for format v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
 
 ## Stage 3 - Project foundation
-Create typed Swift project models with unknown-field preservation. Implement secure native `.vexelproj` read/write and legacy Android archive importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
+Create typed Swift project models with unknown-field preservation. Implement secure native `.vexelproj` read/write and Vexel project compatibility importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
 
 Exit: source projects import, preserve unknown data, save/reopen and pass structural equivalence tests.
 
