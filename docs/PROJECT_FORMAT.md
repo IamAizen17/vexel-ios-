@@ -9,7 +9,7 @@
 - Format identifier: `vexelproj`
 - Initial format version: 1
 
-The MIME type and extension are Vexel-owned identifiers and must be registered consistently in document type declarations and export metadata.
+The MIME type and extension are Vexel-owned identifiers and are registered in the XcodeGen project configuration as the app's exported document type.
 
 ## Native package layout
 
