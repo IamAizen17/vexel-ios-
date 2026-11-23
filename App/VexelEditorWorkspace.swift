@@ -399,6 +399,10 @@ struct VexelEditorWorkspace: View {
         case "show-plugins": selectedTool = .plugins
         case "add-layer": layerNames.insert("New Layer", at: 0); selectedTool = nil
         case "add-keyframe": showingNotice = "Keyframe controls will connect to the animation engine."
+        case "shortcut:mask": showingNotice = "Mask editor is part of the UI port. Mask geometry and compositing will connect to the scene engine."
+        case "shortcut:track-matte": showingNotice = "Track matte controls are represented here. Alpha and luma matte evaluation will connect to the renderer."
+        case "shortcut:transitions": showingNotice = "Transition controls will connect to the layer transition model and scene evaluator."
+        case "shortcut:text-animators": showingNotice = "Text animator controls will connect to text animation evaluation."
         default:
             if action.hasPrefix("effect:") {
                 showingNotice = "Effect selected. The 73-effect registry will be connected to the effect engine."
