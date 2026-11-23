@@ -180,17 +180,26 @@ struct VexelEditorWorkspace: View {
             Button("OK", role: .cancel) { showingNotice = nil }
         } message: { Text(showingNotice ?? "") }
         .onAppear {
-            layerNames = project.layerNames
-            synchronizeTimelineTracks(project.layerNames)
-        }
-        .onChange(of: selectedTrackID) { _ in selectedTab = "Transform" }
-        .onChange(of: layerNames) { names in
-            project.layerNames = names
-            synchronizeTimelineTracks(names)
-            project.modified = Date()
+            layerNames = flattenTrackNames(project.timelineTracks)
+            project.layerNames = layerNames
+            if selectedTrackID == nil { selectedTrackID = project.timelineTracks.first?.id }
+            project.synchronizeDocument()
             onProjectChange(project)
         }
-        .onChange(of: project) { updated in onProjectChange(updated) }
+        .onChange(of: selectedTrackID) { _ in selectedTab = "Transform" }
+        .onChange(of: project.timelineTracks) { tracks in
+            layerNames = flattenTrackNames(tracks)
+            project.layerNames = layerNames
+            project.modified = Date()
+            project.synchronizeDocument()
+            onProjectChange(project)
+        }
+        .onChange(of: project) { updated in
+            var snapshot = updated
+            snapshot.layerNames = flattenTrackNames(snapshot.timelineTracks)
+            snapshot.synchronizeDocument()
+            onProjectChange(snapshot)
+        }
         .onChange(of: currentTime) { _ in project.modified = Date() }
         .task(id: isPlaying) {
             guard isPlaying else { return }
@@ -316,20 +325,8 @@ struct VexelEditorWorkspace: View {
         )
     }
 
-    private func synchronizeTimelineTracks(_ names: [String]) {
-        var existing = project.timelineTracks
-        for name in names where !existing.contains(where: { $0.name == name }) {
-            let kind: VexelTimelineTrack.Kind
-            switch name {
-            case "Text Layer", "Caption Layer": kind = .text
-            case "Cube", "Sphere", "Cylinder", "Cone", "Plane", "Torus", "Text 3D", "Model 3D": kind = .rendered3D
-            default: kind = .visual
-            }
-            existing.append(VexelTimelineTrack(name: name, duration: project.duration, kind: kind))
-        }
-        existing.removeAll { !names.contains($0.name) }
-        project.timelineTracks = existing
-        if selectedTrackID == nil { selectedTrackID = existing.first?.id }
+    private func flattenTrackNames(_ tracks: [VexelTimelineTrack]) -> [String] {
+        tracks.flatMap { [$0.name] + flattenTrackNames($0.children) }
     }
 
     private var selectionBar: some View {
@@ -424,9 +421,10 @@ struct VexelEditorWorkspace: View {
         if undoStack.count > 100 { undoStack.removeFirst() }
         redoStack.removeAll()
         mutation()
-        project.layerNames = layerNames
+        project.layerNames = flattenTrackNames(project.timelineTracks)
+        layerNames = project.layerNames
         project.modified = Date()
-        synchronizeTimelineTracks(layerNames)
+        project.synchronizeDocument()
         onProjectChange(project)
     }
 
@@ -478,7 +476,9 @@ struct VexelEditorWorkspace: View {
             isExpanded: source.isExpanded,
             children: source.children.map { cloneTrack($0) },
             keyframes: source.keyframes,
-            effects: source.effects
+            effects: source.effects,
+            sourceType: source.sourceType,
+            sourceJSON: source.sourceJSON
         )
     }
 
@@ -526,8 +526,9 @@ struct VexelEditorWorkspace: View {
         commitEdit {
             let found = updateTrack(id: selectedTrackID, in: &project.timelineTracks) { track in
                 guard frameTime >= track.start, frameTime <= track.start + track.duration else { return }
-                if !track.keyframes.contains(where: { abs($0 - frameTime) < 0.0001 }) {
-                    track.keyframes.append(frameTime)
+                let localTime = frameTime - track.start
+                if !track.keyframes.contains(where: { abs($0 - localTime) < 0.0001 }) {
+                    track.keyframes.append(localTime)
                     track.keyframes.sort()
                 }
             }
@@ -551,10 +552,11 @@ struct VexelEditorWorkspace: View {
         commitEdit {
             var left = source
             left.duration = splitTime - source.start
-            left.keyframes = source.keyframes.filter { $0 <= splitTime }
+            let localSplitTime = splitTime - source.start
+            left.keyframes = source.keyframes.filter { $0 <= localSplitTime }
             let rightName = uniqueLayerName(source.name + " Split")
             var right = cloneTrack(source, name: rightName, start: splitTime, duration: end - splitTime)
-            right.keyframes = source.keyframes.filter { $0 >= splitTime }.map { $0 - splitTime }
+            right.keyframes = source.keyframes.filter { $0 >= localSplitTime }.map { $0 - localSplitTime }
 
             project.timelineTracks[index] = left
             project.timelineTracks.insert(right, at: index + 1)
