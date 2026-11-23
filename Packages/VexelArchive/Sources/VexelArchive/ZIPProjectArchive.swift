@@ -18,7 +18,6 @@ public enum ZIPProjectArchiveError: Error, Equatable {
     case duplicateEntry(String)
     case unsupportedEntryType(String)
     case unsupportedProjectFormat
-    case unsupportedLegacyVersion
     case tooManyEntries
     case projectDocumentTooLarge
     case archiveTooLarge
