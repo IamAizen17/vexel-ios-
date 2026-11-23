@@ -11,7 +11,7 @@ private struct TestMSLCompiler: SPIRVToMSLCompiler {
         _ spirv: Data,
         stage: ShaderStage,
         entryPoint: String
-    ) throws -> (source: String, bindings: [ShaderResourceBinding]) {
+    ) throws -> (source: String, entryPoint: String, bindings: [ShaderResourceBinding]) {
         ("fragment float4 test() { return float4(1.0); }", "test", [])
     }
 }
