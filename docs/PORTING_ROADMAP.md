@@ -7,45 +7,59 @@
 - Native project extension: .vexelproj.
 - Development workflow supports phone-based editing and cloud macOS builds.
 
-## Phase 0 - Evidence baseline
-Pin reference revision; inventory source; audit license/dependencies; map schema, migrations, effects and examples; define feature matrix; choose deployment target after device/API support review.
-Exit: architecture, license plan, format contract and test strategy reviewed.
+## Stage 1 - UI port completion (current)
+Port every source screen, modal, panel, inspector group and workflow to native SwiftUI before beginning engine implementation. Compare each page against the pinned source revision and maintain docs/UI_PORT.md as the acceptance matrix. Controls must be wired, disabled, or explicitly marked as engine-pending; no fake success behavior.
 
-## Phase 1 - Project foundation
-Create Swift app/package workspace and universal targets. Define Codable project model and stable IDs. Implement secure ZIP reader/writer for .vexelproj, .knsproj importer, compatibility reporting, schema validation, migrations, asset extraction/relinking, atomic save, autosave and recovery. Build fixtures from legally distributable examples.
-Exit: reference projects import, preserve unknown data, save/reopen and pass structural equivalence tests.
+Exit: every source UI route has a SwiftUI counterpart or documented intentional redesign, with iPhone/iPad layout smoke tests and a successful CI build.
 
-## Phase 2 - Editing engine
-Implement timeline timebase, layer tree, groups, ordering, selection, visibility, lock, parenting, 2D/3D transforms, keyframes, interpolation, easing, markers, command-based undo/redo, masks, mattes, blend contracts and restricted expressions.
+## Stage 2 - Source contract and compatibility audit
+Pin source files, read KnsprojJson serializers and every migration, inspect schemas and representative valid/invalid fixtures, map ViewModel commands to core operations, inspect every effect implementation and shader, and trace media/export behavior. Record unknowns and evidence labels.
+
+Exit: typed field matrix for format v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
+
+## Stage 3 - Project foundation
+Create typed Swift project models with unknown-field preservation. Implement secure ZIP read/write for .vexelproj, .knsproj v12 importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
+
+Exit: source projects import, preserve unknown data, save/reopen and pass structural equivalence tests.
+
+## Stage 4 - Editing engine
+Implement timeline timebase, layer tree, groups, ordering, selection, visibility, lock, parenting, 2D/3D transforms, keyframes, interpolation, easing, expressions, markers, command-based undo/redo, masks, mattes and transitions.
+
 Exit: editing commands pass deterministic unit and serialization tests.
 
-## Phase 3 - Preview renderer
+## Stage 5 - Deterministic scene evaluator
+Port project/time -> FrameScene independently of GPU APIs. Resolve nested groups, timing, inherited transforms, cameras, lights, animation, expressions, transitions, effects, masks and mattes.
+
+Exit: source golden vectors match evaluated nodes, transforms, opacity, content, effect parameters and active intervals.
+
+## Stage 6 - Metal preview renderer
 Implement Metal lifecycle/render graph; 2D primitives, text, image and video; compositing, alpha, color management and blend modes; groups, masks and mattes; cameras, lights, geometry and materials; GPU caches and memory-pressure recovery.
+
 Exit: baseline projects render deterministic frames within documented tolerances.
 
-## Phase 4 - Effects and motion
-Implement all 73 catalogue IDs with matching parameter contracts. Add echo, time slice, strobe and motion blur. Add presets, fallback policies and golden tests at parameter boundaries.
+## Stage 7 - Effects and motion
+Implement all 73 catalogue IDs with matching parameter contracts, plus mask, track matte, transitions and text animators. Add echo, time slice, strobe and motion blur. Add presets, fallback policies and golden tests at parameter boundaries.
+
 Exit: no effect silently maps to a placeholder; unsupported cases are explicit.
 
-## Phase 5 - Media and audio
+## Stage 8 - Media and audio
 Implement image/video/audio import, AVFoundation decode and scheduling, waveforms, synchronized preview, AVAudioEngine playback, deterministic offline mixing, proxies and relinking.
+
 Exit: mixed-media compositions play in sync within device/resource budgets.
 
-## Phase 6 - Export
+## Stage 9 - Export
 Use shared scene evaluation for preview/export, Metal offscreen rendering and AVAssetWriter muxing. Implement presets, dimensions, frame rates, bitrates, color metadata, progress, cancellation, disk checks and partial-output cleanup.
+
 Exit: exports decode correctly and match preview at sampled timestamps.
 
-## Phase 7 - Advanced capabilities
-Port stabilization, segmentation/background removal, transcription/captions, 3D text extrusion and model import. Design plugin validation and capability boundaries. Record model provenance, licenses, device support and offline behavior.
-Exit: every advanced feature has provenance and dedicated tests.
+## Stage 10 - Advanced capabilities and release hardening
+Port stabilization, segmentation/background removal, transcription/captions, 3D text extrusion and model import. Design plugin validation and capability boundaries. Complete accessibility, keyboard/trackpad, optional Pencil, memory/GPU/thermal profiling, signed builds and release checks.
 
-## Phase 8 - UI and release hardening
-Build adaptive workspaces, timeline gestures, touch precision, optional Apple Pencil support, iPad keyboard/trackpad support, VoiceOver, Dynamic Type and reduced motion. Profile memory, GPU, thermal behavior and minimum hardware. Add CI and signed device builds.
-Exit: release candidate passes compatibility, rendering, media, accessibility and device performance suites.
+Exit: feature-by-feature parity is measured on supported hardware and documented.
 
 ## Parity status
 Not investigated; Investigated; Specified; Implemented; Unit-tested; Golden-tested; Device-tested; Complete; Deferred with reason.
 A feature is not complete because a UI control exists.
 
 ## Priority
-Preserve project data first, editing semantics second, preview correctness third, export correctness fourth, and visual polish continuously.
+Finish and sign off the redesigned UI first, preserve project data second, editing semantics third, preview correctness fourth, export correctness fifth, and visual polish continuously.
