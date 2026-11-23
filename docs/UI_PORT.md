@@ -45,9 +45,9 @@ The Vexel UI is an original native redesign, not a pixel-for-pixel Compose recre
 | ElementsSheet.kt | Elements tool page | Saved-element UI shell exists; source element serialization, insert/apply behavior and persistence pending. |
 | CutoutBrushUi.kt | VexelCutoutBrushWorkspace | Brush controls and frame navigation shell exist; paint canvas, stroke history and propagation are not implemented. |
 | MediaJobUi.kt | VexelStabilizationSheet / VexelMediaJobSheet | Progress and settings shells exist; worker jobs and cancellation are pending. |
-| RealCameraUi.kt / RealCameraController.kt | No complete equivalent | Missing: source real-camera capture overlay, countdown, recording/review/failure states and accept/discard flow. VexelCameraWorkspace is a virtual scene camera panel, not the real-camera feature. |
+| RealCameraUi.kt / RealCameraController.kt | VexelRealCameraWorkspace | Settings controls now represented (axes, intensity, smoothing, simplification, tolerance, calibration and position). Sensor capture, countdown, recording overlay, review, retry, accept and discard are pending. VexelCameraWorkspace remains the separate virtual scene camera panel. |
 | ExportDialog | VexelExportSheet | Format and output settings represented; render queue, progress, cancellation, file writing and codec capability checks pending. |
-| SavedVersions in PropertiesPanel.kt | No complete equivalent | Missing project snapshot/version browser and restore UI. |
+| SavedVersions in PropertiesPanel.kt | VexelSavedVersionsSheet | Empty-state page and navigation exist. Snapshot listing, creation, restore and history integration are pending. |
 
 ## Settings comparison
 
