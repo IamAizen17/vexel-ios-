@@ -11,6 +11,7 @@ struct VexelProjectItem: Identifiable, Hashable {
     var duration: Double
     var modified: Date
     var layerNames: [String]
+    var timelineTracks: [VexelTimelineTrack]
 
     init(title: String, width: Int = 1080, height: Int = 1920, fps: Int = 30, duration: Double = 10) {
         self.id = UUID()
@@ -21,6 +22,7 @@ struct VexelProjectItem: Identifiable, Hashable {
         self.duration = duration
         self.modified = Date()
         self.layerNames = []
+        self.timelineTracks = []
     }
 }
 
