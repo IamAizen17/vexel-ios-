@@ -212,6 +212,7 @@ public struct VexelProjectArchive {
         thumbnailJPEG: Data?
     ) throws {
         let fileManager = FileManager.default
+        try fileManager.createDirectory(at: assetsDirectory, withIntermediateDirectories: true)
         guard let enumerator = fileManager.enumerator(
             at: assetsDirectory,
             includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey],
@@ -270,6 +271,10 @@ public struct VexelProjectArchive {
             try archive.addEntry(with: path, fileURL: fileURL, compressionMethod: .none)
         }
         if let thumbnailJPEG {
+            let (totalWithThumbnail, overflow) = totalBytes.addingReportingOverflow(UInt64(thumbnailJPEG.count))
+            guard !overflow, totalWithThumbnail <= Self.maximumUncompressedBytes else {
+                throw VexelProjectArchiveError.archiveTooLarge
+            }
             try archive.addEntry(
                 with: "thumbnail.jpg",
                 type: .file,

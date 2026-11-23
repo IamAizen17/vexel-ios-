@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import ZIPFoundation
 @testable import VexelCore
 
 final class VexelProjectArchiveTests: XCTestCase {
@@ -75,7 +76,7 @@ final class VexelProjectArchiveTests: XCTestCase {
     }
 
     private func makeArchive(at url: URL, projectJSON: String) throws {
-        let archive = try ZIPFoundation.Archive(url: url, accessMode: .create, pathEncoding: .utf8)
+        let archive = try Archive(url: url, accessMode: .create, pathEncoding: .utf8)
         let data = Data(projectJSON.utf8)
         try archive.addEntry(
             with: "project.json",
