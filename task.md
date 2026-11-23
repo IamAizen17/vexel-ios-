@@ -6,6 +6,17 @@ Reference revision audited: 0fe341060cec9710df90bc1ba7fda85006c188d8
 iOS implementation branch: feat/modular-engine-architecture  
 Related pull request: https://github.com/IamAizen17/vexel-ios-/pull/2
 
+## Native Vexel identity
+
+- Product, app target, display name, and bundle identifier use Vexel.
+- Native project extension: `.vexelproj`.
+- Native archive document: `vexel.json`.
+- Native format identifier: `vexelproj`, version 1.
+- Registered document type: `com.iamAizen17.vexel.project`.
+- Native MIME type: `application/vnd.vexel.project+zip`.
+- The old Android document identifier and `project.json` archive entry are recognized only by `VexelProjectImporter`. VexelCore, persistence, and export use only the native Vexel format.
+
+
 This file is the implementation handoff and active engineering backlog. “Implemented” means code exists in this branch; it does not imply complete Android parity, successful compilation of the latest commits, or device validation.
 
 ## Current implementation status
