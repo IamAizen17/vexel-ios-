@@ -255,7 +255,7 @@ struct VexelHomeView: View {
         .fileImporter(isPresented: Binding(
             get: { showingImporter },
             set: { showingImporter = $0 }
-        ), allowedContentTypes: [.data, .item], allowsMultipleSelection: false) { result in
+        ), allowedContentTypes: [.vexelProject, .zip], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
@@ -779,5 +779,12 @@ struct VexelPluginsPage: View {
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .fileImporter(isPresented: $showingInstall, allowedContentTypes: [.data, .zip], allowsMultipleSelection: false) { _ in }
         }
+    }
+}
+
+
+private extension UTType {
+    static var vexelProject: UTType {
+        UTType(filenameExtension: "vexelproj", conformingTo: .zip) ?? .zip
     }
 }
