@@ -44,7 +44,7 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Project metadata and workspace model state are persisted as an index under Application Support.
 - A project/document bridge converts between the interim editor model and a generic JSON-backed `ProjectDocument`.
 - The bridge attempts to preserve unknown root fields and existing top-level layer fields.
-- `ProjectDocument` validates native Vexel format v1. `VexelProjectImporter` converts supported Android reference documents into native Vexel format before validation.
+- `ProjectDocument` validates only native Vexel format v1. `VexelCompatibilityImporter` is isolated in VexelArchive and converts supported Android reference documents into native Vexel format before validation.
 - `VexelArchive` uses ZIPFoundation and writes native ZIP archives containing `vexel.json` and referenced `assets/` files. The old Android `project.json` entry is import-only.
 - Archive import is connected to the project file importer; archive export is connected to the project-card share flow.
 - Archive code includes entry-count and uncompressed-size limits, relative-path checks, duplicate-entry rejection, symlink rejection, and missing-asset checks.
