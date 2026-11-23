@@ -4,7 +4,7 @@ import VexelCore
 import VexelArchive
 
 struct VexelProjectItem: Identifiable, Hashable, Codable {
-    let id: UUID
+    var id: UUID
     var title: String
     var width: Int
     var height: Int
@@ -373,14 +373,18 @@ struct VexelHomeView: View {
                     LazyVStack(spacing: 10) {
                         ForEach(projects) { project in
                             ProjectCard(project: project, onOpen: { onOpen(project) }, onDuplicate: {
-                                var copy = project
-                                copy = VexelProjectItem(title: project.title + " Copy", width: project.width, height: project.height, fps: project.fps, duration: project.duration)
-                                projects.insert(copy, at: 0)
+                                do {
+                                    let copy = try VexelProjectStore.duplicate(project)
+                                    projects.insert(copy, at: 0)
+                                } catch {
+                                    notice = "Could not duplicate project: \(error.localizedDescription)"
+                                }
                             }, onDelete: { deletingProject = project }, onExport: {
                                 do {
                                     let document = try project.makeProjectDocument()
+                                    let fileExtension = document.fields["format"]?.stringValue == "knsproj" ? "knsproj" : "vexelproj"
                                     let destination = FileManager.default.temporaryDirectory
-                                        .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).vexelproj")
+                                        .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).\(fileExtension)")
                                     let assets = project.assetsDirectory.map(URL.init(fileURLWithPath:))
                                     try ZIPProjectArchive().write(document, assetsDirectory: assets, to: destination)
                                     sharingProjectURL = destination
