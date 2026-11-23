@@ -10,6 +10,8 @@ packages:
     path: Packages/VexelArchive
   VexelRenderer:
     path: Packages/VexelRenderer
+  VexelShaderCompiler:
+    path: Packages/VexelShaderCompiler
   VexelMedia:
     path: Packages/VexelMedia
   VexelAudio:
