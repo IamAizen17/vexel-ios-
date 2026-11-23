@@ -98,7 +98,8 @@ struct VexelScenePreview: View {
                 }
                 return frames
             }.value
-            videoFrames = decoded.compactMapValues(UIImage.init(data:))
+            guard !Task.isCancelled else { return }
+            videoFrames = decoded.compactMapValues { UIImage(data: $0) }
         }
     }
 
@@ -112,17 +113,17 @@ struct VexelScenePreview: View {
         context.drawLayer { layerContext in
             layerContext.opacity = layer.opacity
             layerContext.translateBy(
-                x: Double(scene.width) / 2 + layer.position.x,
-                y: Double(scene.height) / 2 + layer.position.y
+                x: CGFloat(Double(scene.width) / 2 + layer.position.x),
+                y: CGFloat(Double(scene.height) / 2 + layer.position.y)
             )
             layerContext.rotate(by: .degrees(layer.rotationDegrees))
-            layerContext.scaleBy(x: layer.scale.x, y: layer.scale.y)
+            layerContext.scaleBy(x: CGFloat(layer.scale.x), y: CGFloat(layer.scale.y))
 
             let rect = CGRect(
-                x: -layer.size.x / 2,
-                y: -layer.size.y / 2,
-                width: max(0, layer.size.x),
-                height: max(0, layer.size.y)
+                x: CGFloat(-layer.size.x / 2),
+                y: CGFloat(-layer.size.y / 2),
+                width: CGFloat(max(0, layer.size.x)),
+                height: CGFloat(max(0, layer.size.y))
             )
             let color = color(layer.fillColor ?? "#55CDBE")
 
@@ -134,7 +135,7 @@ struct VexelScenePreview: View {
                 layerContext.draw(text, at: .zero, anchor: .center)
             } else if layer.type == "image" {
                 if let assetID = layer.assetID, let image = images[assetID], let cgImage = image.cgImage {
-                    let resolved = layerContext.resolve(Image(decorative: cgImage, scale: image.scale))
+                    let resolved = layerContext.resolve(Image(uiImage: image))
                     layerContext.draw(resolved, in: rect)
                 } else {
                     layerContext.fill(Path(roundedRect: rect, cornerRadius: 12), with: .color(Color.white.opacity(0.08)))
@@ -185,9 +186,17 @@ struct VexelScenePreview: View {
 
     private static func color(_ value: String) -> Color {
         let normalized = value.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-        guard normalized.count == 6, let hex = UInt32(normalized, radix: 16) else {
-            return VexelPalette.accent
+        guard let hex = UInt64(normalized, radix: 16) else { return VexelPalette.accent }
+        if normalized.count == 8 {
+            return Color(
+                .sRGB,
+                red: Double((hex >> 24) & 0xFF) / 255,
+                green: Double((hex >> 16) & 0xFF) / 255,
+                blue: Double((hex >> 8) & 0xFF) / 255,
+                opacity: Double(hex & 0xFF) / 255
+            )
         }
-        return Color(hex: hex)
+        guard normalized.count == 6 else { return VexelPalette.accent }
+        return Color(hex: UInt32(hex))
     }
 }
