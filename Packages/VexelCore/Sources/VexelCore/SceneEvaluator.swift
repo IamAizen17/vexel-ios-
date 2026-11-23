@@ -92,7 +92,7 @@ public enum SceneEvaluator {
             let duration = max(0, object["duration"]?.numberValue ?? .greatestFiniteMagnitude)
             guard object["visible"]?.boolValue ?? true,
                   time >= start,
-                  time <= start + duration else { continue }
+                  time < start + duration else { continue }
 
             let localTime = max(0, time - start)
             let inherited = resolveParentTransform(
