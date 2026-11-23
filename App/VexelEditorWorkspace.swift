@@ -57,6 +57,7 @@ struct VexelEditorWorkspace: View {
     @State private var showMediaJob = false
     @State private var editingMarker: VexelMarker?
     @State private var markers: [VexelMarker] = []
+    @State private var selectedTrackID: UUID?
     @State private var loopPlayback = false
 
     private var isWide: Bool { horizontalSizeClass == .regular }
@@ -145,6 +146,7 @@ struct VexelEditorWorkspace: View {
         } message: { Text(showingNotice ?? "") }
         .onAppear {
             layerNames = project.layerNames
+            synchronizeTimelineTracks(project.layerNames)
         }
         .onChange(of: layerNames) { names in
             project.layerNames = names
@@ -246,65 +248,25 @@ struct VexelEditorWorkspace: View {
     }
 
     private var timelinePanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VexelSectionLabel(title: "Timeline", trailing: "\(layerNames.count) TRACKS · \(markers.count) MARKERS")
-                Spacer()
-                Button { showGraph = true } label: {
-                    Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-                        .font(.system(size: 10, weight: .semibold)).foregroundStyle(VexelPalette.accent)
-                }.buttonStyle(.plain)
-            }
-            GeometryReader { proxy in
-                let width = max(proxy.size.width - 80, 120)
-                VStack(spacing: 5) {
-                    HStack(spacing: 0) {
-                        Text("LAYER").frame(width: 80, alignment: .leading)
-                        ForEach(0..<5, id: \.self) { tick in
-                            Text("\(tick * 2)s").frame(maxWidth: .infinity)
-                        }
-                    }
-                    .font(.system(size: 8, weight: .semibold, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                    HStack(spacing: 0) {
-                        Rectangle().fill(VexelPalette.line).frame(width: 80, height: 1)
-                        Rectangle().fill(VexelPalette.line).frame(height: 1)
-                    }
-                    ForEach(Array(layerNames.enumerated()), id: \.offset) { index, name in
-                        HStack(spacing: 5) {
-                            Button { selectedLayer = index; showProperties = true } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: index == 2 ? "waveform" : (index == 0 ? "textformat" : "square"))
-                                        .foregroundStyle(index == 2 ? VexelPalette.pink : VexelPalette.accent)
-                                    Text(name).lineLimit(1)
-                                }
-                                .font(.system(size: 9, weight: .medium)).foregroundStyle(VexelPalette.soft)
-                                .frame(width: 80, alignment: .leading)
-                            }.buttonStyle(.plain)
-                            GeometryReader { clip in
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(index == 2 ? VexelPalette.clipAudio.opacity(0.85) : (index == 0 ? VexelPalette.clipText : VexelPalette.teal.opacity(0.5)))
-                                    .frame(width: max(clip.size.width * 0.68, 36), height: 22)
-                                    .overlay(alignment: .leading) {
-                                        Text(name.uppercased()).font(.system(size: 7, weight: .bold)).lineLimit(1).padding(.horizontal, 6).foregroundStyle(.white.opacity(0.85))
-                                    }
-                                    .offset(x: CGFloat(index * 18))
-                            }
-                        }
-                        .padding(4)
-                        .background(selectedLayer == index ? VexelPalette.accent.opacity(0.08) : VexelPalette.lane, in: RoundedRectangle(cornerRadius: 6))
-                        .onTapGesture { selectedLayer = index }
-                    }
-                }
-                .overlay(alignment: .leading) {
-                    Rectangle().fill(VexelPalette.accent).frame(width: 1.5).offset(x: 80 + width * CGFloat(currentTime / max(project.duration, 0.1)))
-                }
-            }
-            .frame(height: CGFloat(max(90, layerNames.count * 32 + 25)))
-            Slider(value: $currentTime, in: 0...max(project.duration, 0.1))
-                .tint(VexelPalette.accent)
+        VexelTimelinePanel(
+            tracks: $project.timelineTracks,
+            currentTime: $currentTime,
+            markers: $markers,
+            selectedTrackID: $selectedTrackID,
+            duration: project.duration,
+            fps: project.fps,
+            onMarkerEdit: { editingMarker = $0 },
+            onNotice: { showingNotice = $0 }
+        )
+    }
+
+    private func synchronizeTimelineTracks(_ names: [String]) {
+        var existing = project.timelineTracks
+        for name in names where !existing.contains(where: { $0.name == name }) {
+            existing.append(VexelTimelineTrack(name: name, duration: project.duration))
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(VexelPalette.sheet)
+        existing.removeAll { !names.contains($0.name) }
+        project.timelineTracks = existing
     }
 
     private var selectionBar: some View {
