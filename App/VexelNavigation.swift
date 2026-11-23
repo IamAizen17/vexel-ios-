@@ -387,7 +387,7 @@ struct VexelHomeView: View {
                             }, onDelete: { deletingProject = project }, onExport: {
                                 do {
                                     let document = try project.makeProjectDocument()
-                                    let fileExtension = document.fields["format"]?.stringValue == "knsproj" ? "knsproj" : "vexelproj"
+                                    let fileExtension = "vexelproj"
                                     let destination = FileManager.default.temporaryDirectory
                                         .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).\(fileExtension)")
                                     let assets = project.assetsDirectory.map(URL.init(fileURLWithPath:))
