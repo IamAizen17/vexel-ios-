@@ -5,6 +5,9 @@ The inspected IamAizen17/vexel-editor repository contains a GNU General Public L
 
 A port that copies, modifies or creates a derivative work from GPL-covered source must be planned around the applicable GPL obligations. Changing Kotlin to Swift or replacing Android APIs does not automatically remove derivative-work obligations.
 
+## UI port decision
+The SwiftUI screen structure and visible UI behavior are adapted from the reference Android Compose UI. This is a derivative adaptation, not a clean-room implementation. The destination repository now includes the GPL-3.0 license text, a provenance notice, and a UI inventory. The port is being distributed under GPL-3.0. See the root `LICENSE`, `NOTICE.md`, and `docs/UI_PORT.md`.
+
 ## Release gate
 Before distributing Vexel:
 - Determine which code is copied, translated, adapted or independently reimplemented.
