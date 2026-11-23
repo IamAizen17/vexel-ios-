@@ -17,16 +17,18 @@ public enum ZIPProjectArchiveError: Error, Equatable {
     case unsafePath(String)
     case duplicateEntry(String)
     case unsupportedEntryType(String)
+    case unsupportedProjectFormat
+    case unsupportedLegacyVersion
     case tooManyEntries
     case projectDocumentTooLarge
     case archiveTooLarge
     case missingProjectDocument
     case missingAsset(String)
-    case legacyFormatExportNotSupported
 }
 
 public struct ZIPProjectArchive: Sendable {
-    public static let projectEntry = "project.json"
+    public static let projectEntry = "vexel.json"
+    public static let legacyProjectEntry = "project.json"
     public static let maximumEntries = 10_000
     public static let maximumProjectBytes: UInt64 = 64 * 1024 * 1024
     public static let maximumUncompressedBytes: UInt64 = 8 * 1024 * 1024 * 1024
@@ -44,7 +46,7 @@ public struct ZIPProjectArchive: Sendable {
 
         var seen = Set<String>()
         var total: UInt64 = 0
-        var projectData: Data?
+        var project: ProjectDocument?
         var entryCount = 0
 
         do {
@@ -55,33 +57,39 @@ public struct ZIPProjectArchive: Sendable {
                 guard seen.insert(path).inserted else { throw ZIPProjectArchiveError.duplicateEntry(path) }
                 guard entry.type != .symlink else { throw ZIPProjectArchiveError.unsupportedEntryType(path) }
                 if entry.type == .directory { continue }
+
                 let (nextTotal, overflow) = total.addingReportingOverflow(entry.uncompressedSize)
                 guard !overflow, nextTotal <= Self.maximumUncompressedBytes else {
                     throw ZIPProjectArchiveError.archiveTooLarge
                 }
                 total = nextTotal
-                if path == Self.projectEntry {
-                    guard entry.uncompressedSize <= Self.maximumProjectBytes else { throw ZIPProjectArchiveError.projectDocumentTooLarge }
+
+                if path == Self.projectEntry || path == Self.legacyProjectEntry {
+                    guard project == nil else { throw ZIPProjectArchiveError.duplicateEntry(path) }
+                    guard entry.uncompressedSize <= Self.maximumProjectBytes else {
+                        throw ZIPProjectArchiveError.projectDocumentTooLarge
+                    }
                     var data = Data()
                     _ = try archive.extract(entry, consumer: { chunk in data.append(chunk) })
-                    projectData = data
-                } else {
-                    let isAssetsDirectory = entry.type == .directory && path == "assets"
-                    let isAssetFile = path.hasPrefix("assets/") && entry.type == .file
-                    let isThumbnail = path == "thumbnail.png" && entry.type == .file
-                    guard isAssetsDirectory || isAssetFile || isThumbnail else {
-                        throw ZIPProjectArchiveError.unsupportedEntryType(path)
-                    }
-                    let target = temporary.appendingPathComponent(path)
-                    let root = temporary.standardizedFileURL.path + "/"
-                    let standardized = target.standardizedFileURL.path
-                    guard standardized.hasPrefix(root) else { throw ZIPProjectArchiveError.unsafePath(path) }
-                    try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-                    _ = try archive.extract(entry, to: target)
+                    let decoded = try ProjectDocument(data: data)
+                    project = try LegacyAndroidProjectAdapter.importDocument(decoded)
+                    continue
                 }
+
+                let isAssetFile = path.hasPrefix("assets/") && entry.type == .file
+                let isThumbnail = path == "thumbnail.png" && entry.type == .file
+                guard isAssetFile || isThumbnail else {
+                    throw ZIPProjectArchiveError.unsupportedEntryType(path)
+                }
+                let target = temporary.appendingPathComponent(path)
+                let root = temporary.standardizedFileURL.path + "/"
+                let standardized = target.standardizedFileURL.path
+                guard standardized.hasPrefix(root) else { throw ZIPProjectArchiveError.unsafePath(path) }
+                try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                _ = try archive.extract(entry, to: target)
             }
-            guard let projectData else { throw ZIPProjectArchiveError.missingProjectDocument }
-            let project = try LegacyAndroidProjectImporter.importDocument(from: projectData)
+
+            guard let project else { throw ZIPProjectArchiveError.missingProjectDocument }
             let issues = project.validate().filter { $0.severity == .error }
             guard issues.isEmpty else {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")))
@@ -100,7 +108,7 @@ public struct ZIPProjectArchive: Sendable {
 
     public func write(_ project: ProjectDocument, assetsDirectory: URL? = nil, to archiveURL: URL) throws {
         guard project.fields["format"]?.stringValue == ProjectDocument.format else {
-            throw ZIPProjectArchiveError.legacyFormatExportNotSupported
+            throw ZIPProjectArchiveError.unsupportedProjectFormat
         }
         let issues = project.validate().filter { $0.severity == .error }
         guard issues.isEmpty else {
@@ -108,6 +116,7 @@ public struct ZIPProjectArchive: Sendable {
         }
         let data = try project.encoded()
         guard data.count <= Int(Self.maximumProjectBytes) else { throw ZIPProjectArchiveError.projectDocumentTooLarge }
+
         let manager = FileManager.default
         let staging = manager.temporaryDirectory.appendingPathComponent("VexelArchive-\(UUID().uuidString)", isDirectory: true)
         try manager.createDirectory(at: staging, withIntermediateDirectories: true)
@@ -117,7 +126,9 @@ public struct ZIPProjectArchive: Sendable {
 
         let partialURL = archiveURL.deletingLastPathComponent().appendingPathComponent(".\(UUID().uuidString).tmp")
         defer { try? manager.removeItem(at: partialURL) }
-        guard let archive = Archive(url: partialURL, accessMode: .create) else { throw ZIPProjectArchiveError.invalidArchive }
+        guard let archive = Archive(url: partialURL, accessMode: .create) else {
+            throw ZIPProjectArchiveError.invalidArchive
+        }
         try archive.addEntry(with: Self.projectEntry, fileURL: jsonURL, compressionMethod: .deflate)
 
         let assetPaths = project.fields["assets"]?.arrayValue?.compactMap { $0.objectValue?["path"]?.stringValue } ?? []
@@ -137,6 +148,7 @@ public struct ZIPProjectArchive: Sendable {
             }
             try archive.addEntry(with: path, fileURL: sourceURL, compressionMethod: .none)
         }
+
         try manager.createDirectory(at: archiveURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         if manager.fileExists(atPath: archiveURL.path) {
             _ = try manager.replaceItemAt(archiveURL, withItemAt: partialURL, backupItemName: nil, options: [])
@@ -147,10 +159,16 @@ public struct ZIPProjectArchive: Sendable {
 
     private static func normalizedPath(_ raw: String, isDirectory: Bool = false) throws -> String {
         var path = raw.replacingOccurrences(of: "\\", with: "/")
-        if isDirectory { while path.hasSuffix("/") { path.removeLast() } }
+        if isDirectory {
+            while path.hasSuffix("/") { path.removeLast() }
+        }
         let components = path.split(separator: "/", omittingEmptySubsequences: false)
-        guard !path.isEmpty, path.utf8.count <= 1024, !path.hasPrefix("/"), !path.contains(":"),
-              components.count <= 32, !components.isEmpty,
+        guard !path.isEmpty,
+              path.utf8.count <= 1024,
+              !path.hasPrefix("/"),
+              !path.contains(":"),
+              components.count <= 32,
+              !components.isEmpty,
               !components.contains(where: { $0.isEmpty || $0 == "." || $0 == ".." }) else {
             throw ZIPProjectArchiveError.unsafePath(raw)
         }
