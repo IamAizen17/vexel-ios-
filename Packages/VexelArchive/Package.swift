@@ -6,5 +6,5 @@ let package = Package(
     platforms: [.iOS(.v16), .macOS(.v13)],
     products: [.library(name: "VexelArchive", targets: ["VexelArchive"])],
     dependencies: [.package(path: "../VexelCore")],
-    targets: [.target(name: "VexelArchive", dependencies: ["VexelCore"])]
+    targets: [.target(name: "VexelArchive", dependencies: [.product(name: "VexelCore", package: "vexelcore")])]
 )
