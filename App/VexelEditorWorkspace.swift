@@ -38,6 +38,7 @@ struct VexelEditorWorkspace: View {
     @State private var selectedTab = "Transform"
     @State private var showExport = false
     @State private var showCompositionSettings = false
+    @State private var showSavedVersions = false
     @State private var showGraph = false
     @State private var showCurve = false
     @State private var isPlaying = false
@@ -98,7 +99,8 @@ struct VexelEditorWorkspace: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showExport) { VexelExportSheet(project: project) .presentationDetents([.medium, .large]) }
-        .sheet(isPresented: $showCompositionSettings) { CompositionSettingsSheet(project: $project) .presentationDetents([.medium, .large]) }
+        .sheet(isPresented: $showCompositionSettings) { CompositionSettingsSheet(project: $project, onSavedVersions: { showSavedVersions = true }) .presentationDetents([.medium, .large]) }
+        .sheet(isPresented: $showSavedVersions) { VexelSavedVersionsSheet().presentationDetents([.medium, .large]) }
         .sheet(isPresented: $showGraph) { VexelGraphEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showCurve) { VexelCurveEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showProperties) {
@@ -441,6 +443,7 @@ private struct MediaPicker: View {
 
 private struct CompositionSettingsSheet: View {
     @Binding var project: VexelProjectItem
+    let onSavedVersions: () -> Void
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -452,6 +455,13 @@ private struct CompositionSettingsSheet: View {
                     Stepper("Frame rate: \(project.fps) FPS", value: $project.fps, in: 1...120)
                     Slider(value: $project.duration, in: 1...3600, step: 1)
                     Text("Duration: \(Int(project.duration)) seconds")
+                }
+                Section("Project history") {
+                    Button(action: onSavedVersions) {
+                        Label("Saved versions", systemImage: "clock.arrow.circlepath")
+                    }
+                    Text("Snapshot restoration will be connected to the project store.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             .scrollContentBackground(.hidden).background(VexelPalette.background)
