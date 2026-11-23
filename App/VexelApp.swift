@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import VexelCore
 
 @main
@@ -14,6 +15,9 @@ struct VexelApp: App {
 private struct WorkspaceView: View {
     @State private var project = ProjectDocument.starter(title: "Untitled Composition")
     @State private var selectedSection = "Project"
+    @State private var isImportingProject = false
+    @State private var importAlert: String?
+    @State private var importedProjectDirectory: URL?
 
     private let sections = ["Project", "Media", "Effects", "Export"]
 
@@ -32,6 +36,21 @@ private struct WorkspaceView: View {
             }
         }
         .tint(Color(red: 0.34, green: 0.82, blue: 0.72))
+        .fileImporter(
+            isPresented: $isImportingProject,
+            allowedContentTypes: [UTType(filenameExtension: "knsproj") ?? .data, .zip],
+            allowsMultipleSelection: false
+        ) { result in
+            handleProjectImport(result)
+        }
+        .alert("Project Import", isPresented: Binding(
+            get: { importAlert != nil },
+            set: { if !$0 { importAlert = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importAlert ?? "")
+        }
     }
 
     private var iPhoneWorkspace: some View {
@@ -78,6 +97,15 @@ private struct WorkspaceView: View {
                     .foregroundStyle(.white.opacity(0.48))
             }
             Spacer()
+            Button {
+                isImportingProject = true
+            } label: {
+                Image(systemName: "folder")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 38, height: 38)
+                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .accessibilityLabel("Import Kinesis project")
             Button {} label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 15, weight: .semibold))
@@ -225,6 +253,12 @@ private struct WorkspaceView: View {
             Text("\(project.layerCount) layers · \(project.compositionSize.width) × \(project.compositionSize.height)")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.white.opacity(0.65))
+            if let importedProjectDirectory {
+                Text(importedProjectDirectory.lastPathComponent)
+                    .font(.system(size: 9, weight: .regular, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.35))
+                    .lineLimit(2)
+            }
         }
         .padding(16)
         .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 16))
@@ -241,6 +275,34 @@ private struct WorkspaceView: View {
         .padding(.top, 14)
         .padding(.bottom, 10)
         .background(Color.black.opacity(0.28))
+    }
+
+
+    private func handleProjectImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            importAlert = error.localizedDescription
+        case .success(let urls):
+            guard let sourceURL = urls.first else { return }
+            let hasAccess = sourceURL.startAccessingSecurityScopedResource()
+            Task {
+                do {
+                    let destination = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                        .appendingPathComponent("Vexel/Projects", isDirectory: true)
+                    let imported = try await Task.detached(priority: .userInitiated) {
+                        try KnsprojArchiveImporter().importProject(from: sourceURL, into: destination)
+                    }.value
+                    project = imported.project
+                    importedProjectDirectory = imported.projectDirectory
+                    importAlert = "Imported \(project.title) from Kinesis format v\(imported.sourceVersion). \(imported.importedAssetCount) media assets copied."
+                } catch {
+                    importAlert = error.localizedDescription
+                }
+                if hasAccess {
+                    sourceURL.stopAccessingSecurityScopedResource()
+                }
+            }
+        }
     }
 
     private func tool(_ symbol: String, title: String) -> some View {
