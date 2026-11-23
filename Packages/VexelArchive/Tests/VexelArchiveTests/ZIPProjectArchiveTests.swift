@@ -89,6 +89,35 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertThrowsError(try ZIPProjectArchive().read(from: archiveURL))
     }
 
+    func testAssetArchiveRoundTripPreservesAssetDirectoryLayout() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let assetsRoot = directory.appendingPathComponent("source-assets", isDirectory: true)
+        let assetFile = assetsRoot.appendingPathComponent("assets/image.bin")
+        try FileManager.default.createDirectory(at: assetFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data([0x56, 0x45, 0x58, 0x45, 0x4C]).write(to: assetFile)
+
+        var fields = ProjectDocument.starter(title: "Asset round trip").fields
+        fields["assets"] = .array([
+            .object(["id": .string("image-1"), "path": .string("assets/image.bin")])
+        ])
+        let project = ProjectDocument(fields: fields)
+        let firstArchive = directory.appendingPathComponent("first.vexelproj")
+        try ZIPProjectArchive().write(project, assetsDirectory: assetsRoot, to: firstArchive)
+
+        let extracted = directory.appendingPathComponent("extracted", isDirectory: true)
+        let imported = try ZIPProjectArchive().read(from: firstArchive, extractingAssetsTo: extracted)
+        let extractedAsset = extracted.appendingPathComponent("assets/image.bin")
+        XCTAssertEqual(try Data(contentsOf: extractedAsset), Data([0x56, 0x45, 0x58, 0x45, 0x4C]))
+
+        let secondArchive = directory.appendingPathComponent("second.vexelproj")
+        try ZIPProjectArchive().write(imported.project, assetsDirectory: imported.extractedAssetsDirectory, to: secondArchive)
+        let roundTrip = try ZIPProjectArchive().read(from: secondArchive)
+        XCTAssertEqual(roundTrip.project, project)
+    }
+
     func testMissingAssetPayloadFailsExport() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
