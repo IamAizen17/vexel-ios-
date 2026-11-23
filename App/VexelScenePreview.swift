@@ -134,7 +134,7 @@ struct VexelScenePreview: View {
                     .foregroundColor(color)
                 layerContext.draw(text, at: .zero, anchor: .center)
             } else if layer.type == "image" {
-                if let assetID = layer.assetID, let image = images[assetID], let cgImage = image.cgImage {
+                if let assetID = layer.assetID, let image = images[assetID] {
                     let resolved = layerContext.resolve(Image(uiImage: image))
                     layerContext.draw(resolved, in: rect)
                 } else {
