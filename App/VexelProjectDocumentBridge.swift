@@ -34,14 +34,9 @@ extension VexelProjectItem {
             document = ProjectDocument.starter(title: title)
         }
         var fields = document.fields
-        let documentFormat = fields["format"]?.stringValue ?? ProjectDocument.format
-        fields["format"] = .string(documentFormat)
-        if documentFormat != "knsproj" {
-            fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
-        }
-        if fields["generator"] == nil {
-            fields["generator"] = .string("Vexel")
-        }
+        fields["format"] = .string(ProjectDocument.format)
+        fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
+        fields["generator"] = .string("Vexel")
         var meta = fields["meta"]?.objectValue ?? [:]
         meta["title"] = .string(title)
         meta["modifiedAt"] = .string(ISO8601DateFormatter().string(from: modified))
