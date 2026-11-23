@@ -2,7 +2,7 @@
 
 ## Locked product decisions
 - iPhone and iPad from the first supported release.
-- Full feature parity with the accessible Android reference editor reference.
+- Full feature parity with the Android reference editor.
 - Original Vexel interface designed for touch and adaptive iPad workspaces.
 - Native project extension: .vexelproj.
 - Development workflow supports phone-based editing and cloud macOS builds.
@@ -15,7 +15,7 @@ Exit: every source UI route has a SwiftUI counterpart or documented intentional 
 ## Stage 2 - Source contract and compatibility audit
 Pin source files, read source project serializers and every migration, inspect schemas and representative valid/invalid fixtures, map ViewModel commands to core operations, inspect every effect implementation and shader, and trace media/export behavior. Record unknowns and evidence labels.
 
-Exit: typed field matrix for format v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
+Exit: typed field matrix for the legacy Android schema v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
 
 ## Stage 3 - Project foundation
 Create typed Swift project models with unknown-field preservation. Implement secure native `.vexelproj` read/write and Vexel project compatibility importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
