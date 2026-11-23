@@ -198,6 +198,24 @@ struct VexelToolSheet: View {
                     }
                 }
             }
+            VexelSectionLabel(title: "Effect shortcuts", trailing: "EDITOR TOOLS")
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach([
+                    ("Mask", "circle.dotted", "shortcut:mask"),
+                    ("Track matte", "square.on.square", "shortcut:track-matte"),
+                    ("Transitions", "arrow.left.arrow.right", "shortcut:transitions"),
+                    ("Text animators", "textformat.abc", "shortcut:text-animators")
+                ], id: \.2) { item in
+                    Button { onAction(item.2) } label: {
+                        Label(item.0, systemImage: item.1)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(VexelPalette.soft)
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
             VexelSectionLabel(title: "Effect library", trailing: "\(VexelEffectCatalog.all.count) EFFECTS")
             let effects = VexelEffectCatalog.all.filter {
                 (effectCategory == "All effects" || $0.category == effectCategory) &&
