@@ -291,3 +291,123 @@ struct VexelExpressionWorkspace: View {
         .preferredColorScheme(.dark)
     }
 }
+
+
+struct VexelTextToSpeechWorkspace: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var text = "Your next frame starts here."
+    @State private var voice = "Kokoro · Heart"
+    @State private var speed = 1.0
+    @State private var pitch = 1.0
+    @State private var format = "WAV"
+    @State private var generated = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 14) {
+                VexelSectionLabel(title: "Speech synthesis", trailing: "TTS")
+                TextEditor(text: $text)
+                    .font(.system(size: 13))
+                    .foregroundStyle(VexelPalette.text)
+                    .scrollContentBackground(.hidden)
+                    .padding(10)
+                    .frame(minHeight: 120)
+                    .background(VexelPalette.preview, in: RoundedRectangle(cornerRadius: 12))
+                VexelPanel {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Picker("Voice", selection: $voice) {
+                            Text("Kokoro · Heart").tag("Kokoro · Heart")
+                            Text("Kokoro · Bella").tag("Kokoro · Bella")
+                            Text("System voice").tag("System voice")
+                        }
+                        .tint(VexelPalette.accent)
+                        slider("Speed", value: $speed, range: 0.5...2)
+                        slider("Pitch", value: $pitch, range: 0.5...1.5)
+                        Picker("Output format", selection: $format) {
+                            Text("WAV").tag("WAV"); Text("M4A").tag("M4A")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+                VexelActionButton(title: "Generate speech layer", systemImage: "waveform", prominent: true) { generated = true }
+                if generated {
+                    Label("Speech generation UI is ready. Model download and audio synthesis are not connected yet.", systemImage: "info.circle")
+                        .font(.system(size: 10)).foregroundStyle(VexelPalette.amber)
+                }
+                Spacer()
+            }
+            .padding(16).background(VexelPalette.background)
+            .navigationTitle("Text to speech")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func slider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack { Text(title).font(.system(size: 11)); Spacer(); Text(value.wrappedValue.formatted(.number.precision(.fractionLength(2)))).font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary) }
+            Slider(value: value, in: range).tint(VexelPalette.accent)
+        }
+    }
+}
+
+struct VexelEffectDetailSheet: View {
+    let effect: VexelEffectItem
+    let onApply: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var enabled = true
+    @State private var amount = 0.75
+    @State private var radius = 24.0
+    @State private var blendMode = "Normal"
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VexelSectionLabel(title: effect.category, trailing: effect.id.uppercased())
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(VexelPalette.preview)
+                        .frame(height: 150)
+                        .overlay {
+                            VStack(spacing: 8) {
+                                Image(systemName: "sparkles").font(.system(size: 34, weight: .ultraLight)).foregroundStyle(VexelPalette.accent)
+                                Text(effect.name).font(.system(size: 15, weight: .bold)).foregroundStyle(VexelPalette.text)
+                                Text("EFFECT PREVIEW").font(.system(size: 8, weight: .bold)).tracking(1.5).foregroundStyle(VexelPalette.secondary)
+                            }
+                        }
+                    VexelPanel {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle("Enabled", isOn: $enabled).tint(VexelPalette.accent)
+                            effectSlider("Amount", value: $amount, range: 0...1)
+                            effectSlider("Radius", value: $radius, range: 0...200)
+                            Picker("Blend mode", selection: $blendMode) {
+                                ForEach(["Normal", "Add", "Screen", "Multiply", "Overlay", "Soft light"], id: \.self) { Text($0).tag($0) }
+                            }
+                            .tint(VexelPalette.accent)
+                        }
+                    }
+                    Text("Parameter controls are a UI scaffold. The effect's real parameter schema and renderer will be connected during engine porting.")
+                        .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+                    VexelActionButton(title: "Add effect to layer", systemImage: "plus", prominent: true) {
+                        onApply()
+                        dismiss()
+                    }
+                }
+                .padding(16)
+            }
+            .background(VexelPalette.background)
+            .navigationTitle(effect.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Close") { dismiss() } } }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func effectSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack { Text(title).font(.system(size: 11)); Spacer(); Text(value.wrappedValue.formatted(.number.precision(.fractionLength(2)))).font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary) }
+            Slider(value: value, in: range).tint(VexelPalette.accent)
+        }
+    }
+}
