@@ -1,0 +1,77 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Core tests
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          swift --version
+      - name: Run Swift package tests
+        run: swift test --package-path Packages/VexelCore
+
+  build-ipa:
+    name: Build unsigned iOS IPA
+    runs-on: macos-15
+    needs: test
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+      - name: Verify source effect registry
+        run: python3 scripts/verify_effect_registry.py
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Archive for physical iOS devices
+        run: |
+          xcodebuild archive \
+            -project Vexel.xcodeproj \
+            -scheme Vexel \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/Vexel.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH="$RUNNER_TEMP/Vexel.xcarchive/Products/Applications/Vexel.app"
+          test -d "$APP_PATH"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          ditto "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/Vexel.app"
+          cd "$RUNNER_TEMP/ipa"
+          ditto -c -k --sequesterRsrc --keepParent Payload "$GITHUB_WORKSPACE/Vexel-unsigned.ipa"
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vexel-unsigned-IPA
+          path: Vexel-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload archive for diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vexel-xcarchive-diagnostics
+          path: ${{ runner.temp }}/Vexel.xcarchive
+          if-no-files-found: ignore
+          retention-days: 3
