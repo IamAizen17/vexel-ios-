@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import VexelCore
+import UniformTypeIdentifiers
 
 enum VexelEditorTool: String, CaseIterable, Identifiable {
     case layers = "Layers", shapes = "Shapes", text = "Text", media = "Media", model3D = "3D"
@@ -100,11 +101,15 @@ struct VexelEditorWorkspace: View {
                 onProjectChange(project)
             }
         }
-        .sheet(isPresented: $showingAudioPicker) {
-            MediaPicker(audioOnly: true) { _ in
+        .fileImporter(isPresented: $showingAudioPicker, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                guard !urls.isEmpty else { return }
                 layerNames.insert("Audio Layer", at: 0)
                 project.layerNames = layerNames
                 onProjectChange(project)
+            case .failure(let error):
+                showingNotice = error.localizedDescription
             }
         }
         .alert("Rename composition", isPresented: $showRename) {
@@ -352,7 +357,7 @@ private struct MediaPicker: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 18) {
-                PhotosPicker(selection: $selection, matching: audioOnly ? .any(of: [.videos]) : .images) {
+                PhotosPicker(selection: $selection, matching: .any(of: [.images, .videos])) {
                     Label(audioOnly ? "Choose media" : "Choose image", systemImage: "photo")
                         .font(.system(size: 14, weight: .semibold)).foregroundStyle(VexelPalette.text)
                         .padding(16).frame(maxWidth: .infinity)
@@ -363,7 +368,7 @@ private struct MediaPicker: View {
             }
             .padding(18).background(VexelPalette.background)
             .navigationTitle(audioOnly ? "Add audio" : "Add media")
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .onChange(of: selection) { item in if let item { onSelect(item); dismiss() } }
         }
         .preferredColorScheme(.dark)
