@@ -3,9 +3,10 @@
 A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
 rendering, and AVFoundation media pipeline.
 
-**Current status:** project-import milestone. The repository contains a universal SwiftUI app, a testable Swift core,
-a secure .knsproj ZIP importer with version 1–12 migration handling, and a GitHub Actions workflow that builds an
-unsigned device IPA. Timeline editing, rendering, effects, audio and export parity remain in progress.
+**Current status:** project-format milestone. The repository contains a universal SwiftUI app, a testable Swift core,
+a secure .knsproj importer with version 1–12 migration handling, native .vexelproj archive save/load, asset preservation,
+and a GitHub Actions workflow that builds an unsigned device IPA. Timeline editing, rendering, effects, audio and
+export parity remain in progress.
 
 ## Repository structure
 
@@ -13,6 +14,7 @@ unsigned device IPA. Timeline editing, rendering, effects, audio and export pari
 - `Packages/VexelCore/`: platform-independent project and editing core.
 - `.github/workflows/ios-ipa.yml`: CI tests and unsigned IPA packaging.
 - `KnsprojArchiveImporter`: Kinesis project import, migration and asset extraction.
+- `VexelProjectArchive`: native .vexelproj archive save/load with asset integrity checks.
 - `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
 ## Build without owning a Mac
@@ -23,10 +25,11 @@ Device installation requires signing and a provisioning profile. See [docs/BUILD
 
 ## Current import capability
 
-Use the folder icon in the workspace to select a .knsproj file. Vexel extracts its media into Application Support,
-migrates supported source versions to the v12 document shape, and retains the original source document in the
-compatibility metadata. The imported project is not yet fully editable or renderable; the layer and effect engines
-are being ported separately.
+Use the folder icon to open either a .knsproj or .vexelproj file. Kinesis imports migrate supported source versions
+to the v12 document shape and retain the original source document. Use the save icon to write a native .vexelproj
+archive; the share sheet can export it to Files. Both archive formats preserve referenced media and unknown document
+fields. The imported project is not yet fully editable or renderable; the layer and effect engines are being ported
+separately.
 
 ## Development
 

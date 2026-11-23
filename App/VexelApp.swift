@@ -18,6 +18,7 @@ private struct WorkspaceView: View {
     @State private var isImportingProject = false
     @State private var importAlert: String?
     @State private var importedProjectDirectory: URL?
+    @State private var shareURL: URL?
 
     private let sections = ["Project", "Media", "Effects", "Export"]
 
@@ -38,10 +39,36 @@ private struct WorkspaceView: View {
         .tint(Color(red: 0.34, green: 0.82, blue: 0.72))
         .fileImporter(
             isPresented: $isImportingProject,
-            allowedContentTypes: [UTType(filenameExtension: "knsproj") ?? .data, .zip],
+            allowedContentTypes: [
+                UTType(filenameExtension: "knsproj") ?? .data,
+                UTType(filenameExtension: "vexelproj") ?? .zip,
+                .zip
+            ],
             allowsMultipleSelection: false
         ) { result in
             handleProjectImport(result)
+        }
+        .sheet(isPresented: Binding(
+            get: { shareURL != nil },
+            set: { if !$0 { shareURL = nil } }
+        )) {
+            if let shareURL {
+                VStack(spacing: 18) {
+                    Text("Project saved")
+                        .font(.headline)
+                    Text(shareURL.lastPathComponent)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ShareLink(item: shareURL) {
+                        Label("Share or Save to Files", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button("Close") { self.shareURL = nil }
+                }
+                .padding(24)
+                .presentationDetents([.medium])
+            }
         }
         .alert("Project Import", isPresented: Binding(
             get: { importAlert != nil },
@@ -112,12 +139,15 @@ private struct WorkspaceView: View {
                     .frame(width: 38, height: 38)
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
             }
-            Button {} label: {
-                Image(systemName: "square.and.arrow.up")
+            Button {
+                saveCurrentProject()
+            } label: {
+                Image(systemName: "square.and.arrow.down")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 38, height: 38)
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
             }
+            .accessibilityLabel("Save Vexel project")
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 20)
@@ -290,17 +320,47 @@ private struct WorkspaceView: View {
                     let destination = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                         .appendingPathComponent("Vexel/Projects", isDirectory: true)
                     let imported = try await Task.detached(priority: .userInitiated) {
-                        try KnsprojArchiveImporter().importProject(from: sourceURL, into: destination)
+                        if sourceURL.pathExtension.lowercased() == "vexelproj" {
+                            let loaded = try VexelProjectArchive().open(from: sourceURL, into: destination)
+                            return (loaded.project, loaded.projectDirectory, "Vexel", loaded.importedFileCount)
+                        }
+                        let loaded = try KnsprojArchiveImporter().importProject(from: sourceURL, into: destination)
+                        return (loaded.project, loaded.projectDirectory, "Kinesis v\(loaded.sourceVersion)", loaded.importedAssetCount)
                     }.value
-                    project = imported.project
-                    importedProjectDirectory = imported.projectDirectory
-                    importAlert = "Imported \(project.title) from Kinesis format v\(imported.sourceVersion). \(imported.importedAssetCount) media assets copied."
+                    project = imported.0
+                    importedProjectDirectory = imported.1
+                    importAlert = "Imported \(project.title) from \(imported.2). \(imported.3) media files copied."
                 } catch {
                     importAlert = error.localizedDescription
                 }
                 if hasAccess {
                     sourceURL.stopAccessingSecurityScopedResource()
                 }
+            }
+        }
+    }
+
+
+    private func saveCurrentProject() {
+        let snapshot = project
+        let assetRoot = importedProjectDirectory
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Vexel/WorkingAssets", isDirectory: true)
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let projectFolder = documents.appendingPathComponent("Vexel Projects", isDirectory: true)
+        let invalidCharacters = CharacterSet(charactersIn: "/:")
+        let baseName = snapshot.title.components(separatedBy: invalidCharacters).joined(separator: "-")
+        let fileName = (baseName.isEmpty ? "Untitled" : baseName) + ".vexelproj"
+        let destination = projectFolder.appendingPathComponent(fileName)
+
+        Task {
+            do {
+                try await Task.detached(priority: .utility) {
+                    try VexelProjectArchive().save(snapshot, assetsDirectory: assetRoot, to: destination)
+                }.value
+                shareURL = destination
+            } catch {
+                importAlert = error.localizedDescription
             }
         }
     }
