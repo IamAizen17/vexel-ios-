@@ -24,7 +24,7 @@ The source core is immutable Kotlin data. `History<T>` stores a 200-step bounded
 
 ## Compatibility boundary
 
-Keep .vexelproj as the native project extension, but make its versioned model able to represent the full source project semantics. A Vexel archive should carry a declared source compatibility record and preserve unknown JSON fields. The .knsproj adapter must read v12 and earlier supported versions, map representable data losslessly where possible, and return structured warnings for every unsupported or lossy field. Never silently drop layers, effects, animation, media or plugin data.
+Keep .vexelproj as the native project extension, but make its versioned model able to represent the full source project semantics. A Vexel archive should carry a declared source compatibility record and preserve unknown JSON fields. The legacy Android import adapter must read supported source versions, map representable data losslessly where possible, and return structured warnings for every unsupported or lossy field. Never silently drop layers, effects, animation, media or plugin data.
 
 The current generic ProjectDocument is only a preservation scaffold. It is not yet the canonical model, importer or validator.
 
@@ -32,7 +32,7 @@ The current generic ProjectDocument is only a preservation scaffold. It is not y
 
 ### E0 - Complete source contract
 - Pin every source file and generated schema used.
-- Read KnsprojJson serializers, all migrations, validator, archive and real fixtures.
+- Read the source project serializers, all migrations, validator, archive implementation and real fixtures.
 - Build a typed field matrix for Project, Composition, Asset, Layer, content types, transforms, effects, masks, mattes, transitions, markers, editor view and plugin metadata.
 - Map every editing UI action to ViewModel method, core operation and state transition.
 - Build canonical JSON fixtures and semantic validation expectations.
@@ -43,7 +43,7 @@ Exit: no unknown top-level or layer fields in the v12 compatibility matrix.
 - Implement source v12 decoding and explicit migrations from supported earlier versions.
 - Implement semantic validation equivalent to source validation.
 - Implement secure ZIP import/export with bounded streaming, duplicate-entry policy, safe paths, CRC/hash verification and atomic directory promotion.
-- Implement .vexelproj native archive and .knsproj import/export where representable.
+- Implement native `.vexelproj` archives and import-only legacy Android compatibility.
 Exit: fixtures import, validate, save/reopen and compare structurally; all asset references resolve.
 
 ### E2 - Editing domain
@@ -103,7 +103,7 @@ Exit: feature-by-feature parity is measured on supported hardware and documented
 ## Immediate implementation order
 
 1. Complete the UI audit and remove misleading placeholder success paths.
-2. Implement typed KnsProject v12 decoding and semantic validation.
+2. Implement typed VexelProject decoding with legacy Android compatibility and semantic validation.
 3. Add secure archive reading and fixture-based import tests.
 4. Add typed editing commands and undo/redo.
 5. Add deterministic animation sampling and scene evaluator.
