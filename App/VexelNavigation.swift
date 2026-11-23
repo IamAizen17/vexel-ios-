@@ -268,7 +268,15 @@ struct VexelHomeView: View {
                     var imported = VexelProjectItem(document: payload.project)
                     imported.id = projectID
                     imported.assetsDirectory = assetsURL.path
-                    projects.insert(imported, at: 0)
+                    var updatedProjects = projects
+                    updatedProjects.insert(imported, at: 0)
+                    do {
+                        try VexelProjectStore.save(updatedProjects)
+                    } catch {
+                        try? VexelProjectStore.deleteAssets(for: imported)
+                        throw error
+                    }
+                    projects = updatedProjects
                     notice = "Imported \(imported.title) from \(url.lastPathComponent)."
                 } catch {
                     notice = "Import failed: \(error.localizedDescription)"
