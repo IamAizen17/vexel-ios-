@@ -304,6 +304,8 @@ private struct VexelTimelineTrackRow: View {
                         width: width,
                         zoom: zoom,
                         compositionDuration: compositionDuration,
+                        containerOffset: containerOffset + track.start,
+                        containerDuration: track.duration,
                         fps: fps,
                         snapPoints: snapPoints,
                         selectedTrackID: $selectedTrackID,
