@@ -1,7 +1,8 @@
 import Foundation
 
 public enum VexelProjectImporter {
-        private static let maximumAndroidCompatibilityVersion = 12
+    static let legacyAndroidFormatIdentifier = "knsproj"
+    private static let maximumAndroidCompatibilityVersion = 12
 
     public static func importDocument(from data: Data) throws -> ProjectDocument {
         let source = try ProjectDocument(data: data)
@@ -18,7 +19,7 @@ public enum VexelProjectImporter {
             return source
         }
 
-        guard let sourceFormat, sourceFormat != ProjectDocument.format else {
+        guard sourceFormat == legacyAndroidFormatIdentifier else {
             throw ProjectDocumentError.unsupportedFormat(sourceFormat)
         }
 
@@ -33,10 +34,10 @@ public enum VexelProjectImporter {
         fields["format"] = .string(ProjectDocument.format)
         fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
         fields["generator"] = .string("Vexel")
-        fields["compatibility"] = .object([
-            "source": .string("android-reference"),
-            "sourceVersion": .number(rawVersion)
-        ])
+        var compatibility = fields["compatibility"]?.objectValue ?? [:]
+        compatibility["source"] = .string("android-reference")
+        compatibility["sourceVersion"] = .number(rawVersion)
+        fields["compatibility"] = .object(compatibility)
 
         let imported = ProjectDocument(fields: fields)
         let issues = imported.validate().filter { $0.severity == .error }
