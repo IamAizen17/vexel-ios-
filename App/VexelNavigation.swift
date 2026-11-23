@@ -303,7 +303,12 @@ struct VexelHomeView: View {
             presenting: deletingProject
         ) { project in
             Button("Delete", role: .destructive) {
-                projects.removeAll { $0.id == project.id }
+                do {
+                    try VexelProjectStore.deleteAssets(for: project)
+                    projects.removeAll { $0.id == project.id }
+                } catch {
+                    notice = "Could not remove project assets: \(error.localizedDescription)"
+                }
                 deletingProject = nil
             }
         } message: { project in
