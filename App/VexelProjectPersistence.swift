@@ -1,6 +1,10 @@
 import Foundation
 
 enum VexelProjectStore {
+    enum StoreError: Error {
+        case invalidAssetDirectory
+    }
+
     private static let directoryName = "Projects"
     private static let fileName = "index.json"
     private static let encoder: JSONEncoder = {
@@ -34,10 +38,52 @@ enum VexelProjectStore {
     }
 
     static func assetsDirectory(for projectID: UUID) throws -> URL {
-        let directory = try projectDirectory().appendingPathComponent("Assets", isDirectory: true)
-            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        let directory = try assetsRoot().appendingPathComponent(projectID.uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         return directory
+    }
+
+    static func duplicate(_ project: VexelProjectItem) throws -> VexelProjectItem {
+        var copy = project
+        copy.id = UUID()
+        copy.title = project.title + " Copy"
+        copy.modified = Date()
+
+        let destination = try assetsRoot().appendingPathComponent(copy.id.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if let sourcePath = project.assetsDirectory {
+            let source = URL(fileURLWithPath: sourcePath).resolvingSymlinksInPath().standardizedFileURL
+            let root = try assetsRoot().resolvingSymlinksInPath().standardizedFileURL
+            let rootPrefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
+            guard source.path.hasPrefix(rootPrefix), source != root else { throw StoreError.invalidAssetDirectory }
+            if FileManager.default.fileExists(atPath: source.path) {
+                try FileManager.default.copyItem(at: source, to: destination)
+            } else {
+                try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+            }
+        } else {
+            try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        }
+        copy.assetsDirectory = destination.path
+        copy.synchronizeDocument()
+        return copy
+    }
+
+    static func deleteAssets(for project: VexelProjectItem) throws {
+        guard let path = project.assetsDirectory else { return }
+        let source = URL(fileURLWithPath: path).resolvingSymlinksInPath().standardizedFileURL
+        let root = try assetsRoot().resolvingSymlinksInPath().standardizedFileURL
+        let prefix = root.path.hasSuffix("/") ? root.path : root.path + "/"
+        guard source.path.hasPrefix(prefix), source != root else { throw StoreError.invalidAssetDirectory }
+        if FileManager.default.fileExists(atPath: source.path) {
+            try FileManager.default.removeItem(at: source)
+        }
+    }
+
+    private static func assetsRoot() throws -> URL {
+        let root = try projectDirectory().appendingPathComponent("Assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        return root
     }
 
     private static func projectDirectory() throws -> URL {
