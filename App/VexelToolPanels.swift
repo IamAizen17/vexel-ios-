@@ -86,7 +86,7 @@ struct VexelToolSheet: View {
             HStack {
                 VexelSectionLabel(title: "Composition layers", trailing: "\(layerNames.count) TOTAL")
                 Spacer()
-                Button { layerNames.insert("New Layer", at: 0) } label: { Image(systemName: "plus.circle.fill").foregroundStyle(VexelPalette.accent).font(.system(size: 21)) }
+                Button { onAction("add-layer") } label: { Image(systemName: "plus.circle.fill").foregroundStyle(VexelPalette.accent).font(.system(size: 21)) }
             }
             ScrollView {
                 VStack(spacing: 8) {
@@ -108,8 +108,8 @@ struct VexelToolSheet: View {
                 }
             }
             HStack {
-                VexelActionButton(title: "Add layer", systemImage: "plus", prominent: true) { layerNames.insert("New Layer", at: 0) }
-                VexelActionButton(title: "Duplicate", systemImage: "plus.square.on.square") { if let first = layerNames.first { layerNames.insert(first + " Copy", at: 0) } }
+                VexelActionButton(title: "Add layer", systemImage: "plus", prominent: true) { onAction("add-layer") }
+                VexelActionButton(title: "Duplicate", systemImage: "plus.square.on.square") { onAction("duplicate-layer") }
             }
         }
     }
