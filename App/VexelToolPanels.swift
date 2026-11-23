@@ -1,5 +1,10 @@
 import SwiftUI
 
+private enum VexelAdvancedEditorPage: String, Identifiable {
+    case audio, captions, camera, cutout, expression
+    var id: String { rawValue }
+}
+
 struct VexelToolSheet: View {
     let tool: VexelEditorTool
     @Binding var layerNames: [String]
@@ -10,6 +15,7 @@ struct VexelToolSheet: View {
     @State private var search = ""
     @State private var effectCategory = "All effects"
     @State private var selectedSubpage = "Overview"
+    @State private var advancedPage: VexelAdvancedEditorPage?
 
     var body: some View {
         NavigationStack {
@@ -42,6 +48,15 @@ struct VexelToolSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(item: $advancedPage) { page in
+            switch page {
+            case .audio: VexelAudioWorkspace().presentationDetents([.large])
+            case .captions: VexelCaptionWorkspace().presentationDetents([.large])
+            case .camera: VexelCameraWorkspace().presentationDetents([.large])
+            case .cutout: VexelCutoutBrushWorkspace().presentationDetents([.large])
+            case .expression: VexelExpressionWorkspace().presentationDetents([.large])
+            }
+        }
     }
 
     private var layersPage: some View {
@@ -110,7 +125,6 @@ struct VexelToolSheet: View {
                 }
             }
             VexelActionButton(title: "Add text layer", systemImage: "textformat", prominent: true) {
-                layerNames.insert("Text Layer", at: 0)
                 onAction("add-text")
             }
             VexelActionButton(title: "Add 3D text", systemImage: "cube.transparent") { layerNames.insert("3D Text Layer", at: 0) }
@@ -130,6 +144,7 @@ struct VexelToolSheet: View {
                 Label("Imported assets will be listed in the project media bin.", systemImage: "info.circle")
                     .font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
             }
+            VexelActionButton(title: "Open cutout brush", systemImage: "scribble.variable") { advancedPage = .cutout }
             Spacer()
         }
     }
@@ -173,7 +188,7 @@ struct VexelToolSheet: View {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
                     ForEach(effects) { effect in
-                        Button { onAction("add-layer") } label: {
+                        Button { onAction("effect:\(effect.id)") } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 RoundedRectangle(cornerRadius: 7).fill(VexelPalette.field)
                                     .frame(height: 58)
@@ -196,12 +211,12 @@ struct VexelToolSheet: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Keyframe controls", systemImage: "diamond").font(.system(size: 13, weight: .bold)).foregroundStyle(VexelPalette.text)
                     HStack {
-                        VexelActionButton(title: "Add keyframe", systemImage: "diamond.fill", prominent: true) { onAction("add-layer") }
+                        VexelActionButton(title: "Add keyframe", systemImage: "diamond.fill", prominent: true) { onAction("add-keyframe") }
                         VexelActionButton(title: "Graph editor", systemImage: "point.topleft.down.to.point.bottomright.curvepath", action: onGraph)
                     }
                     HStack {
                         VexelActionButton(title: "Curve editor", systemImage: "waveform.path", action: onCurve)
-                        VexelActionButton(title: "Expressions", systemImage: "chevron.left.forwardslash.chevron.right") { selectedSubpage = "Expressions" }
+                        VexelActionButton(title: "Expressions", systemImage: "chevron.left.forwardslash.chevron.right") { advancedPage = .expression }
                     }
                 }
             }
@@ -231,6 +246,7 @@ struct VexelToolSheet: View {
             }
             mediaRow("Add audio", detail: "Import audio from Files or Photos", symbol: "waveform", action: "pick-audio")
             mediaRow("Record voiceover", detail: "Microphone capture", symbol: "mic", action: "record")
+            VexelActionButton(title: "Open mixer and EQ", systemImage: "slider.horizontal.3", prominent: true) { advancedPage = .audio }
             VexelSectionLabel(title: "Audio processing")
             ForEach(["Waveform display", "Noise reduction", "Fade in / out", "Time stretch", "Beat markers"], id: \.self) { item in
                 HStack { Text(item).font(.system(size: 12)).foregroundStyle(VexelPalette.text); Spacer(); Image(systemName: "chevron.right").foregroundStyle(VexelPalette.secondary) }
@@ -255,7 +271,8 @@ struct VexelToolSheet: View {
                 HStack { Text(item).font(.system(size: 12)).foregroundStyle(VexelPalette.text); Spacer(); Text("0").font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary) }
                     .padding(12).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
             }
-            VexelActionButton(title: "Add camera", systemImage: "camera", prominent: true) { onAction("add-layer") }
+            VexelActionButton(title: "Camera controls", systemImage: "camera.aperture") { advancedPage = .camera }
+            VexelActionButton(title: "Add camera", systemImage: "camera", prominent: true) { onAction("add-camera") }
             Spacer()
         }
     }
@@ -269,6 +286,7 @@ struct VexelToolSheet: View {
                     Text("Create timed subtitle segments, style caption text, and synchronize them with audio.")
                         .font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
                     VexelActionButton(title: "Add caption", systemImage: "plus", prominent: true) { layerNames.insert("Caption Layer", at: 0) }
+                    VexelActionButton(title: "Open caption editor", systemImage: "captions.bubble") { advancedPage = .captions }
                 }
             }
             ForEach(["Import SRT", "Generate from speech", "Text-to-speech", "Caption style", "Timing and alignment"], id: \.self) { item in
@@ -283,7 +301,7 @@ struct VexelToolSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             VexelSectionLabel(title: "Saved elements")
             VexelEmptyState(symbol: "square.grid.2x2", title: "No saved elements", detail: "Save reusable compositions, title cards and graphics here.")
-            VexelActionButton(title: "Save current selection", systemImage: "bookmark", prominent: true) { onAction("add-layer") }
+            VexelActionButton(title: "Save current selection", systemImage: "bookmark", prominent: true) { onAction("save-element") }
         }
     }
 
