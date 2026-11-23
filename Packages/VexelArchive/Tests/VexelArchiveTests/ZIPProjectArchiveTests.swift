@@ -22,7 +22,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let jsonURL = directory.appendingPathComponent("project.json")
         var fields = ProjectDocument.starter(title: "Android import").fields
-        fields["format"] = .string("android-project")
+        fields["format"] = .string(VexelCompatibilityImporter.legacyAndroidFormatIdentifier)
         fields["formatVersion"] = .number(12)
         try ProjectDocument(fields: fields).encoded().write(to: jsonURL)
         let archiveURL = directory.appendingPathComponent("android-source.zip")
