@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import VexelCore
+import VexelArchive
 
 struct VexelProjectItem: Identifiable, Hashable, Codable {
     let id: UUID
@@ -14,6 +15,7 @@ struct VexelProjectItem: Identifiable, Hashable, Codable {
     var timelineTracks: [VexelTimelineTrack]
     var markers: [VexelMarker]
     var documentJSON: String?
+    var assetsDirectory: String?
 
     init(title: String, width: Int = 1080, height: Int = 1920, fps: Int = 30, duration: Double = 10) {
         self.id = UUID()
@@ -27,6 +29,7 @@ struct VexelProjectItem: Identifiable, Hashable, Codable {
         self.timelineTracks = []
         self.markers = []
         self.documentJSON = nil
+        self.assetsDirectory = nil
         self.synchronizeDocument()
     }
 }
@@ -219,6 +222,7 @@ struct VexelHomeView: View {
     @State private var deletingProject: VexelProjectItem?
     @State private var showingImporter = false
     @State private var notice: String?
+    @State private var sharingProjectURL: URL?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -257,10 +261,37 @@ struct VexelHomeView: View {
                 guard let url = urls.first else { return }
                 let access = url.startAccessingSecurityScopedResource()
                 defer { if access { url.stopAccessingSecurityScopedResource() } }
-                notice = "Selected \(url.lastPathComponent). Import will be enabled when the secure .knsproj archive adapter is connected."
+                do {
+                    let projectID = UUID()
+                    let assetsURL = try VexelProjectStore.assetsDirectory(for: projectID)
+                    let payload = try ZIPProjectArchive().read(from: url, extractingAssetsTo: assetsURL)
+                    var imported = VexelProjectItem(document: payload.project)
+                    imported.id = projectID
+                    imported.assetsDirectory = assetsURL.path
+                    projects.insert(imported, at: 0)
+                    notice = "Imported \(imported.title) from \(url.lastPathComponent)."
+                } catch {
+                    notice = "Import failed: \(error.localizedDescription)"
+                }
             case .failure(let error):
                 notice = error.localizedDescription
             }
+        }
+        .sheet(isPresented: Binding(get: { sharingProjectURL != nil }, set: { if !$0 { sharingProjectURL = nil } })) {
+            VStack(spacing: 16) {
+                Text("Project archive ready").font(.system(size: 18, weight: .bold))
+                if let sharingProjectURL {
+                    ShareLink(item: sharingProjectURL) {
+                        Label("Share .knsproj archive", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.black)
+                            .padding(.horizontal, 18).frame(height: 46)
+                            .background(VexelPalette.accent, in: Capsule())
+                    }
+                }
+                Button("Done") { sharingProjectURL = nil }.foregroundStyle(VexelPalette.secondary)
+            }
+            .padding(24).presentationDetents([.medium])
         }
         .alert("Project action", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
             Button("OK", role: .cancel) { notice = nil }
@@ -346,7 +377,16 @@ struct VexelHomeView: View {
                                 copy = VexelProjectItem(title: project.title + " Copy", width: project.width, height: project.height, fps: project.fps, duration: project.duration)
                                 projects.insert(copy, at: 0)
                             }, onDelete: { deletingProject = project }, onExport: {
-                                notice = "Project archive export will be enabled when the .vexelproj archive writer is connected."
+                                do {
+                                    let document = try project.makeProjectDocument()
+                                    let destination = FileManager.default.temporaryDirectory
+                                        .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).knsproj")
+                                    let assets = project.assetsDirectory.map(URL.init(fileURLWithPath:))
+                                    try ZIPProjectArchive().write(document, assetsDirectory: assets, to: destination)
+                                    sharingProjectURL = destination
+                                } catch {
+                                    notice = "Export failed: \(error.localizedDescription)"
+                                }
                             })
                         }
                     }
