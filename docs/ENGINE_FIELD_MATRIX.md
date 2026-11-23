@@ -15,7 +15,7 @@ Source: `core/model/Project.kt`.
 
 | Source field | Type / meaning | iOS model |
 |---|---|---|
-| `format` | Legacy Android discriminator, recognized only by the import adapter | Recognize only inside the Vexel project importer; convert to the canonical Vexel model |
+| `format` | Android source discriminator, recognized only by the Vexel importer | Recognize only inside the Vexel project importer; convert to the canonical Vexel model |
 | `formatVersion` | Legacy source schema version 12; Vexel writes its own versioned schema | Source version retained for migrations/reporting |
 | `generator` | Optional producer string | Preserve |
 | `meta` | Title, description, author, createdAt, modifiedAt | Typed metadata plus unknown-field preservation |
@@ -233,7 +233,7 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 Source: the Android archive implementation.
 
 ZIP entries:
-- Native Vexel export: required `vexel.json`. The legacy Android `project.json` entry is import-only.
+- Native Vexel export: required `project.json`. The legacy Android `project.json` entry is import-only.
 - Referenced `assets/<file>`.
 - Optional `thumbnail.jpg`.
 
