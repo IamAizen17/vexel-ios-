@@ -64,13 +64,13 @@ struct VexelRootView: View {
         Group {
             if !onboardingComplete {
                 VexelOnboardingView {
-                    withAnimation(VexelMotion.navigation) { onboardingComplete = true }
+                    withAnimation(navigationAnimation) { onboardingComplete = true }
                 }
                  .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985)))
             } else if let project = activeProject {
                 VexelEditorWorkspace(
                     project: project,
-                    onClose: { withAnimation(VexelMotion.navigation) { activeProject = nil } },
+                    onClose: { withAnimation(navigationAnimation) { activeProject = nil } },
                     onProjectChange: { updated in
                         if let index = projects.firstIndex(where: { $0.id == updated.id }) {
                             projects[index] = updated
@@ -81,7 +81,7 @@ struct VexelRootView: View {
             } else {
                 VexelHomeView(
                     projects: $projects,
-                    onOpen: { project in withAnimation(VexelMotion.navigation) { activeProject = project } }
+                    onOpen: { project in withAnimation(navigationAnimation) { activeProject = project } }
                 )
                  .transition(reduceMotion ? .opacity : .asymmetric(insertion: .move(edge: .leading).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
             }
