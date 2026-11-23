@@ -232,13 +232,18 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 
 Source: the Android archive implementation.
 
-ZIP entries:
-- Native Vexel export: required `project.json`. The Android source archive's `project.json` entry is import-only.
+Android source ZIP entries:
+- Legacy import document: `project.json`.
 - Referenced `assets/<file>`.
 - Optional `thumbnail.jpg`.
 
-Source limits:
-- Native `vexel.json` and imported legacy document: 64 MiB.
+Vexel native ZIP entries:
+- Required `vexel.json`.
+- Referenced `assets/<file>`.
+- Optional Vexel thumbnail metadata when implemented.
+
+Document size limit:
+- 64 MiB for native and imported project documents.
 - Aggregate uncompressed entry data: 8 GiB.
 - Entry count: 10,000.
 - Unsafe absolute paths, drive/colon paths and parent traversal are rejected.
