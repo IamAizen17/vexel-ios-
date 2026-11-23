@@ -38,6 +38,60 @@ final class ZIPProjectArchiveTests: XCTestCase {
     }
 
 
+
+    func testAndroidReferenceArchiveImportsExportsAndRoundTripsWithAssetPaths() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let fixtureURL = try XCTUnwrap(Bundle.module.url(
+            forResource: "android-v2-video-audio",
+            withExtension: "json",
+            subdirectory: "Fixtures"
+        ))
+        let projectJSON = directory.appendingPathComponent("project.json")
+        try Data(contentsOf: fixtureURL).write(to: projectJSON)
+
+        let clip = directory.appendingPathComponent("clip.mp4")
+        let music = directory.appendingPathComponent("music.m4a")
+        let clipBytes = Data([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70])
+        let musicBytes = Data([0x4D, 0x34, 0x41, 0x20])
+        try clipBytes.write(to: clip)
+        try musicBytes.write(to: music)
+
+        let androidArchiveURL = directory.appendingPathComponent("android-reference.zip")
+        let androidArchive = try XCTUnwrap(Archive(url: androidArchiveURL, accessMode: .create))
+        try androidArchive.addEntry(
+            with: ZIPProjectArchive.legacyProjectEntry,
+            fileURL: projectJSON,
+            compressionMethod: .deflate
+        )
+        try androidArchive.addEntry(with: "assets/clip.mp4", fileURL: clip, compressionMethod: .none)
+        try androidArchive.addEntry(with: "assets/music.m4a", fileURL: music, compressionMethod: .none)
+
+        let extractedAssets = directory.appendingPathComponent("imported-assets", isDirectory: true)
+        let imported = try ZIPProjectArchive().read(from: androidArchiveURL, extractingAssetsTo: extractedAssets)
+        XCTAssertEqual(imported.project.fields["format"]?.stringValue, ProjectDocument.format)
+        XCTAssertEqual(imported.project.fields["compatibility"]?.objectValue?["sourceVersion"]?.numberValue, 2)
+        XCTAssertEqual(try Data(contentsOf: extractedAssets.appendingPathComponent("assets/clip.mp4")), clipBytes)
+        XCTAssertEqual(try Data(contentsOf: extractedAssets.appendingPathComponent("assets/music.m4a")), musicBytes)
+
+        let vexelArchiveURL = directory.appendingPathComponent("converted.vexelproj")
+        try ZIPProjectArchive().write(
+            imported.project,
+            assetsDirectory: imported.extractedAssetsDirectory,
+            to: vexelArchiveURL
+        )
+        let reopened = try ZIPProjectArchive().read(from: vexelArchiveURL)
+        XCTAssertEqual(reopened.project, imported.project)
+        let nativeArchive = try XCTUnwrap(Archive(url: vexelArchiveURL, accessMode: .read))
+        let paths = Set(nativeArchive.map(\\.path))
+        XCTAssertTrue(paths.contains("vexel.json"))
+        XCTAssertTrue(paths.contains("assets/clip.mp4"))
+        XCTAssertTrue(paths.contains("assets/music.m4a"))
+        XCTAssertFalse(paths.contains("project.json"))
+    }
+
     func testImporterRejectsUnknownExternalFormat() throws {
         let fields: [String: JSONValue] = [
             "format": .string("unrelated-project"),
