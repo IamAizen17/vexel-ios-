@@ -466,7 +466,7 @@ struct VexelEditorWorkspace: View {
         commitEdit {
             let source = project.timelineTracks[index]
             let name = uniqueLayerName(source.name + " Copy")
-            let duplicate = VexelTimelineTrack(name: name, start: source.start, duration: source.duration, kind: source.kind, visible: source.visible, locked: false, isGroup: source.isGroup, isExpanded: source.isExpanded, children: source.children, keyframes: source.keyframes)
+            let duplicate = VexelTimelineTrack(name: name, start: source.start, duration: source.duration, kind: source.kind, visible: source.visible, locked: false, isGroup: source.isGroup, isExpanded: source.isExpanded, children: source.children, keyframes: source.keyframes, effects: source.effects)
             project.timelineTracks.insert(duplicate, at: index + 1)
             layerNames.insert(name, at: min(index + 1, layerNames.count))
             selectedTrackID = duplicate.id
@@ -580,12 +580,24 @@ struct VexelEditorWorkspace: View {
         case "show-composition": showCompositionSettings = true
         case "show-plugins": selectedTool = .plugins
         case "add-layer": addLayer(named: "New Layer", kind: .visual); selectedTool = nil
+        case "duplicate-layer": duplicateSelectedTrack()
         case "add-keyframe": addKeyframeAtPlayhead()
         case "shortcut:mask", "shortcut:track-matte", "shortcut:transitions", "shortcut:text-animators":
             showingNotice = "This operation is disabled until its editing and rendering implementation is available."
         default:
             if action.hasPrefix("effect:") {
-                showingNotice = "Effect execution is not enabled until the translated shader runtime is integrated."
+                guard let selectedTrackID else {
+                    showingNotice = "Select a layer before adding an effect."
+                    return
+                }
+                let effectID = String(action.dropFirst("effect:".count))
+                commitEdit {
+                    let found = updateTrack(id: selectedTrackID, in: &project.timelineTracks) { track in
+                        if !track.effects.contains(effectID) { track.effects.append(effectID) }
+                    }
+                    if !found { showingNotice = "The selected layer could not be found." }
+                }
+                showingNotice = "Added \(effectID) to the selected layer's effect stack. GPU rendering is not enabled yet."
             } else {
                 showingNotice = "\(tool.rawValue) operation is not implemented yet."
             }
