@@ -54,6 +54,38 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertEqual(project.validate().first?.path, "formatVersion")
     }
 
+
+    func testRejectsNonFiniteNumbersRecursively() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("numeric"),
+                "type": .string("shape"),
+                "duration": .number(5),
+                "transform": .object([
+                    "position": .array([.number(.nan), .number(0)])
+                ]),
+                "futureNested": .object(["value": .number(.infinity)])
+            ])
+        ])
+
+        let issues = project.validate()
+        XCTAssertTrue(issues.contains { $0.path == "$.layers[0].transform.position[0]" })
+        XCTAssertTrue(issues.contains { $0.path == "$.layers[0].futureNested.value" })
+    }
+
+    func testCompositionSizeUsesSafeFallbackForNonFiniteAndOutOfRangeValues() {
+        var project = ProjectDocument.starter()
+        var composition = project.fields["composition"]?.objectValue ?? [:]
+        composition["width"] = .number(.infinity)
+        composition["height"] = .number(1e100)
+        project.fields["composition"] = .object(composition)
+
+        XCTAssertEqual(project.compositionSize.width, 1080)
+        XCTAssertEqual(project.compositionSize.height, 1920)
+        XCTAssertTrue(project.validate().contains { $0.path == "$.composition.width" })
+    }
+
     func testSceneEvaluatorProducesVisibleShapeLayers() {
         var project = ProjectDocument.starter(title: "Scene")
         project.fields["layers"] = .array([
