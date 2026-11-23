@@ -206,7 +206,8 @@ extension VexelProjectItem {
                 object["text"] = .object(["content": .string(track.name), "fontSize": .number(64), "color": .string("#FFFFFF")])
             }
         case .audio:
-            if object["audio"] == nil {
+            object["type"] = .string("audio")
+            if object["audio"]?.objectValue == nil {
                 object["audio"] = .object([:])
             }
         case .rendered3D:
