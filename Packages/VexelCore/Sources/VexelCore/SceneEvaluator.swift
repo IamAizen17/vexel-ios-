@@ -24,6 +24,8 @@ public struct EvaluatedLayer: Equatable, Sendable, Identifiable {
     public let text: String?
     public let fontSize: Double?
     public let effects: [String]
+    public let assetID: String?
+    public let localTime: Double
 }
 
 public struct FrameScene: Equatable, Sendable {
@@ -63,7 +65,7 @@ public enum SceneEvaluator {
             height: max(1, height),
             fps: max(1, fps),
             duration: max(0, duration),
-            background: composition["background"]?.stringValue ?? "#000000",
+            background: colorHex(composition["background"], at: time) ?? "#000000",
             layers: layers
         )
     }
@@ -103,7 +105,10 @@ public enum SceneEvaluator {
             let effects = (object["effects"]?.arrayValue ?? []).compactMap {
                 $0.objectValue?["type"]?.stringValue
             }
-            let size = vector(shape["size"], fallback: ScenePoint(x: 200, y: 200))
+            let size = vector(sample(shape["size"], at: localTime), fallback: ScenePoint(x: 200, y: 200))
+            let textColor = colorHex(text?["color"], at: localTime)
+            let fillColor = colorHex(fill?["color"], at: localTime) ?? colorHex(shape["color"], at: localTime) ?? textColor
+            let contentAssetID = object[type]?.objectValue?["asset"]?.stringValue
             output.append(EvaluatedLayer(
                 id: object["id"]?.stringValue ?? "layer-\(output.count)",
                 name: object["name"]?.stringValue ?? type.capitalized,
@@ -114,10 +119,12 @@ public enum SceneEvaluator {
                 opacity: transform.opacity.clamped(to: 0...1),
                 size: size,
                 shapeKind: shape["kind"]?.stringValue,
-                fillColor: fill?["color"]?.stringValue ?? shape["color"]?.stringValue,
+                fillColor: fillColor,
                 text: text?["content"]?.stringValue,
-                fontSize: text?["fontSize"]?.numberValue,
-                effects: effects
+                fontSize: sample(text?["fontSize"], at: localTime)?.numberValue,
+                effects: effects,
+                assetID: contentAssetID,
+                localTime: localTime
             ))
         }
     }
@@ -187,6 +194,22 @@ public enum SceneEvaluator {
         default:
             return t < 1 ? lhs : rhs
         }
+    }
+
+    private static func colorHex(_ value: JSONValue?, at time: Double) -> String? {
+        guard let value = sample(value, at: time) else { return nil }
+        if let string = value.stringValue { return string }
+        let components: [Double]
+        if let array = value.arrayValue {
+            components = array.compactMap(\.numberValue)
+        } else if let object = value.objectValue {
+            components = ["r", "g", "b"].compactMap { object[$0]?.numberValue }
+        } else {
+            return nil
+        }
+        guard components.count >= 3 else { return nil }
+        let channels = components.prefix(3).map { UInt8(($0.clamped(to: 0...1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", channels[0], channels[1], channels[2])
     }
 
     private static func vector(_ value: JSONValue?, fallback: ScenePoint) -> ScenePoint {
