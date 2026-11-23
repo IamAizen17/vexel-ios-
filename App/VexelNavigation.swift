@@ -478,6 +478,7 @@ struct VexelSettingsPage: View {
     @AppStorage("vexel.useProxies") private var useProxies = true
     @AppStorage("vexel.mirrorProjects") private var mirrorProjects = true
     @AppStorage("vexel.previewQuality") private var previewQuality = 1.0
+    @AppStorage("vexel.previewScale") private var previewScale = 1.0
     @AppStorage("vexel.theme") private var theme = "dark"
 
     var body: some View {
@@ -488,7 +489,7 @@ struct VexelSettingsPage: View {
                     Text("Configure your editing workspace").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
                 }
                 settingsGroup("APPEARANCE") {
-                    settingRow("Theme", detail: "Dark workspace", symbol: "moon.stars") {
+                    settingRow("Theme", detail: theme.capitalized + " appearance", symbol: "moon.stars") {
                         Picker("Theme", selection: $theme) {
                             Text("Dark").tag("dark"); Text("Light").tag("light"); Text("System").tag("system")
                         }.pickerStyle(.menu).tint(VexelPalette.accent)
@@ -503,6 +504,15 @@ struct VexelSettingsPage: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack { Label("3D preview quality", systemImage: "cube"); Spacer(); Text(["Low", "Medium", "High"][Int(previewQuality)]).foregroundStyle(VexelPalette.secondary) }
                         Slider(value: $previewQuality, in: 0...2, step: 1).tint(VexelPalette.accent)
+                    }
+                    .font(.system(size: 12)).foregroundStyle(VexelPalette.text).padding(.vertical, 5)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Label("Preview scale", systemImage: "viewfinder")
+                            Spacer()
+                            Text("\(Int(previewScale * 100))%").foregroundStyle(VexelPalette.secondary)
+                        }
+                        Slider(value: $previewScale, in: 0.25...1, step: 0.25).tint(VexelPalette.accent)
                     }
                     .font(.system(size: 12)).foregroundStyle(VexelPalette.text).padding(.vertical, 5)
                 }
