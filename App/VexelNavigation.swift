@@ -13,6 +13,7 @@ struct VexelProjectItem: Identifiable, Hashable, Codable {
     var layerNames: [String]
     var timelineTracks: [VexelTimelineTrack]
     var markers: [VexelMarker]
+    var documentJSON: String?
 
     init(title: String, width: Int = 1080, height: Int = 1920, fps: Int = 30, duration: Double = 10) {
         self.id = UUID()
@@ -25,6 +26,8 @@ struct VexelProjectItem: Identifiable, Hashable, Codable {
         self.layerNames = []
         self.timelineTracks = []
         self.markers = []
+        self.documentJSON = nil
+        self.synchronizeDocument()
     }
 }
 
