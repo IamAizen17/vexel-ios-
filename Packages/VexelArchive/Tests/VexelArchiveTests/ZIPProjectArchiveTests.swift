@@ -22,7 +22,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let jsonURL = directory.appendingPathComponent("project.json")
         var fields = ProjectDocument.starter(title: "Android import").fields
-        fields["format"] = .string("knsproj")
+        fields["format"] = .string("android-project")
         fields["formatVersion"] = .number(12)
         try ProjectDocument(fields: fields).encoded().write(to: jsonURL)
         let archiveURL = directory.appendingPathComponent("android-source.zip")
@@ -39,11 +39,11 @@ final class ZIPProjectArchiveTests: XCTestCase {
 
     func testNonVexelFormatCannotBeExported() throws {
         var fields = ProjectDocument.starter(title: "Android").fields
-        fields["format"] = .string("knsproj")
+        fields["format"] = .string("android-project")
         fields["formatVersion"] = .number(12)
-        let legacy = ProjectDocument(fields: fields)
+        let externalProject = ProjectDocument(fields: fields)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".vexelproj")
-        XCTAssertThrowsError(try ZIPProjectArchive().write(legacy, to: url)) { error in
+        XCTAssertThrowsError(try ZIPProjectArchive().write(externalProject, to: url)) { error in
             XCTAssertEqual(error as? ZIPProjectArchiveError, .unsupportedProjectFormat)
         }
     }
