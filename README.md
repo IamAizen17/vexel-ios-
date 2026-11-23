@@ -57,7 +57,7 @@ xcodegen generate
 
 ## Compatibility and licensing
 
-Vexel owns the `.vexelproj` extension, `vexel.json` archive document, and `vexelproj` format identifier. Android reference archives are recognized only by the isolated `VexelProjectImporter` and converted to native Vexel documents. All project saves and exports use Vexel format.
+Vexel owns the `.vexelproj` extension, `vexel.json` archive document, and `vexelproj` format identifier. Android reference archives are recognized only by the isolated `VexelCompatibilityImporter` and converted to native Vexel documents. All project saves and exports use Vexel format.
 Unknown JSON fields are retained by the initial Swift document model to avoid discarding future project data.
 
 The Android reference UI is GPL-3.0. The UI adaptation is distributed under GPL-3.0; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). Review distribution obligations before shipping binaries.
