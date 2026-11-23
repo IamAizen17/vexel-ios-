@@ -7,21 +7,21 @@ public struct RenderResourceID: Hashable, Sendable, ExpressibleByStringLiteral {
     public init(stringLiteral value: String) { self.rawValue = value }
 }
 
-public enum RenderPixelFormat: String, Sendable {
+public enum RenderPixelFormat: String, Equatable, Sendable {
     case rgba8Unorm
     case rgba16Float
     case r8Unorm
     case depth32Float
 }
 
-public enum RenderColorSpace: String, Sendable {
+public enum RenderColorSpace: String, Equatable, Sendable {
     case linearSRGB
     case sRGB
     case displayP3
     case extendedLinearSRGB
 }
 
-public enum RenderAlphaMode: String, Sendable {
+public enum RenderAlphaMode: String, Equatable, Sendable {
     case premultiplied
     case straight
     case opaque
@@ -55,7 +55,9 @@ public struct RenderResourceDescriptor: Equatable, Sendable {
         return overflowA || overflowB ? Int.max : bytes
     }
 
-    public var isValid: Bool { width > 0 && height > 0 && estimatedBytes > 0 }
+    public var isValid: Bool {
+        width > 0 && height > 0 && estimatedBytes > 0 && estimatedBytes < Int.max
+    }
 }
 
 public struct RenderPassDescriptor: Equatable, Sendable {
@@ -98,7 +100,9 @@ public struct RenderGraph: Equatable, Sendable {
         var passIDs = Set<String>()
         var produced = externalInputs
         for pass in passes {
-            guard passIDs.insert(pass.id).inserted else { throw RenderGraphIssue.duplicatePass(pass.id) }
+            guard !pass.id.isEmpty, passIDs.insert(pass.id).inserted else {
+                throw RenderGraphIssue.duplicatePass(pass.id)
+            }
             guard resources[pass.writes] != nil else { throw RenderGraphIssue.invalidResource(pass.writes) }
             guard !produced.contains(pass.writes) else { throw RenderGraphIssue.duplicateOutput(pass.writes) }
             for input in pass.reads {
