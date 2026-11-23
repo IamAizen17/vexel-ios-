@@ -45,11 +45,11 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - A project/document bridge converts between the interim editor model and a generic JSON-backed `ProjectDocument`.
 - The bridge attempts to preserve unknown root fields and existing top-level layer fields.
 - `ProjectDocument` validates native Vexel format v1. `VexelProjectImporter` converts supported Android reference documents into native Vexel format before validation.
-- `VexelArchive` uses ZIPFoundation and reads/writes ZIP archives containing `project.json` and referenced `assets/` files.
+- `VexelArchive` uses ZIPFoundation and writes native ZIP archives containing `vexel.json` and referenced `assets/` files. The old Android `project.json` entry is import-only.
 - Archive import is connected to the project file importer; archive export is connected to the project-card share flow.
 - Archive code includes entry-count and uncompressed-size limits, relative-path checks, duplicate-entry rejection, symlink rejection, and missing-asset checks.
 
-Important compatibility qualification: Vexel compatibility import is not yet verified against real source projects. The bridge currently assumes several layer field names and shapes, does not decode keyframe/property animation data, and does not have real Android project fixtures. Do not claim round-trip compatibility with arbitrary Android reference projects until the source schema and fixture tests prove it.
+Important compatibility qualification: Vexel compatibility import is not yet verified against real Android source projects. The bridge currently assumes several layer field names and shapes, does not decode keyframe/property animation data, and does not have real Android project fixtures. Do not claim round-trip compatibility with arbitrary Android reference projects until the source schema and fixture tests prove it.
 
 ### Engine and package foundations
 
@@ -66,7 +66,7 @@ Important compatibility qualification: Vexel compatibility import is not yet ver
 
 Work in dependency order. Keep incomplete UI actions visibly disabled rather than presenting nonfunctional controls as implemented.
 
-### P0: Stabilize Vexel project persistence and Vexel compatibility import
+### P0: Stabilize Vexel-native persistence and Android compatibility import
 
 - Audit the actual Kotlin data classes, serializers, sample projects, and migration code for external Android format v12. Replace guessed field mappings with source-verified mappings.
 - Add real Android reference project fixtures and test import, export, and round-trip preservation.
@@ -122,7 +122,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge is provisional. It guesses parts of the external Android layer schema, omits keyframe/property animation decoding, and does not preserve unknown nested-layer fields reliably.
+- The project/document bridge is provisional. It guesses parts of the imported Android layer schema, omits keyframe/property animation decoding, and does not preserve unknown nested-layer fields reliably.
 - Android compatibility import currently performs a format/version gate and structural validation. It does not establish full Android source schema v12 semantic compatibility.
 - Archive read/write code exists and is connected to UI flows, but must receive security hardening and real Android fixture tests before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
