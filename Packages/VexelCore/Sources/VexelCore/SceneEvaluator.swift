@@ -105,7 +105,7 @@ public enum SceneEvaluator {
             }
             let size = vector(shape["size"], fallback: ScenePoint(x: 200, y: 200))
             output.append(EvaluatedLayer(
-                id: object["id"]?.stringValue ?? UUID().uuidString,
+                id: object["id"]?.stringValue ?? "layer-\(output.count)",
                 name: object["name"]?.stringValue ?? type.capitalized,
                 type: type,
                 position: transform.position,
@@ -183,7 +183,7 @@ public enum SceneEvaluator {
         case (.number(let a), .number(let b)):
             return .number(a + (b - a) * t)
         case (.array(let a), .array(let b)) where a.count == b.count:
-            return .array(zip(a, b).map { interpolate($0, $1, progress: t) })
+            return .array(zip(a, b).map { pair in interpolate(pair.0, pair.1, progress: t) })
         default:
             return t < 1 ? lhs : rhs
         }
