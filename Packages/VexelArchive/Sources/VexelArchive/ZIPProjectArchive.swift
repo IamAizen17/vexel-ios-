@@ -59,7 +59,7 @@ public struct ZIPProjectArchive: Sendable {
                 if path == Self.projectEntry {
                     guard entry.uncompressedSize <= Self.maximumProjectBytes else { throw ZIPProjectArchiveError.projectDocumentTooLarge }
                     var data = Data()
-                    _ = try archive.extract(entry) { chunk in data.append(chunk) }
+                    _ = try archive.extract(entry, consumer: { chunk in data.append(chunk) })
                     projectData = data
                 } else {
                     let target = temporary.appendingPathComponent(path)
