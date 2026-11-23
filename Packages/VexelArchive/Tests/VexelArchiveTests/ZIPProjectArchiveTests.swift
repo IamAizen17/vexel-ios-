@@ -27,7 +27,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         try ProjectDocument(fields: fields).encoded().write(to: jsonURL)
         let archiveURL = directory.appendingPathComponent("android-source.zip")
         let archive = try XCTUnwrap(Archive(url: archiveURL, accessMode: .create))
-        try archive.addEntry(with: ZIPProjectArchive.projectEntry, fileURL: jsonURL, compressionMethod: .deflate)
+        try archive.addEntry(with: ZIPProjectArchive.legacyProjectEntry, fileURL: jsonURL, compressionMethod: .deflate)
 
         let result = try ZIPProjectArchive().read(from: archiveURL)
         XCTAssertEqual(result.project.fields["format"], .string(ProjectDocument.format))
@@ -46,6 +46,18 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertThrowsError(try ZIPProjectArchive().write(externalProject, to: url)) { error in
             XCTAssertEqual(error as? ZIPProjectArchiveError, .unsupportedProjectFormat)
         }
+    }
+
+    func testNativeExportUsesVexelDocumentEntry() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let archiveURL = directory.appendingPathComponent("native.vexelproj")
+        try ZIPProjectArchive().write(ProjectDocument.starter(), to: archiveURL)
+        let archive = try XCTUnwrap(Archive(url: archiveURL, accessMode: .read))
+        let paths = Set(archive.map(\\.path))
+        XCTAssertTrue(paths.contains("vexel.json"))
+        XCTAssertFalse(paths.contains("project.json"))
     }
 
     func testMissingAssetPayloadFailsImport() throws {
