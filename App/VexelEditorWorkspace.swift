@@ -253,33 +253,26 @@ struct VexelEditorWorkspace: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 16).fill(VexelPalette.preview)
                 if layerNames.isEmpty {
-                    VexelEmptyState(symbol: "viewfinder", title: "Your canvas is empty", detail: "Add text, shapes or media from the tool shelf below.")
+                    VexelEmptyState(symbol: "viewfinder", title: "Your canvas is empty", detail: "Add text or shapes from the tool shelf below.")
                 } else {
-                    RoundedRectangle(cornerRadius: 2).fill(Color(hex: 0x1B1A28))
-                        .frame(width: isWide ? 180 : 116, height: isWide ? 112 : 198)
-                        .overlay {
-                            VStack(spacing: 8) {
-                                Rectangle().fill(VexelPalette.accent).frame(width: 40, height: 3)
-                                Text("YOUR\nNEXT FRAME")
-                                    .font(.system(size: 15, weight: .black, design: .rounded))
-                                    .tracking(1).multilineTextAlignment(.center).foregroundStyle(VexelPalette.text)
-                            }
-                        }
-                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(VexelPalette.accent.opacity(0.6), lineWidth: 1))
+                    VexelScenePreview(project: project, time: currentTime)
+                        .padding(8)
                     VStack {
                         HStack {
-                            Text("2D VIEW").font(.system(size: 8, weight: .bold)).tracking(1.3)
+                            Text("LIVE 2D PREVIEW").font(.system(size: 8, weight: .bold)).tracking(1.2)
                             Spacer()
-                            Text("1080P").font(.system(size: 8, weight: .bold, design: .monospaced))
+                            Text("\(project.width) × \(project.height)").font(.system(size: 8, weight: .semibold, design: .monospaced))
                         }
                         Spacer()
                         HStack {
-                            Text("PREVIEW RENDERER NOT CONNECTED").font(.system(size: 8, weight: .medium)).tracking(0.5)
+                            Text("CPU SCENE EVALUATOR").font(.system(size: 8, weight: .medium)).tracking(0.5)
                             Spacer()
                             Image(systemName: "viewfinder")
                         }
                     }
-                    .foregroundStyle(VexelPalette.secondary.opacity(0.8)).padding(12)
+                    .foregroundStyle(VexelPalette.secondary.opacity(0.9))
+                    .padding(14)
+                    .allowsHitTesting(false)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
