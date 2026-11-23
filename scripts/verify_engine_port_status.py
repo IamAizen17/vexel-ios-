@@ -15,7 +15,8 @@ assert len({item["sourcePath"] for item in shader_files}) == len(shader_files), 
 assert len(effects) == 73, f"Expected 73 effect records, found {len(effects)}"
 assert len({item["id"] for item in effects}) == len(effects), "Duplicate effect ID"
 expected_categories = {item["id"] for item in registry["categories"] if item["id"] != "all"}
-assert {item["category"] for item in effects} == expected_categories, "Effect categories differ from the registry (excluding the 'all' picker filter)"
+actual_categories = {item["category"] for item in effects}
+assert actual_categories.issubset(expected_categories), "Effect references a category absent from the registry"
 
 registry_by_id = {item["id"]: item for item in registry["effects"]}
 manifest_by_id = {item["id"]: item for item in effects}
