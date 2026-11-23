@@ -589,6 +589,25 @@ struct VexelEditorWorkspace: View {
         }
     }
 
+    private func selectLayer(at action: String, prefix: String) {
+        guard let index = Int(action.dropFirst(prefix.count)),
+              project.timelineTracks.indices.contains(index) else { return }
+        selectedLayer = index
+        selectedTrackID = project.timelineTracks[index].id
+    }
+
+    private func toggleLayerProperty(at action: String, prefix: String, property: String) {
+        guard let index = Int(action.dropFirst(prefix.count)),
+              project.timelineTracks.indices.contains(index) else { return }
+        let id = project.timelineTracks[index].id
+        commitEdit {
+            _ = updateTrack(id: id, in: &project.timelineTracks) { track in
+                if property == "visible" { track.visible.toggle() }
+                if property == "locked" { track.locked.toggle() }
+            }
+        }
+    }
+
     private func handleToolAction(_ action: String, for tool: VexelEditorTool) {
         switch action {
         case "add-text": addLayer(named: "Text Layer", kind: .text); selectedTool = nil
@@ -606,7 +625,13 @@ struct VexelEditorWorkspace: View {
         case "shortcut:mask", "shortcut:track-matte", "shortcut:transitions", "shortcut:text-animators":
             showingNotice = "This operation is disabled until its editing and rendering implementation is available."
         default:
-            if action.hasPrefix("effect:") {
+            if action.hasPrefix("select-layer:") {
+                selectLayer(at: action, prefix: "select-layer:")
+            } else if action.hasPrefix("toggle-visibility:") {
+                toggleLayerProperty(at: action, prefix: "toggle-visibility:", property: "visible")
+            } else if action.hasPrefix("toggle-lock:") {
+                toggleLayerProperty(at: action, prefix: "toggle-lock:", property: "locked")
+            } else if action.hasPrefix("effect:") {
                 guard let selectedTrackID else {
                     showingNotice = "Select a layer before adding an effect."
                     return
