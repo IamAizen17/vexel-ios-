@@ -55,7 +55,7 @@ The Vexel UI is an original native redesign, not a pixel-for-pixel Compose recre
 |---|---|---|
 | Theme: dark/light/system | Appearance picker | UI + preference storage |
 | Language: system/English/Portuguese | Language picker | UI + preference storage; localization pending |
-| Preview resolution/scale | Preview scale | UI + preference storage |
+| Preview resolution/scale | Preview scale | UI + preference storage; exact source values 100%, 50%, 25% now match. |
 | 3D preview quality | Quality selector | UI + preference storage |
 | Video proxies | Toggle | UI + preference storage; proxy pipeline pending |
 | Auto keyframe | Toggle | UI + preference storage; engine binding pending |
