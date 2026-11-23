@@ -57,7 +57,7 @@ xcodegen generate
 
 ## Compatibility and licensing
 
-Vexel uses `.vexelproj` as its native project format. Android reference project archives are accepted through a dedicated compatibility import path and are converted to the native Vexel format when saved or exported. Vexel does not export projects in the external source format.
+Vexel uses `.vexelproj` as its native project format. Android reference project archives are accepted through a dedicated compatibility import path and are converted to the native Vexel format when saved or exported. Vexel exports only `.vexelproj` files.
 Unknown JSON fields are retained by the initial Swift document model to avoid discarding future project data.
 
 The Android reference UI is GPL-3.0. The UI adaptation is distributed under GPL-3.0; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). Review distribution obligations before shipping binaries.
