@@ -14,6 +14,8 @@ struct VexelApp: App {
 
 private struct WorkspaceView: View {
     @State private var project = ProjectDocument.starter(title: "Untitled Composition")
+    @State private var timelineEngine = TimelineEngine(project: ProjectDocument.starter(title: "Untitled Composition"))
+    @State private var selectedLayerID: String?
     @State private var selectedSection = "Project"
     @State private var isImportingProject = false
     @State private var importAlert: String?
@@ -133,7 +135,9 @@ private struct WorkspaceView: View {
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
             }
             .accessibilityLabel("Import Kinesis project")
-            Button {} label: {
+            Button {
+                undoTimeline()
+            } label: {
                 Image(systemName: "arrow.uturn.backward")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(width: 38, height: 38)
@@ -205,7 +209,7 @@ private struct WorkspaceView: View {
     }
 
     private var timeline: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("TIMELINE")
                     .font(.system(size: 10, weight: .bold))
@@ -216,38 +220,99 @@ private struct WorkspaceView: View {
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(Color(red: 0.35, green: 0.83, blue: 0.73))
             }
-            HStack(spacing: 8) {
-                Image(systemName: "textformat")
-                    .foregroundStyle(Color(red: 0.35, green: 0.83, blue: 0.73))
-                    .frame(width: 30)
-                Text("Text Layer")
-                    .font(.system(size: 12, weight: .medium))
-                Spacer()
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(Color(red: 0.20, green: 0.49, blue: 0.44))
-                    .frame(width: 124, height: 28)
-                    .overlay(alignment: .leading) {
-                        Text("TITLE")
-                            .font(.system(size: 9, weight: .bold))
-                            .tracking(1)
-                            .padding(.leading, 10)
+
+            let layers = project.fields["layers"]?.arrayValue ?? []
+            if layers.isEmpty {
+                Text("No layers yet. Add a text layer to begin.")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.38))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
+            } else {
+                ForEach(Array(layers.enumerated()), id: \.offset) { index, layer in
+                    if let object = layer.objectValue {
+                        let id = object["id"]?.stringValue ?? "layer-\(index)"
+                        let type = object["type"]?.stringValue ?? "layer"
+                        let name = object["name"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 } ?? type.capitalized
+                        let start = object["start"]?.numberValue ?? 0
+                        let duration = object["duration"]?.numberValue ?? 5
+                        let visible: Bool = {
+                            if case .bool(let value) = object["visible"] { return value }
+                            return true
+                        }()
+
+                        HStack(spacing: 8) {
+                            Button {
+                                selectedLayerID = id
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: iconForLayer(type))
+                                        .foregroundStyle(selectedLayerID == id ? Color(red: 0.35, green: 0.83, blue: 0.73) : .white.opacity(0.55))
+                                        .frame(width: 22)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(name)
+                                            .font(.system(size: 11, weight: .medium))
+                                            .lineLimit(1)
+                                        Text(String(format: "%.2fs · %.2fs", start, duration))
+                                            .font(.system(size: 9, weight: .regular, design: .monospaced))
+                                            .foregroundStyle(.white.opacity(0.35))
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer(minLength: 4)
+
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(type == "audio" ? Color.orange.opacity(0.28) : Color(red: 0.20, green: 0.49, blue: 0.44))
+                                .frame(width: CGFloat(max(44, min(190, duration * 24))), height: 25)
+                                .overlay(alignment: .leading) {
+                                    Text(name.uppercased())
+                                        .font(.system(size: 8, weight: .bold))
+                                        .lineLimit(1)
+                                        .foregroundStyle(.white.opacity(0.82))
+                                        .padding(.horizontal, 8)
+                                }
+
+                            Button {
+                                setLayerVisibility(id, visible: !visible)
+                            } label: {
+                                Image(systemName: visible ? "eye" : "eye.slash")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.45))
+                                    .frame(width: 24, height: 28)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(
+                            .white.opacity(selectedLayerID == id ? 0.09 : 0.035),
+                            in: RoundedRectangle(cornerRadius: 10)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(
+                                    selectedLayerID == id ? Color(red: 0.35, green: 0.83, blue: 0.73).opacity(0.45) : .clear,
+                                    lineWidth: 1
+                                )
+                        }
+                        .contextMenu {
+                            Button {
+                                duplicateLayer(id)
+                            } label: {
+                                Label("Duplicate", systemImage: "plus.square.on.square")
+                            }
+                            Button(role: .destructive) {
+                                deleteLayer(id)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
+                }
             }
-            .padding(10)
-            .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12))
-            HStack(spacing: 8) {
-                Image(systemName: "waveform")
-                    .foregroundStyle(.orange.opacity(0.85))
-                    .frame(width: 30)
-                Text("Audio Layer")
-                    .font(.system(size: 12, weight: .medium))
-                Spacer()
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(Color.orange.opacity(0.24))
-                    .frame(width: 180, height: 28)
-            }
-            .padding(10)
-            .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12))
         }
         .foregroundStyle(.white.opacity(0.88))
         .padding(.horizontal, 18)
@@ -296,7 +361,17 @@ private struct WorkspaceView: View {
 
     private var toolBar: some View {
         HStack(spacing: 0) {
-            tool("square.stack.3d.up", title: "Layers")
+            Button(action: addTextLayer) {
+                VStack(spacing: 6) {
+                    Image(systemName: "textformat")
+                        .font(.system(size: 17, weight: .medium))
+                    Text("Add Text")
+                        .font(.system(size: 9, weight: .medium))
+                }
+                .foregroundStyle(.white.opacity(0.78))
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
             tool("keyframes", title: "Keyframes")
             tool("slider.horizontal.3", title: "Controls")
             tool("sparkles", title: "Effects")
@@ -328,6 +403,8 @@ private struct WorkspaceView: View {
                         return (loaded.project, loaded.projectDirectory, "Kinesis v\(loaded.sourceVersion)", loaded.importedAssetCount)
                     }.value
                     project = imported.0
+                    timelineEngine = TimelineEngine(project: imported.0)
+                    selectedLayerID = nil
                     importedProjectDirectory = imported.1
                     importAlert = "Imported \(project.title) from \(imported.2). \(imported.3) media files copied."
                 } catch {
@@ -340,6 +417,84 @@ private struct WorkspaceView: View {
         }
     }
 
+
+
+    private func iconForLayer(_ type: String) -> String {
+        switch type {
+        case "text": return "textformat"
+        case "shape": return "square"
+        case "image": return "photo"
+        case "video": return "film"
+        case "audio": return "waveform"
+        case "group": return "folder"
+        case "camera": return "camera"
+        case "light": return "lightbulb"
+        case "null": return "dot.scope"
+        case "model3d", "object3d": return "cube"
+        default: return "square.stack"
+        }
+    }
+
+    private func addTextLayer() {
+        let id = "text_\(UUID().uuidString.prefix(8).lowercased())"
+        let layer = JSONValue.object([
+            "id": .string(id),
+            "type": .string("text"),
+            "name": .string("Text Layer"),
+            "start": .number(0),
+            "duration": .number(5),
+            "text": .object([
+                "content": .string("Text"),
+                "fontSize": .number(96),
+                "color": .string("#FFFFFF")
+            ])
+        ])
+        Task {
+            do {
+                project = try await timelineEngine.addLayer(layer)
+                selectedLayerID = id
+            } catch {
+                importAlert = error.localizedDescription
+            }
+        }
+    }
+
+    private func undoTimeline() {
+        Task {
+            project = await timelineEngine.undo()
+        }
+    }
+
+    private func setLayerVisibility(_ id: String, visible: Bool) {
+        Task {
+            do {
+                project = try await timelineEngine.setVisibility(id, visible: visible)
+            } catch {
+                importAlert = error.localizedDescription
+            }
+        }
+    }
+
+    private func duplicateLayer(_ id: String) {
+        Task {
+            do {
+                project = try await timelineEngine.duplicateLayer(id)
+            } catch {
+                importAlert = error.localizedDescription
+            }
+        }
+    }
+
+    private func deleteLayer(_ id: String) {
+        Task {
+            do {
+                project = try await timelineEngine.deleteLayers([id])
+                if selectedLayerID == id { selectedLayerID = nil }
+            } catch {
+                importAlert = error.localizedDescription
+            }
+        }
+    }
 
     private func saveCurrentProject() {
         let snapshot = project
