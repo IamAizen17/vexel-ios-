@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum VexelAdvancedEditorPage: Identifiable {
-    case audio, captions, camera, cutout, expression, speech
+    case audio, captions, camera, realCamera, cutout, expression, speech
     case effect(VexelEffectItem)
 
     var id: String {
@@ -9,6 +9,7 @@ private enum VexelAdvancedEditorPage: Identifiable {
         case .audio: return "audio"
         case .captions: return "captions"
         case .camera: return "camera"
+        case .realCamera: return "real-camera"
         case .cutout: return "cutout"
         case .expression: return "expression"
         case .speech: return "speech"
@@ -67,6 +68,7 @@ struct VexelToolSheet: View {
             case .audio: VexelAudioWorkspace().presentationDetents([.large])
             case .captions: VexelCaptionWorkspace().presentationDetents([.large])
             case .camera: VexelCameraWorkspace().presentationDetents([.large])
+            case .realCamera: VexelRealCameraWorkspace().presentationDetents([.large])
             case .cutout: VexelCutoutBrushWorkspace().presentationDetents([.large])
             case .expression: VexelExpressionWorkspace().presentationDetents([.large])
             case .speech: VexelTextToSpeechWorkspace().presentationDetents([.large])
@@ -308,6 +310,9 @@ struct VexelToolSheet: View {
                     .padding(12).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
             }
             VexelActionButton(title: "Camera controls", systemImage: "camera.aperture") { advancedPage = .camera }
+            VexelActionButton(title: "Real camera motion capture", systemImage: "camera.metering.center.weighted") {
+                advancedPage = .realCamera
+            }
             VexelActionButton(title: "Add camera", systemImage: "camera", prominent: true) { onAction("add-camera") }
             Spacer()
         }
