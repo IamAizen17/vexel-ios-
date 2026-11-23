@@ -270,6 +270,8 @@ public enum SceneEvaluator {
             return cubicBezier(t, x1, y1, x2, y2)
         }
         if let cyclic = object["cyclic"]?.objectValue {
+            if t <= 0 { return 0 }
+            if t >= 1 { return 1 }
             let offset = cyclic["offset"]?.numberValue ?? 0
             let cycles = (cyclic["cycles"]?.numberValue ?? 3.5).clamped(to: 0.5...64)
             let phase = (cyclic["phase"]?.numberValue ?? 0).clamped(to: -1...1)
@@ -369,7 +371,7 @@ public enum SceneEvaluator {
     }
 
     private static func interpolate(_ lhs: JSONValue, _ rhs: JSONValue, progress: Double) -> JSONValue {
-        let t = progress.clamped(to: 0...1)
+        let t = progress
         switch (lhs, rhs) {
         case (.number(let a), .number(let b)):
             return .number(a + (b - a) * t)
@@ -392,7 +394,7 @@ public enum SceneEvaluator {
             return [Double((number >> 24) & 255), Double((number >> 16) & 255), Double((number >> 8) & 255), Double(number & 255)]
         }
         guard let a = channels(lhs), let b = channels(rhs), a.count == b.count else { return nil }
-        let values = zip(a, b).map { UInt8(($0.0 + ($0.1 - $0.0) * progress).rounded()) }
+        let values = zip(a, b).map { UInt8(($0.0 + ($0.1 - $0.0) * progress).clamped(to: 0...255).rounded()) }
         return "#" + values.map { String(format: "%02X", $0) }.joined()
     }
 
