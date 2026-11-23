@@ -34,9 +34,14 @@ extension VexelProjectItem {
             document = ProjectDocument.starter(title: title)
         }
         var fields = document.fields
-        fields["format"] = .string(ProjectDocument.format)
-        fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
-        fields["generator"] = .string("Vexel")
+        let documentFormat = fields["format"]?.stringValue ?? ProjectDocument.format
+        fields["format"] = .string(documentFormat)
+        if documentFormat != "knsproj" {
+            fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
+        }
+        if fields["generator"] == nil {
+            fields["generator"] = .string("Vexel")
+        }
         var meta = fields["meta"]?.objectValue ?? [:]
         meta["title"] = .string(title)
         meta["modifiedAt"] = .string(ISO8601DateFormatter().string(from: modified))
@@ -68,6 +73,26 @@ extension VexelProjectItem {
         if let data = try? document.encoded(), let string = String(data: data, encoding: .utf8) {
             documentJSON = string
         }
+    }
+
+    mutating func registerAsset(_ asset: VexelProjectStore.ImportedAsset) throws {
+        var document = try makeProjectDocument()
+        var assets = document.fields["assets"]?.arrayValue ?? []
+        guard !assets.contains(where: { $0.objectValue?["id"]?.stringValue == asset.id }) else { return }
+        var record: [String: JSONValue] = [
+            "id": .string(asset.id),
+            "type": .string(asset.type),
+            "path": .string(asset.path),
+            "name": .string(asset.name)
+        ]
+        if let mimeType = asset.mimeType { record["mimeType"] = .string(mimeType) }
+        assets.append(.object(record))
+        document.fields["assets"] = .array(assets)
+        let data = try document.encoded()
+        guard let json = String(data: data, encoding: .utf8) else {
+            throw CocoaError(.fileWriteInapplicableStringEncoding)
+        }
+        documentJSON = json
     }
 
     func makeProjectDocument() throws -> ProjectDocument {
