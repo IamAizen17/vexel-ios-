@@ -3,12 +3,18 @@
 A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
 rendering, and AVFoundation media pipeline.
 
-**Current status:** UI port milestone. The repository contains the onboarding flow, project library, presets, settings, plugin manager, editor tools, source-driven 73-effect catalogue with parameter controls, nested timeline UI, source-aligned inspector tabs, saved Bézier curves, graph/curve, audio, captions, text-to-speech, camera, cutout, stabilization, markers and export screens in native SwiftUI. Timeline/effect presentation state is not yet connected to a canonical editing engine. The KnsProject v12 importer, project archive, scene evaluator, Metal renderer, media/audio engine and export implementation remain pending.
+**Current status:** UI port milestone plus modular engine foundation. The repository now defines separate Swift packages for Core, Archive, Renderer, Media, Audio, Export and Plugins. The renderer has an initial validated render-graph model and native MSL implementations for copy, brightness/contrast, Gaussian blur and multi-scale glow combination. These are foundations, not a complete renderer: the typed KnsProject v12 model/importer, secure ZIP implementation, editing command system, deterministic scene evaluator, full effect pass library, media decoding, audio mixer and export writer remain in progress.
 
 ## Repository structure
 
 - `App/`: SwiftUI iOS application, navigation, design system, editor workspace, effect catalogue, advanced panels, and workflow dialogs.
 - `Packages/VexelCore/`: platform-independent project and editing core.
+- `Packages/VexelArchive/`: project archive contracts and format adapters.
+- `Packages/VexelRenderer/`: Metal render graph and native shader library.
+- `Packages/VexelMedia/`: AVFoundation/CoreVideo media contracts.
+- `Packages/VexelAudio/`: realtime and offline audio contracts.
+- `Packages/VexelExport/`: shared preview/export orchestration contracts.
+- `Packages/VexelPlugins/`: plugin package and capability contracts.
 - `.github/workflows/ios-ipa.yml`: CI tests and unsigned IPA packaging.
 - `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
@@ -20,10 +26,10 @@ Device installation requires signing and a provisioning profile. See [docs/BUILD
 
 ## Development
 
-Run core tests with:
+Run each package's tests with:
 
 ```sh
-swift test --package-path Packages/VexelCore
+for package in Packages/*; do [ ! -f "$package/Package.swift" ] || swift test --package-path "$package"; done
 ```
 
 Generate the Xcode project with XcodeGen:
@@ -45,6 +51,8 @@ xcodegen generate
 - [Source engine audit](docs/ENGINE_SOURCE_AUDIT.md)
 - [Engine field matrix and compatibility contract](docs/ENGINE_FIELD_MATRIX.md)
 - [Native iOS engine port plan](docs/ENGINE_PORT_PLAN.md)
+- [Modular engine architecture](docs/MODULAR_ENGINE_ARCHITECTURE.md)
+- [Renderer and shader port specification](docs/RENDERER_SHADER_PORT.md)
 - [Source attribution](NOTICE.md)
 
 ## Compatibility and licensing
