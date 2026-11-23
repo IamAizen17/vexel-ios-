@@ -3,10 +3,10 @@
 A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
 rendering, and AVFoundation media pipeline.
 
-**Current status:** project-format milestone. The repository contains a universal SwiftUI app, a testable Swift core,
-a secure .knsproj importer with version 1–12 migration handling, native .vexelproj archive save/load, asset preservation,
-and a GitHub Actions workflow that builds an unsigned device IPA. Timeline editing, rendering, effects, audio and
-export parity remain in progress.
+**Current status:** core-port milestone. The repository contains a universal SwiftUI app, a testable Swift core,
+secure .knsproj import with version 1–12 migration handling, native .vexelproj archive save/load, asset preservation,
+and an actor-based timeline engine with grouping, duplication, ordering, visibility, locking, timing and undo/redo.
+GitHub Actions builds an unsigned device IPA. Keyframes, rendering, effects, audio and export parity remain in progress.
 
 ## Repository structure
 
@@ -15,6 +15,7 @@ export parity remain in progress.
 - `.github/workflows/ios-ipa.yml`: CI tests and unsigned IPA packaging.
 - `KnsprojArchiveImporter`: Kinesis project import, migration and asset extraction.
 - `VexelProjectArchive`: native .vexelproj archive save/load with asset integrity checks.
+- `TimelineEngine`: frame timebase and immutable project timeline operations with undo/redo.
 - `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
 ## Build without owning a Mac
