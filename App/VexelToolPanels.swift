@@ -35,10 +35,10 @@ struct VexelToolSheet: View {
             .navigationTitle(tool.rawValue)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Text("VEXEL").font(.system(size: 10, weight: .black)).tracking(2).foregroundStyle(VexelPalette.secondary)
                 }
-                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() }.foregroundStyle(VexelPalette.accent) }
+                ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() }.foregroundStyle(VexelPalette.accent) }
             }
         }
         .preferredColorScheme(.dark)
