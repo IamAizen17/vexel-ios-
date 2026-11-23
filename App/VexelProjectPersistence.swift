@@ -53,9 +53,7 @@ enum VexelProjectStore {
     }
 
     static func assetsDirectory(for projectID: UUID) throws -> URL {
-        let directory = try assetsRoot().appendingPathComponent(projectID.uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory
+        try assetsRoot().appendingPathComponent(projectID.uuidString, isDirectory: true)
     }
 
     static func duplicate(_ project: VexelProjectItem) throws -> VexelProjectItem {
