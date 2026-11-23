@@ -43,8 +43,13 @@ enum VexelMotion {
 }
 
 struct VexelPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.scaleEffect(configuration.isPressed ? 0.975 : 1).opacity(configuration.isPressed ? 0.86 : 1).animation(VexelMotion.interactive, value: configuration.isPressed)
+        configuration.label
+            .scaleEffect(reduceMotion ? 1 : (configuration.isPressed ? 0.975 : 1))
+            .opacity(configuration.isPressed ? 0.86 : 1)
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : VexelMotion.interactive, value: configuration.isPressed)
     }
 }
 
