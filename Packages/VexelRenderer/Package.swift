@@ -7,7 +7,7 @@ let package = Package(
     products: [.library(name: "VexelRenderer", targets: ["VexelRenderer"])],
     dependencies: [.package(path: "../VexelCore")],
     targets: [
-        .target(name: "VexelRenderer", dependencies: ["VexelCore"]),
+        .target(name: "VexelRenderer", dependencies: [.product(name: "VexelCore", package: "vexelcore")]),
         .testTarget(name: "VexelRendererTests", dependencies: ["VexelRenderer"])
     ]
 )
