@@ -60,8 +60,7 @@ final class KnsprojArchiveImporterTests: XCTestCase {
         try createArchive(at: archiveURL, entries: [("project.json", projectJSON)])
 
         let result = try KnsprojArchiveImporter().importProject(from: archiveURL, into: root)
-        let source = result.project.fields["compatibility"]?.objectValue?["sourceDocument"]?.objectValue
-        let layers = source?["layers"]?.arrayValue
+        let layers = result.project.fields["layers"]?.arrayValue
         let video = layers?.first?.objectValue?["video"]?.objectValue
 
         XCTAssertEqual(result.sourceVersion, 11)
@@ -134,7 +133,7 @@ final class KnsprojArchiveImporterTests: XCTestCase {
     }
 
     private func createArchive(at url: URL, entries: [(String, Data)]) throws {
-        let archive = try Archive(url: url, accessMode: .create)
+        let archive = try Archive(url: url, accessMode: .create, pathEncoding: .utf8)
         for (path, data) in entries {
             try archive.addEntry(
                 with: path,
