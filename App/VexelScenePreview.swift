@@ -130,7 +130,7 @@ struct VexelScenePreview: View {
             if layer.type == "text" {
                 let content = layer.text ?? layer.name
                 let text = Text(content)
-                    .font(.system(size: max(1, layer.fontSize ?? 64), weight: .medium))
+                     .font(.system(size: CGFloat(max(1, layer.fontSize ?? 64)), weight: .medium))
                     .foregroundColor(color)
                 layerContext.draw(text, at: .zero, anchor: .center)
             } else if layer.type == "image" {
