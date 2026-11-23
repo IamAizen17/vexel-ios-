@@ -1,27 +1,41 @@
 import SwiftUI
+import UIKit
 
 enum VexelPalette {
-    static let background = Color(hex: 0x06050E)
-    static let bar = Color(hex: 0x0E0C1A)
-    static let sheet = Color(hex: 0x12102A)
-    static let card = Color(hex: 0x14112B)
-    static let field = Color(hex: 0x1C1840)
-    static let line = Color(hex: 0x2C2650)
-    static let text = Color(hex: 0xF1EEFF)
-    static let soft = Color(hex: 0xB9B4D6)
-    static let secondary = Color(hex: 0x8F88B8)
-    static let accent = Color(hex: 0xC084FC)
-    static let teal = Color(hex: 0x4FD1C5)
-    static let pink = Color(hex: 0xFF6B8B)
-    static let amber = Color(hex: 0xFFC857)
-    static let blue = Color(hex: 0x5EA8FF)
+    static let background = Color.adaptive(dark: 0x06050E, light: 0xF4F2FC)
+    static let bar = Color.adaptive(dark: 0x0E0C1A, light: 0xFFFFFF)
+    static let sheet = Color.adaptive(dark: 0x12102A, light: 0xFFFFFF)
+    static let card = Color.adaptive(dark: 0x14112B, light: 0xE9E5F7)
+    static let field = Color.adaptive(dark: 0x1C1840, light: 0xEEEAFB)
+    static let line = Color.adaptive(dark: 0x2C2650, light: 0xD3CCEB)
+    static let text = Color.adaptive(dark: 0xF1EEFF, light: 0x1A1530)
+    static let soft = Color.adaptive(dark: 0xB9B4D6, light: 0x4A4468)
+    static let secondary = Color.adaptive(dark: 0x8F88B8, light: 0x666085)
+    static let accent = Color.adaptive(dark: 0xC084FC, light: 0x7C3AED)
+    static let teal = Color.adaptive(dark: 0x4FD1C5, light: 0x0B8F84)
+    static let pink = Color.adaptive(dark: 0xFF6B8B, light: 0xD42B52)
+    static let amber = Color.adaptive(dark: 0xFFC857, light: 0xC98A00)
+    static let blue = Color.adaptive(dark: 0x5EA8FF, light: 0x2D6BC5)
     static let preview = Color(hex: 0x0E1016)
     static let lane = Color(hex: 0x14112B)
-    static let clipAudio = Color(hex: 0xC2385E)
-    static let clipText = Color(hex: 0x6D45E8)
+    static let clipAudio = Color.adaptive(dark: 0xC2385E, light: 0xC2385E)
+    static let clipText = Color.adaptive(dark: 0x6D45E8, light: 0x5B3FD6)
 }
 
 extension Color {
+
+    static func adaptive(dark: UInt32, light: UInt32) -> Color {
+        Color(uiColor: UIColor { traits in
+            let value = traits.userInterfaceStyle == .light ? light : dark
+            return UIColor(
+                red: CGFloat((value >> 16) & 0xFF) / 255,
+                green: CGFloat((value >> 8) & 0xFF) / 255,
+                blue: CGFloat(value & 0xFF) / 255,
+                alpha: 1
+            )
+        })
+    }
+
     init(hex: UInt32) {
         self.init(
             .sRGB,
