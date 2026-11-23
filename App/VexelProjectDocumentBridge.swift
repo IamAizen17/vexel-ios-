@@ -96,6 +96,8 @@ extension VexelProjectItem {
         }
         let children = (object["layers"]?.arrayValue ?? []).compactMap(Self.track(from:))
         let effects = (object["effects"]?.arrayValue ?? []).compactMap { $0.objectValue?["type"]?.stringValue }
+        let keyframes = Self.keyframeTimes(in: value).sorted()
+        let sourceJSON = (try? JSONEncoder().encode(value)).flatMap { String(data: $0, encoding: .utf8) }
         let stableID = UUID(uuidString: sourceID) ?? UUID()
         return VexelTimelineTrack(
             id: stableID,
@@ -108,9 +110,11 @@ extension VexelProjectItem {
             isGroup: type == "group",
             isExpanded: true,
             children: children,
-            keyframes: [],
+            keyframes: keyframes,
             effects: effects,
-            sourceID: sourceID
+            sourceID: sourceID,
+            sourceType: type,
+            sourceJSON: sourceJSON
         )
     }
 
@@ -123,14 +127,24 @@ extension VexelProjectItem {
         previous: [String: [String: JSONValue]]
     ) -> JSONValue {
         let id = track.sourceID ?? track.id.uuidString
-        var object = previous[id] ?? [:]
+        let fallbackObject: [String: JSONValue] = {
+            guard let data = track.sourceJSON?.data(using: .utf8),
+                  let value = try? JSONDecoder().decode(JSONValue.self, from: data) else { return [:] }
+            return value.objectValue ?? [:]
+        }()
+        var object = previous[id] ?? fallbackObject
+        let previousKeyframes = keyframeTimes(in: .object(object))
         let type: String
-        switch track.kind {
-        case .group: type = "group"
-        case .text: type = "text"
-        case .audio: type = "audio"
-        case .rendered3D: type = "object3d"
-        case .visual: type = "shape"
+        if let sourceType = track.sourceType {
+            type = sourceType
+        } else {
+            switch track.kind {
+            case .group: type = "group"
+            case .text: type = "text"
+            case .audio: type = "audio"
+            case .rendered3D: type = "object3d"
+            case .visual: type = "shape"
+            }
         }
         object["id"] = .string(id)
         object["type"] = .string(type)
@@ -156,8 +170,7 @@ extension VexelProjectItem {
             }
         case .audio:
             if object["audio"] == nil {
-                object["type"] = .string("null")
-                object["null"] = .object([:])
+                object["audio"] = .object([:])
             }
         case .rendered3D:
             if object["object3d"] == nil {
@@ -180,7 +193,61 @@ extension VexelProjectItem {
             uniquingKeysWith: { first, _ in first }
         )
         object["effects"] = .array(track.effects.map { oldEffects[$0] ?? .object(["type": .string($0), "params": .object([:])]) })
+        let addedKeyframes = Set(track.keyframes.filter { $0.isFinite && $0 >= 0 }).subtracting(previousKeyframes)
+        if !addedKeyframes.isEmpty {
+            applyPositionKeyframes(addedKeyframes.sorted(), to: &object)
+        }
         return .object(object)
+    }
+
+    private static func keyframeTimes(in value: JSONValue) -> Set<Double> {
+        switch value {
+        case .object(let object):
+            var result = Set<Double>()
+            if let frames = object["keyframes"]?.arrayValue {
+                for frame in frames {
+                    if let time = frame.objectValue?["time"]?.numberValue, time.isFinite, time >= 0 {
+                        result.insert(time)
+                    }
+                }
+            }
+            for child in object.values { result.formUnion(keyframeTimes(in: child)) }
+            return result
+        case .array(let values):
+            return values.reduce(into: Set<Double>()) { $0.formUnion(keyframeTimes(in: $1)) }
+        default:
+            return []
+        }
+    }
+
+    private static func applyPositionKeyframes(_ times: [Double], to object: inout [String: JSONValue]) {
+        var transform = object["transform"]?.objectValue ?? [:]
+        let existing = transform["position"] ?? .array([.number(0), .number(0)])
+        var animation = existing.objectValue ?? [:]
+        let staticValue = animation["value"] ?? existing
+        var frames = animation["keyframes"]?.arrayValue ?? []
+        if frames.isEmpty {
+            frames = [
+                .object(["time": .number(0), "value": staticValue])
+            ]
+        }
+        var known = Set(frames.compactMap { $0.objectValue?["time"]?.numberValue })
+        for time in times where known.insert(time).inserted {
+            let prior = frames
+                .filter { ($0.objectValue?["time"]?.numberValue ?? .infinity) <= time }
+                .max { ($0.objectValue?["time"]?.numberValue ?? 0) < ($1.objectValue?["time"]?.numberValue ?? 0) }
+            let value = prior?.objectValue?["value"] ?? staticValue
+            frames.append(.object([
+                "time": .number(time),
+                "value": value,
+                "easing": .string("linear")
+            ]))
+        }
+        frames.sort { ($0.objectValue?["time"]?.numberValue ?? 0) < ($1.objectValue?["time"]?.numberValue ?? 0) }
+        animation["keyframes"] = .array(frames)
+        animation.removeValue(forKey: "value")
+        transform["position"] = .object(animation)
+        object["transform"] = .object(transform)
     }
 
     private static func hexColor(_ name: String) -> String {
