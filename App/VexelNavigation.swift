@@ -41,10 +41,7 @@ enum HomeDestination: String, CaseIterable {
 struct VexelRootView: View {
     @AppStorage("vexel.onboarding.complete") private var onboardingComplete = false
     @State private var activeProject: VexelProjectItem?
-    @State private var projects: [VexelProjectItem] = [
-        VexelProjectItem(title: "Untitled Composition"),
-        VexelProjectItem(title: "Motion Study 01", width: 1920, height: 1080, fps: 60, duration: 8)
-    ]
+    @State private var projects: [VexelProjectItem] = []
 
     var body: some View {
         Group {
@@ -283,7 +280,9 @@ struct VexelHomeView: View {
                                 var copy = project
                                 copy = VexelProjectItem(title: project.title + " Copy", width: project.width, height: project.height, fps: project.fps, duration: project.duration)
                                 projects.insert(copy, at: 0)
-                            }, onDelete: { deletingProject = project })
+                            }, onDelete: { deletingProject = project }, onExport: {
+                                notice = "Project archive export will be enabled when the .vexelproj archive writer is connected."
+                            })
                         }
                     }
                 }
@@ -357,7 +356,7 @@ private struct ProjectCard: View {
     let onOpen: () -> Void
     let onDuplicate: () -> Void
     let onDelete: () -> Void
-    @State private var menu = false
+    let onExport: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -383,6 +382,7 @@ private struct ProjectCard: View {
             Menu {
                 Button(action: onOpen) { Label("Open", systemImage: "arrow.up.right.square") }
                 Button(action: onDuplicate) { Label("Duplicate", systemImage: "plus.square.on.square") }
+                Button(action: onExport) { Label("Export project", systemImage: "square.and.arrow.up") }
                 Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
             } label: {
                 Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold))
