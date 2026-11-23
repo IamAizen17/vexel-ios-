@@ -30,7 +30,9 @@ public struct ZIPProjectArchive: Sendable {
     public static let legacyProjectEntry = "project.json"
     public static let maximumEntries = 10_000
     public static let maximumProjectBytes: UInt64 = 64 * 1024 * 1024
+    public static let maximumEntryUncompressedBytes: UInt64 = 2 * 1024 * 1024 * 1024
     public static let maximumUncompressedBytes: UInt64 = 8 * 1024 * 1024 * 1024
+    public static let maximumCompressionRatio = 500.0
 
     public init() {}
 
@@ -38,10 +40,13 @@ public struct ZIPProjectArchive: Sendable {
         guard let archive = Archive(url: archiveURL, accessMode: .read) else {
             throw ZIPProjectArchiveError.invalidArchive
         }
-        let temporary = destination ?? FileManager.default.temporaryDirectory
-            .appendingPathComponent("VexelImport-\(UUID().uuidString)", isDirectory: true)
-        let shouldRemove = destination == nil
-        try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
+        let manager = FileManager.default
+        let staging = destination.map {
+            $0.deletingLastPathComponent().appendingPathComponent(".\($0.lastPathComponent).staging-\(UUID().uuidString)", isDirectory: true)
+        } ?? manager.temporaryDirectory.appendingPathComponent("VexelImport-\(UUID().uuidString)", isDirectory: true)
+        var keepStaging = false
+        defer { if !keepStaging { try? manager.removeItem(at: staging) } }
+        try manager.createDirectory(at: staging, withIntermediateDirectories: true)
 
         var seen = Set<String>()
         var total: UInt64 = 0
@@ -55,13 +60,29 @@ public struct ZIPProjectArchive: Sendable {
                 let path = try Self.normalizedPath(entry.path, isDirectory: entry.type == .directory)
                 guard seen.insert(path).inserted else { throw ZIPProjectArchiveError.duplicateEntry(path) }
                 guard entry.type != .symlink else { throw ZIPProjectArchiveError.unsupportedEntryType(path) }
-                if entry.type == .directory { continue }
+                if entry.type == .directory {
+                    guard path == "assets" || path.hasPrefix("assets/") else {
+                        throw ZIPProjectArchiveError.unsupportedEntryType(path)
+                    }
+                    continue
+                }
+                guard entry.type == .file else { throw ZIPProjectArchiveError.unsupportedEntryType(path) }
 
                 let (nextTotal, overflow) = total.addingReportingOverflow(entry.uncompressedSize)
                 guard !overflow, nextTotal <= Self.maximumUncompressedBytes else {
                     throw ZIPProjectArchiveError.archiveTooLarge
                 }
                 total = nextTotal
+                guard entry.uncompressedSize <= Self.maximumEntryUncompressedBytes else {
+                    throw ZIPProjectArchiveError.archiveTooLarge
+                }
+                if entry.uncompressedSize > 0 {
+                    guard entry.compressedSize > 0 else { throw ZIPProjectArchiveError.archiveTooLarge }
+                    let ratio = Double(entry.uncompressedSize) / Double(entry.compressedSize)
+                    guard ratio.isFinite, ratio <= Self.maximumCompressionRatio else {
+                        throw ZIPProjectArchiveError.archiveTooLarge
+                    }
+                }
 
                 if path == Self.projectEntry || path == Self.legacyProjectEntry {
                     guard project == nil else { throw ZIPProjectArchiveError.duplicateEntry(path) }
@@ -79,8 +100,8 @@ public struct ZIPProjectArchive: Sendable {
                 guard isAssetFile || isThumbnail else {
                     throw ZIPProjectArchiveError.unsupportedEntryType(path)
                 }
-                let target = temporary.appendingPathComponent(path)
-                let root = temporary.standardizedFileURL.path + "/"
+                let target = staging.appendingPathComponent(path)
+                let root = staging.standardizedFileURL.path + "/"
                 let standardized = target.standardizedFileURL.path
                 guard standardized.hasPrefix(root) else { throw ZIPProjectArchiveError.unsafePath(path) }
                 try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -97,9 +118,26 @@ public struct ZIPProjectArchive: Sendable {
                 guard let path = asset.objectValue?["path"]?.stringValue else { continue }
                 guard archivedAssets.contains(path) else { throw ZIPProjectArchiveError.missingAsset(path) }
             }
-            return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination == nil ? temporary : destination)
+            if let destination {
+                try manager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                let backup = destination.deletingLastPathComponent()
+                    .appendingPathComponent(".\(destination.lastPathComponent).backup-\(UUID().uuidString)", isDirectory: true)
+                let hadDestination = manager.fileExists(atPath: destination.path)
+                if hadDestination { try manager.moveItem(at: destination, to: backup) }
+                do {
+                    try manager.moveItem(at: staging, to: destination)
+                    if hadDestination { try? manager.removeItem(at: backup) }
+                } catch {
+                    if hadDestination, manager.fileExists(atPath: backup.path) {
+                        try? manager.moveItem(at: backup, to: destination)
+                    }
+                    throw error
+                }
+                return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination)
+            }
+            keepStaging = true
+            return ProjectArchivePayload(project: project, extractedAssetsDirectory: staging)
         } catch {
-            if shouldRemove { try? FileManager.default.removeItem(at: temporary) }
             throw error
         }
     }
