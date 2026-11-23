@@ -81,7 +81,7 @@ public struct ZIPProjectArchive: Sendable {
                 }
             }
             guard let projectData else { throw ZIPProjectArchiveError.missingProjectDocument }
-            let project = try LegacyProjectAdapter.importDocument(from: projectData)
+            let project = try LegacyAndroidProjectImporter.importDocument(from: projectData)
             let issues = project.validate().filter { $0.severity == .error }
             guard issues.isEmpty else {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")))
