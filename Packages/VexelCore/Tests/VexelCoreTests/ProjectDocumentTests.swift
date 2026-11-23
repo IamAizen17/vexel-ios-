@@ -54,6 +54,96 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertEqual(project.validate().first?.path, "formatVersion")
     }
 
+    func testSceneEvaluatorProducesVisibleShapeLayers() {
+        var project = ProjectDocument.starter(title: "Scene")
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("shape-1"),
+                "type": .string("shape"),
+                "name": .string("Rectangle"),
+                "start": .number(0),
+                "duration": .number(5),
+                "visible": .bool(true),
+                "transform": .object([
+                    "position": .array([.number(20), .number(-10)]),
+                    "scale": .array([.number(1), .number(1)]),
+                    "rotation": .number(0),
+                    "opacity": .number(1)
+                ]),
+                "shape": .object([
+                    "kind": .string("rectangle"),
+                    "size": .array([.number(300), .number(120)]),
+                    "fill": .object(["color": .string("#55CDBE")])
+                ])
+            ])
+        ])
+
+        let scene = SceneEvaluator.evaluate(project, at: 1)
+        XCTAssertEqual(scene.layers.count, 1)
+        XCTAssertEqual(scene.layers[0].id, "shape-1")
+        XCTAssertEqual(scene.layers[0].position, ScenePoint(x: 20, y: -10))
+        XCTAssertEqual(scene.layers[0].size, ScenePoint(x: 300, y: 120))
+        XCTAssertEqual(scene.layers[0].fillColor, "#55CDBE")
+    }
+
+    func testSceneEvaluatorInterpolatesAnimatedTransformValues() {
+        var project = ProjectDocument.starter(title: "Animated scene")
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("animated"),
+                "type": .string("shape"),
+                "start": .number(0),
+                "duration": .number(4),
+                "transform": .object([
+                    "position": .object([
+                        "keyframes": .array([
+                            .object(["time": .number(0), "value": .array([.number(0), .number(0)])]),
+                            .object(["time": .number(2), "value": .array([.number(100), .number(40)])])
+                        ])
+                    ]),
+                    "opacity": .object([
+                        "keyframes": .array([
+                            .object(["time": .number(0), "value": .number(0)]),
+                            .object(["time": .number(2), "value": .number(1)])
+                        ])
+                    ])
+                ]),
+                "shape": .object(["kind": .string("ellipse"), "size": .array([.number(80), .number(80)])])
+            ])
+        ])
+
+        let scene = SceneEvaluator.evaluate(project, at: 1)
+        XCTAssertEqual(scene.layers.first?.position, ScenePoint(x: 50, y: 20))
+        XCTAssertEqual(scene.layers.first?.opacity ?? -1, 0.5, accuracy: 0.0001)
+    }
+
+    func testSceneEvaluatorComposesNestedGroupTransformsAndOffsets() {
+        var project = ProjectDocument.starter(title: "Nested scene")
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("group"),
+                "type": .string("group"),
+                "start": .number(1),
+                "duration": .number(5),
+                "transform": .object(["position": .array([.number(10), .number(5)])]),
+                "layers": .array([
+                    .object([
+                        "id": .string("child"),
+                        "type": .string("shape"),
+                        "start": .number(0),
+                        "duration": .number(3),
+                        "transform": .object(["position": .array([.number(5), .number(2)])]),
+                        "shape": .object(["kind": .string("rectangle")])
+                    ])
+                ])
+            ])
+        ])
+
+        let scene = SceneEvaluator.evaluate(project, at: 2)
+        XCTAssertEqual(scene.layers.first?.position, ScenePoint(x: 15, y: 7))
+        XCTAssertTrue(SceneEvaluator.evaluate(project, at: 0.5).layers.isEmpty)
+    }
+
     func testNativeDocumentRejectsForeignFormatIdentifiers() {
         let project = ProjectDocument(fields: [
             "format": .string("foreign-format"),
