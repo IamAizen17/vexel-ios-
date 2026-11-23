@@ -26,7 +26,7 @@ struct VexelToolSheet: View {
     let onCurve: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
-    @State private var effectCategory = "All effects"
+    @State private var effectCategory: String?
     @State private var selectedSubpage = "Overview"
     @State private var advancedPage: VexelAdvancedEditorPage?
     @State private var savedElements: [String] = []
@@ -185,60 +185,138 @@ struct VexelToolSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(VexelPalette.secondary)
-                TextField("Search 73 effects", text: $search).font(.system(size: 12))
+                TextField("Search effects", text: $search).font(.system(size: 12))
+                if !search.isEmpty {
+                    Button { search = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(VexelPalette.secondary)
+                    }.buttonStyle(.plain)
+                }
             }
             .padding(11).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 10))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 7) {
-                    ForEach(VexelEffectCatalog.categories, id: \.self) { category in
-                        Button { effectCategory = category } label: {
-                            Text(category).font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(effectCategory == category ? Color.black : VexelPalette.soft)
-                                .padding(.horizontal, 12).padding(.vertical, 8)
-                                .background(effectCategory == category ? VexelPalette.accent : VexelPalette.field, in: Capsule())
-                        }.buttonStyle(.plain)
+
+            if search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && effectCategory == nil {
+                VexelSectionLabel(title: "Effect categories", trailing: "\(VexelEffectCatalog.effectCount) EFFECTS")
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
+                        ForEach(VexelEffectCatalog.categories, id: \.self) { category in
+                            let count = VexelEffectCatalog.effects(in: category).count
+                            Button { effectCategory = category } label: {
+                                VStack(alignment: .leading, spacing: 9) {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(VexelPalette.field)
+                                        .frame(height: 54)
+                                        .overlay(Image(systemName: categorySymbol(category)).font(.system(size: 20)).foregroundStyle(VexelPalette.accent))
+                                    Text(category).font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
+                                    Text("\(count) effects").font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                                }
+                                .padding(10)
+                                .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
-            }
-            VexelSectionLabel(title: "Effect shortcuts", trailing: "EDITOR TOOLS")
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach([
-                    ("Mask", "circle.dotted", "shortcut:mask"),
-                    ("Track matte", "square.on.square", "shortcut:track-matte"),
-                    ("Transitions", "arrow.left.arrow.right", "shortcut:transitions"),
-                    ("Text animators", "textformat.abc", "shortcut:text-animators")
-                ], id: \.2) { item in
-                    Button { onAction(item.2) } label: {
-                        Label(item.0, systemImage: item.1)
+            } else {
+                HStack {
+                    Button {
+                        effectCategory = nil
+                        search = ""
+                    } label: {
+                        Label("Categories", systemImage: "chevron.left")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(VexelPalette.soft)
-                            .frame(maxWidth: .infinity, minHeight: 40)
-                            .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
                     }
                     .buttonStyle(.plain)
+                    .foregroundStyle(VexelPalette.accent)
+                    VexelSectionLabel(
+                        title: search.isEmpty ? (effectCategory ?? "All effects") : "Search results",
+                        trailing: "\(visibleEffects.count) EFFECTS"
+                    )
                 }
-            }
-            VexelSectionLabel(title: "Effect library", trailing: "\(VexelEffectCatalog.all.count) EFFECTS")
-            let effects = VexelEffectCatalog.all.filter {
-                (effectCategory == "All effects" || $0.category == effectCategory) &&
-                (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search))
-            }
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
-                    ForEach(effects) { effect in
-                        Button { advancedPage = .effect(effect) } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                RoundedRectangle(cornerRadius: 7).fill(VexelPalette.field)
-                                    .frame(height: 58)
-                                    .overlay(Image(systemName: effectSymbol(effect.name)).font(.system(size: 21)).foregroundStyle(VexelPalette.accent))
-                                Text(effect.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
-                                Text(effect.category).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+
+                VexelSectionLabel(title: "Effect shortcuts", trailing: "EDITOR TOOLS")
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach([
+                        ("Mask", "circle.dotted", "shortcut:mask"),
+                        ("Track matte", "square.on.square", "shortcut:track-matte"),
+                        ("Transitions", "arrow.left.arrow.right", "shortcut:transitions"),
+                        ("Text animators", "textformat.abc", "shortcut:text-animators")
+                    ], id: \.2) { item in
+                        Button { onAction(item.2) } label: {
+                            Label(item.0, systemImage: item.1)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(VexelPalette.soft)
+                                .frame(maxWidth: .infinity, minHeight: 40)
+                                .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
+                        ForEach(visibleEffects) { effect in
+                            Button { advancedPage = .effect(effect) } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    RoundedRectangle(cornerRadius: 7).fill(VexelPalette.field)
+                                        .frame(height: 58)
+                                        .overlay {
+                                            VStack(spacing: 3) {
+                                                Image(systemName: effectSymbol(effect.name))
+                                                    .font(.system(size: 21)).foregroundStyle(VexelPalette.accent)
+                                                if effect.target == "layer_3d" {
+                                                    Text("3D ONLY").font(.system(size: 7, weight: .bold)).foregroundStyle(VexelPalette.amber)
+                                                }
+                                            }
+                                        }
+                                    Text(effect.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
+                                    Text(effect.category).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                                }
+                                .padding(9).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                             }
-                            .padding(9).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
-                        }.buttonStyle(.plain)
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }
+
+            if !layerNames.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.3.layers.3d").foregroundStyle(VexelPalette.secondary)
+                    Text("Effect target").font(.system(size: 10, weight: .semibold)).foregroundStyle(VexelPalette.soft)
+                    Text("Selected layer")
+                        .font(.system(size: 10, weight: .medium)).foregroundStyle(VexelPalette.text).lineLimit(1)
+                    Spacer()
+                }
+                .padding(10)
+                .background(VexelPalette.bar, in: RoundedRectangle(cornerRadius: 9))
+            } else {
+                Text("Add a layer before selecting an effect.")
+                    .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+            }
+        }
+    }
+
+    private var visibleEffects: [VexelEffectItem] {
+        if !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return VexelEffectCatalog.search(search)
+        }
+        return VexelEffectCatalog.effects(in: effectCategory ?? "All effects")
+    }
+
+    private func categorySymbol(_ category: String) -> String {
+        switch category {
+        case "Color & light": return "sun.max"
+        case "Blur & sharpen": return "drop.halffull"
+        case "Distort": return "water.waves"
+        case "Move & transform": return "move.3d"
+        case "Stylize": return "sparkles"
+        case "Glitch": return "waveform.path.ecg"
+        case "Drawing & edges": return "pencil.tip.crop.circle"
+        case "Procedural": return "grid"
+        case "Matte, mask & key": return "circle.lefthalf.filled"
+        case "Time & transition": return "clock.arrow.2.circlepath"
+        case "Text": return "textformat"
+        default: return "slider.horizontal.3"
         }
     }
 
