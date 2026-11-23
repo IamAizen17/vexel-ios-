@@ -44,12 +44,12 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Project metadata and workspace model state are persisted as an index under Application Support.
 - A project/document bridge converts between the interim editor model and a generic JSON-backed `ProjectDocument`.
 - The bridge attempts to preserve unknown root fields and existing top-level layer fields.
-- `ProjectDocument` accepts native `vexelproj` v1 and KNS format versions up to v12, validates core composition bounds, asset paths, and recursive layer IDs.
+- `ProjectDocument` accepts native Vexel format v1 and legacy Android format versions up to v12 for import, validates core composition bounds, asset paths, and recursive layer IDs.
 - `VexelArchive` uses ZIPFoundation and reads/writes ZIP archives containing `project.json` and referenced `assets/` files.
 - Archive import is connected to the project file importer; archive export is connected to the project-card share flow.
 - Archive code includes entry-count and uncompressed-size limits, relative-path checks, duplicate-entry rejection, symlink rejection, and missing-asset checks.
 
-Important compatibility qualification: this is not yet a verified KNS v12 implementation. The bridge currently assumes several layer field names and shapes, does not decode keyframe/property animation data, and does not have real Android project fixtures. Do not claim round-trip compatibility with arbitrary KNS projects until the source schema and fixture tests prove it.
+Important compatibility qualification: legacy Android import is not yet verified against real source projects. The bridge currently assumes several layer field names and shapes, does not decode keyframe/property animation data, and does not have real Android project fixtures. Do not claim round-trip compatibility with arbitrary legacy Android projects until the source schema and fixture tests prove it.
 
 ### Engine and package foundations
 
@@ -66,10 +66,10 @@ Important compatibility qualification: this is not yet a verified KNS v12 implem
 
 Work in dependency order. Keep incomplete UI actions visibly disabled rather than presenting nonfunctional controls as implemented.
 
-### P0: Stabilize project persistence and KNS compatibility
+### P0: Stabilize Vexel project persistence and legacy Android import
 
-- Audit the actual Kotlin data classes, serializers, sample projects, and migration code for KNS v12. Replace guessed field mappings with source-verified mappings.
-- Add real `.knsproj` fixtures from the Android application and test import, export, and round-trip preservation.
+- Audit the actual Kotlin data classes, serializers, sample projects, and migration code for legacy Android v12. Replace guessed field mappings with source-verified mappings.
+- Add real legacy Android project fixtures and test import, export, and round-trip preservation.
 - Define explicit typed Swift models for composition, assets, layer variants, transforms, effects, masks, mattes, transitions, markers, keyframes, easing, expressions, and editor state.
 - Preserve unknown fields recursively, including nested group layers. The current bridge only indexes existing top-level layer objects for preservation.
 - Correct the current audio-layer bridge behavior: the serializer currently changes an audio layer's discriminator to `null` when its audio payload is absent.
@@ -79,7 +79,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - Verify asset path semantics against Android-generated archives and validate every referenced asset on import.
 - Harden ZIP handling: reject all unsupported special entry types, use overflow-checked size accumulation, enforce practical per-file and compression-ratio limits, and make destination replacement failure-safe.
 - Make archive import transactional so a failed import does not leave partial asset directories or project records.
-- Confirm the app's file importer/exporter supports the intended `.knsproj` and `.vexelproj` extensions and document the distinction between native Vexel and KNS compatibility formats.
+- Confirm the app's file importer/exporter supports the legacy Android import and native `.vexelproj` export and document the distinction between native Vexel format and legacy Android import compatibility.
 
 ### P1: Canonical editing model and command engine
 
@@ -122,8 +122,8 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge is provisional. It guesses parts of the KNS layer schema, omits keyframe/property animation decoding, and does not preserve unknown nested-layer fields reliably.
-- KNS v12 acceptance in validation is only a format/version gate. It does not establish full KNS v12 semantic compatibility.
+- The project/document bridge is provisional. It guesses parts of the legacy Android layer schema, omits keyframe/property animation decoding, and does not preserve unknown nested-layer fields reliably.
+- legacy Android format acceptance in validation is only a format/version gate. It does not establish full KNS v12 semantic compatibility.
 - Archive read/write code exists and is connected to UI flows, but must receive security hardening and real Android fixture tests before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
 - Undo/redo covers current workspace snapshot operations only. Timeline gesture coalescing and all source editing commands are not represented.
