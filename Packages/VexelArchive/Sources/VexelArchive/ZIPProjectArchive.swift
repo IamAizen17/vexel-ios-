@@ -133,7 +133,7 @@ public struct ZIPProjectArchive: Sendable {
             guard path.hasPrefix("assets/") else { throw ZIPProjectArchiveError.unsafePath(path) }
             guard written.insert(path).inserted else { continue }
             guard let assetsDirectory else { throw ZIPProjectArchiveError.missingAsset(path) }
-            let source = assetsDirectory.appendingPathComponent(String(path.dropFirst("assets/".count)))
+            let source = assetsDirectory.appendingPathComponent(path)
             let rootURL = assetsDirectory.resolvingSymlinksInPath().standardizedFileURL
             let sourceURL = source.resolvingSymlinksInPath().standardizedFileURL
             let root = rootURL.path.hasSuffix("/") ? rootURL.path : rootURL.path + "/"
