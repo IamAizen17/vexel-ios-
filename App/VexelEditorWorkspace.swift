@@ -60,6 +60,17 @@ struct VexelEditorWorkspace: View {
     @State private var selectedTrackID: UUID?
     @State private var loopPlayback = false
 
+    private var selectedTimelineTrack: VexelTimelineTrack? {
+        func find(_ values: [VexelTimelineTrack]) -> VexelTimelineTrack? {
+            for track in values {
+                if track.id == selectedTrackID { return track }
+                if let nested = find(track.children) { return nested }
+            }
+            return nil
+        }
+        return find(project.timelineTracks)
+    }
+
     private var isWide: Bool { horizontalSizeClass == .regular }
 
     var body: some View {
@@ -92,6 +103,8 @@ struct VexelEditorWorkspace: View {
             VexelToolSheet(
                 tool: tool,
                 layerNames: $layerNames,
+                selectedLayerName: selectedTimelineTrack?.name,
+                selectedLayerKind: selectedTimelineTrack?.kind,
                 onAction: { action in handleToolAction(action, for: tool) },
                 onGraph: { showGraph = true },
                 onCurve: { showCurve = true }
@@ -267,6 +280,7 @@ struct VexelEditorWorkspace: View {
         }
         existing.removeAll { !names.contains($0.name) }
         project.timelineTracks = existing
+        if selectedTrackID == nil { selectedTrackID = existing.first?.id }
     }
 
     private var selectionBar: some View {
