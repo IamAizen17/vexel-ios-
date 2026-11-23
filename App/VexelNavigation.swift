@@ -203,9 +203,15 @@ struct VexelHomeView: View {
         .alert("Project action", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
             Button("OK", role: .cancel) { notice = nil }
         } message: { Text(notice ?? "") }
-        .confirmationDialog("Delete project?", item: $deletingProject) { project in
+        .confirmationDialog(
+            "Delete project?",
+            isPresented: Binding(get: { deletingProject != nil }, set: { if !$0 { deletingProject = nil } }),
+            titleVisibility: .visible,
+            presenting: deletingProject
+        ) { project in
             Button("Delete", role: .destructive) {
                 projects.removeAll { $0.id == project.id }
+                deletingProject = nil
             }
         } message: { project in
             Text("Delete \(project.title)? This cannot be undone.")
