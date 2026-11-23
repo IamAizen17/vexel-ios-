@@ -16,7 +16,7 @@ Native iPhone and iPad motion-graphics editor. Target full functional parity wit
 - App: SwiftUI lifecycle, navigation and document scenes.
 - DesignSystem: tokens, controls and adaptive layout primitives.
 - Editor: workspace, timeline, inspector, media browser and gestures.
-- Project: Codable Vexel model, native Vexel archive, legacy Android import adapter, validation and migrations.
+- Project: Codable Vexel model, native Vexel archive, Vexel project compatibility importer, validation and migrations.
 - Engine: animation, timeline math, expressions, scene evaluation and undo/redo.
 - Renderer: Metal render graph, effects, geometry, text and resource management.
 - Media: AVFoundation video, AVAudioEngine preview/mixing, image processing and speech.
