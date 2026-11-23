@@ -1,11 +1,13 @@
 import SwiftUI
 import UIKit
+import AVFoundation
 import VexelCore
 
 struct VexelScenePreview: View {
     let project: VexelProjectItem
     let time: Double
     @State private var images: [String: UIImage] = [:]
+    @State private var videoFrames: [String: UIImage] = [:]
 
     private var document: ProjectDocument? {
         guard let data = project.documentJSON?.data(using: .utf8) else { return nil }
@@ -26,7 +28,12 @@ struct VexelScenePreview: View {
     }
 
     private var assetSignature: String {
-        assetURLs.keys.sorted().joined(separator: "|")
+        assetURLs.map { "\($0.key):\($0.value.path)" }.sorted().joined(separator: "|")
+    }
+
+    private var videoFrameKey: String {
+        let fps = document?.fields["composition"]?.objectValue?["fps"]?.numberValue ?? 30
+        return "\(Int((time * min(fps, 15)).rounded()))|\(assetSignature)"
     }
 
     var body: some View {
@@ -46,7 +53,7 @@ struct VexelScenePreview: View {
                     context.translateBy(x: origin.x, y: origin.y)
                     context.scaleBy(x: fit, y: fit)
                     for layer in scene.layers {
-                        Self.draw(layer, scene: scene, images: images, in: &context)
+                        Self.draw(layer, scene: scene, images: images, videoFrames: videoFrames, in: &context)
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
@@ -64,12 +71,42 @@ struct VexelScenePreview: View {
             }
             images = loaded
         }
+        .task(id: videoFrameKey) {
+            guard let document else { videoFrames = [:]; return }
+            let scene = SceneEvaluator.evaluate(document, at: time)
+            let requests = scene.layers.compactMap { layer -> (String, URL, Double)? in
+                guard layer.type == "video",
+                      let id = layer.assetID,
+                      let url = assetURLs[id] else { return nil }
+                return (id, url, layer.localTime)
+            }
+            let decoded = await Task.detached(priority: .userInitiated) {
+                var frames: [String: Data] = [:]
+                for (id, url, seconds) in requests {
+                    let asset = AVURLAsset(url: url)
+                    let generator = AVAssetImageGenerator(asset: asset)
+                    generator.appliesPreferredTrackTransform = true
+                    generator.maximumSize = CGSize(width: 1280, height: 1280)
+                    generator.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 30)
+                    generator.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 30)
+                    guard let image = try? generator.copyCGImage(
+                        at: CMTime(seconds: max(0, seconds), preferredTimescale: 600),
+                        actualTime: nil
+                    ) else { continue }
+                    let data = UIImage(cgImage: image).jpegData(compressionQuality: 0.86)
+                    if let data { frames[id] = data }
+                }
+                return frames
+            }.value
+            videoFrames = decoded.compactMapValues(UIImage.init(data:))
+        }
     }
 
     private static func draw(
         _ layer: EvaluatedLayer,
         scene: FrameScene,
         images: [String: UIImage],
+        videoFrames: [String: UIImage],
         in context: inout GraphicsContext
     ) {
         context.drawLayer { layerContext in
@@ -108,12 +145,17 @@ struct VexelScenePreview: View {
                     layerContext.draw(text, at: .zero, anchor: .center)
                 }
             } else if layer.type == "video" {
-                layerContext.fill(Path(roundedRect: rect, cornerRadius: 12), with: .color(Color.white.opacity(0.08)))
-                layerContext.stroke(Path(roundedRect: rect, cornerRadius: 12), with: .color(VexelPalette.secondary), lineWidth: 2)
-                let text = Text("VIDEO SOURCE")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(VexelPalette.soft)
-                layerContext.draw(text, at: .zero, anchor: .center)
+                if let assetID = layer.assetID, let image = videoFrames[assetID], let cgImage = image.cgImage {
+                    let resolved = layerContext.resolve(Image(decorative: cgImage, scale: image.scale))
+                    layerContext.draw(resolved, in: rect)
+                } else {
+                    layerContext.fill(Path(roundedRect: rect, cornerRadius: 12), with: .color(Color.white.opacity(0.08)))
+                    layerContext.stroke(Path(roundedRect: rect, cornerRadius: 12), with: .color(VexelPalette.secondary), lineWidth: 2)
+                    let text = Text("VIDEO SOURCE")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(VexelPalette.soft)
+                    layerContext.draw(text, at: .zero, anchor: .center)
+                }
             } else if layer.type == "object3d" || layer.type == "model3d" {
                 let text = Text("3D OBJECT")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
