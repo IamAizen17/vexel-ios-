@@ -43,6 +43,7 @@ xcodegen generate
 - [Build and IPA workflow](docs/BUILDING.md)
 - [Reference UI port comparison](docs/UI_PORT.md)
 - [Source engine audit](docs/ENGINE_SOURCE_AUDIT.md)
+- [Engine field matrix and compatibility contract](docs/ENGINE_FIELD_MATRIX.md)
 - [Native iOS engine port plan](docs/ENGINE_PORT_PLAN.md)
 - [Source attribution](NOTICE.md)
 
