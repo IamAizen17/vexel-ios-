@@ -18,6 +18,7 @@ struct VexelTimelineTrack: Identifiable, Hashable {
         case text
         case audio
         case group
+        case rendered3D
     }
 
     init(
