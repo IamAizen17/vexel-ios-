@@ -50,8 +50,7 @@ struct VexelMarkerSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 }
 
 struct VexelStabilizationSheet: View {
@@ -88,8 +87,7 @@ struct VexelStabilizationSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Start analysis") { dismiss() } }
             }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 
     private func sliderRow(_ title: String, value: Binding<Double>) -> some View {
         VStack(alignment: .leading) {
@@ -132,6 +130,5 @@ struct VexelMediaJobSheet: View {
             .navigationTitle("Media job").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 }
