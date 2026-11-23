@@ -29,7 +29,7 @@ This is a native reimplementation of the reference contracts. Android APIs, Open
 The actual package dependency direction is acyclic:
 
 - VexelCore: typed project domain, validation, animation, commands/history, deterministic scene evaluation and effect contracts. Foundation only.
-- VexelArchive: secure legacy Android archive import and native `.vexelproj` read/write. Depends on VexelCore.
+- VexelArchive: secure Android source archive import and native `.vexelproj` read/write. Depends on VexelCore.
 - VexelShaderCompiler: compiler-neutral GLSL ES → SPIR-V → MSL pipeline contracts, input validation, SHA-256 source fingerprints and resource-binding metadata. The glslang and SPIRV-Cross native backends must be linked before runtime translation is enabled.
 - VexelRenderer: Metal render graph, MSL library compilation, GPU resource lifetime/caches, 2D/3D passes, masks, mattes and effects. Depends on VexelCore and VexelShaderCompiler.
 - VexelMedia: AVFoundation/CoreVideo asset probing, decoding, proxy generation and waveform extraction. Depends on VexelCore.

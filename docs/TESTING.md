@@ -4,7 +4,7 @@
 Project defaults, IDs, timeline math, keyframe interpolation, easing, transforms, expression evaluation, parenting, undo/redo, migrations and validation.
 
 ## Archive and compatibility
-Test valid/malformed ZIPs, traversal, duplicate normalized paths, symlinks, ZIP bombs, missing/duplicate/corrupt assets, every supported legacy Android project archive version, .vexelproj semantic round trips and unknown-field preservation.
+Test valid/malformed ZIPs, traversal, duplicate normalized paths, symlinks, ZIP bombs, missing/duplicate/corrupt assets, every supported Android source archive version, .vexelproj semantic round trips and unknown-field preservation.
 
 ## Scene evaluation
 Use deterministic fixtures with expected evaluated nodes at exact timestamps. Cover nested groups, parent transforms, layer timing boundaries, mattes, masks, camera/light evaluation, effects and temporal sampling.
