@@ -270,6 +270,7 @@ private struct VexelTimelineTrackRow: View {
         case .audio: return VexelPalette.clipAudio
         case .text: return VexelPalette.clipText
         case .group: return VexelPalette.blue
+        case .rendered3D: return VexelPalette.amber
         case .visual: return VexelPalette.teal
         }
     }
