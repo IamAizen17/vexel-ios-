@@ -35,7 +35,7 @@ final class VexelAudioPlaybackEngine: ObservableObject {
             },
             uniquingKeysWith: { first, _ in first }
         )
-        let clips = audioClips(document.fields["layers"]?.arrayValue ?? [], parentStart: 0)
+        let clips = audioClips(document.fields["layers"]?.arrayValue ?? [], parentStart: 0, compositionTime: time)
             .filter { !$0.muted && $0.volume > 0 && $0.duration > 0 && $0.start + $0.duration > time }
         var scheduled: [(AVAudioPlayerNode, AVAudioFile, AVAudioUnitVarispeed, Clip, AVAudioFramePosition, AVAudioFrameCount)] = []
 
@@ -109,7 +109,7 @@ final class VexelAudioPlaybackEngine: ObservableObject {
         engine.stop()
     }
 
-    private func audioClips(_ layers: [JSONValue], parentStart: Double) -> [Clip] {
+    private func audioClips(_ layers: [JSONValue], parentStart: Double, compositionTime: Double) -> [Clip] {
         var result: [Clip] = []
         for value in layers {
             guard let object = value.objectValue else { continue }
@@ -117,15 +117,16 @@ final class VexelAudioPlaybackEngine: ObservableObject {
             let duration = max(0, object["duration"]?.numberValue ?? 0)
             let type = object["type"]?.stringValue ?? ""
             if type == "group" {
-                result.append(contentsOf: audioClips(object["layers"]?.arrayValue ?? [], parentStart: start))
+                result.append(contentsOf: audioClips(object["layers"]?.arrayValue ?? [], parentStart: start, compositionTime: compositionTime))
             } else if type == "audio",
                       object["visible"]?.boolValue ?? true,
                       let media = object["audio"]?.objectValue,
                       let assetID = media["asset"]?.stringValue {
                 let muted = media["muted"]?.boolValue ?? false
-                let speed = (media["speed"]?.numberValue ?? 1).clamped(to: 0.25...4)
+                let localTime = max(0, compositionTime - start)
+                let speed = sampleNumber(media["speed"], at: localTime).clamped(to: 0.25...4)
                 let sourceStart = max(0, media["sourceStart"]?.numberValue ?? 0)
-                let volume = sampleNumber(media["volume"], at: 0).clamped(to: 0...1)
+                let volume = sampleNumber(media["volume"], at: localTime).clamped(to: 0...1)
                 result.append(Clip(
                     assetID: assetID,
                     start: start,
