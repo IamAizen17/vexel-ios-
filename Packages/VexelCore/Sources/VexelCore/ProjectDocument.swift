@@ -47,8 +47,8 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
 
     public var compositionSize: (width: Int, height: Int) {
         let composition = fields["composition"]?.objectValue
-        let width = Int(composition?["width"]?.numberValue ?? 1080)
-        let height = Int(composition?["height"]?.numberValue ?? 1920)
+        let width = Self.boundedInteger(composition?["width"]?.numberValue, range: 16...8192, fallback: 1080)
+        let height = Self.boundedInteger(composition?["height"]?.numberValue, range: 16...8192, fallback: 1920)
         return (width, height)
     }
 
@@ -80,6 +80,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
 
     public func validate() -> [ProjectIssue] {
         var issues: [ProjectIssue] = []
+        validateFiniteNumbers(.object(fields), path: "$", issues: &issues)
 
         let documentFormat = fields["format"]?.stringValue
         let version = fields["formatVersion"]?.numberValue.flatMap { value -> Int? in
@@ -177,13 +178,40 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             if !identifiers.insert(id).inserted {
                 issues.append(ProjectIssue(severity: .error, path: "\(location).id", message: "Layer IDs must be unique across the project."))
             }
-            if let duration = object["duration"]?.numberValue, duration <= 0 {
-                issues.append(ProjectIssue(severity: .error, path: "\(location).duration", message: "Layer duration must be greater than zero."))
+            if let duration = object["duration"]?.numberValue,
+               !duration.isFinite || duration <= 0 || duration > 3600 {
+                issues.append(ProjectIssue(severity: .error, path: "\(location).duration", message: "Layer duration must be finite, greater than zero, and no more than one hour."))
             }
             if let children = object["layers"]?.arrayValue {
                 validateLayers(children, path: "\(location).layers", identifiers: &identifiers, issues: &issues)
             }
         }
+    }
+
+    private func validateFiniteNumbers(_ value: JSONValue, path: String, issues: inout [ProjectIssue]) {
+        switch value {
+        case .number(let number):
+            if !number.isFinite {
+                issues.append(ProjectIssue(severity: .error, path: path, message: "Numeric values must be finite."))
+            }
+        case .object(let object):
+            for (key, child) in object {
+                validateFiniteNumbers(child, path: "\(path).\(key)", issues: &issues)
+            }
+        case .array(let values):
+            for (index, child) in values.enumerated() {
+                validateFiniteNumbers(child, path: "\(path)[\(index)]", issues: &issues)
+            }
+        case .string, .bool, .null:
+            break
+        }
+    }
+
+    private static func boundedInteger(_ value: Double?, range: ClosedRange<Int>, fallback: Int) -> Int {
+        guard let value, value.isFinite, value >= Double(range.lowerBound), value <= Double(range.upperBound) else {
+            return fallback
+        }
+        return Int(value.rounded())
     }
 
     private static func isSafeAssetPath(_ path: String) -> Bool {
