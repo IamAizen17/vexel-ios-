@@ -118,8 +118,7 @@ private struct WorkspaceView: View {
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(Color(red: 0.35, green: 0.83, blue: 0.73))
                                 .frame(width: 46, height: 3)
-                            Text("YOUR
-NEXT FRAME")
+                            Text("YOUR\\nNEXT FRAME")
                                 .font(.system(size: 14, weight: .black, design: .rounded))
                                 .multilineTextAlignment(.center)
                                 .tracking(0.8)
