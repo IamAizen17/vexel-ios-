@@ -41,7 +41,9 @@ xcodegen generate
 - [Testing strategy](docs/TESTING.md)
 - [Licensing and attribution](docs/LICENSING_AND_ATTRIBUTION.md)
 - [Build and IPA workflow](docs/BUILDING.md)
-- [Reference UI port inventory](docs/UI_PORT.md)
+- [Reference UI port comparison](docs/UI_PORT.md)
+- [Source engine audit](docs/ENGINE_SOURCE_AUDIT.md)
+- [Native iOS engine port plan](docs/ENGINE_PORT_PLAN.md)
 - [Source attribution](NOTICE.md)
 
 ## Compatibility and licensing
