@@ -35,7 +35,7 @@ The Android app flow was traced from `MainActivity.kt`, `HomeScreen.kt`, `Editor
 | Text | Text and 3D text tools | UI implemented |
 | Media | Image/video/font import entry | Partial; asset pipeline pending |
 | 3D | Primitive and scene-object tools | UI implemented |
-| Effects | Search, categories and effect tiles | UI implemented; effect registry pending |
+| Effects | Search, 13 categories, 73 effect entries, parameter detail sheet | UI implemented; renderer and parameter schema binding pending |
 | Motion | Keyframe, graph, curve and expression entry | UI implemented |
 | Audio | Mixer, audio import and processing controls | UI implemented; audio engine pending |
 | Camera | Virtual camera controls | UI implemented; scene camera pending |
@@ -43,13 +43,18 @@ The Android app flow was traced from `MainActivity.kt`, `HomeScreen.kt`, `Editor
 | Elements | Saved-elements manager | UI implemented; persistence pending |
 | Plugins | Extension manager and package import entry | UI implemented; plugin runtime pending |
 | Export | Format, resolution, frame rate and quality | UI implemented; renderer/export pipeline pending |
+| Effect detail | Effect preview, enabled state, amount, radius, blend mode | UI implemented; real effect parameters pending |
+| Text to speech | Voice, speed, pitch, format, text editor | UI implemented; model/runtime pending |
+| Marker editor | Marker name, time and color | UI implemented; timeline marker model pending |
+| Stabilization dialog | Method, smoothing, crop, rolling shutter | UI implemented; motion analysis pending |
+| Media job dialog | Progress, cancel and status | UI implemented; background job manager pending |
 | Composition settings | Size, frame rate, duration and title | UI implemented |
 
 ## Important implementation boundary
 
 This milestone ports the UI structure and visible control surfaces only. Controls that require project mutation, animation evaluation, GPU rendering, media decoding, audio mixing, plugin execution, or export are intentionally not represented as completed engine features. Those will be connected in the later engine port.
 
-The UI uses local demonstration state for preview layers, timeline selection, transport position, and sample properties. No fake export or project import success is reported.
+The project library starts empty, matching a first-launch editor. The UI uses local demonstration state for preview layers, timeline selection, transport position, marker controls, and sample properties. Project archive import/export, rendering, and engine-backed edits are not reported as complete.
 
 ## Adaptive behavior
 
