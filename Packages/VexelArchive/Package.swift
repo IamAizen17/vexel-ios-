@@ -14,6 +14,6 @@ let package = Package(
             .product(name: "VexelCore", package: "vexelcore"),
             .product(name: "ZIPFoundation", package: "ZIPFoundation")
         ]),
-         .testTarget(name: "VexelArchiveTests", dependencies: ["VexelArchive", "VexelCore", .product(name: "ZIPFoundation", package: "ZIPFoundation")])
+         .testTarget(name: "VexelArchiveTests", dependencies: ["VexelArchive", "VexelCore", .product(name: "ZIPFoundation", package: "ZIPFoundation")], resources: [.copy("Fixtures")])
     ]
 )
