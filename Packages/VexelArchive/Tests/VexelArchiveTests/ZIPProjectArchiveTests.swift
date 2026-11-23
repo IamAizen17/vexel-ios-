@@ -16,19 +16,35 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertNotNil(result.extractedAssetsDirectory)
     }
 
-    func testKNSProjectFormatIsPreserved() throws {
+    func testLegacyAndroidProjectArchiveCanBeImported() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let archiveURL = directory.appendingPathComponent("legacy.knsproj")
-        var fields = ProjectDocument.starter(title: "KNS import").fields
+        let jsonURL = directory.appendingPathComponent("project.json")
+        var fields = ProjectDocument.starter(title: "Legacy import").fields
         fields["format"] = .string("knsproj")
         fields["formatVersion"] = .number(12)
-        let source = ProjectDocument(fields: fields)
-        try ZIPProjectArchive().write(source, to: archiveURL)
+        try ProjectDocument(fields: fields).encoded().write(to: jsonURL)
+        let archiveURL = directory.appendingPathComponent("legacy.knsproj")
+        let archive = try XCTUnwrap(Archive(url: archiveURL, accessMode: .create))
+        try archive.addEntry(with: ZIPProjectArchive.projectEntry, fileURL: jsonURL, compressionMethod: .deflate)
+
         let result = try ZIPProjectArchive().read(from: archiveURL)
         XCTAssertEqual(result.project.fields["format"], .string("knsproj"))
-        XCTAssertEqual(result.project.title, "KNS import")
+        XCTAssertEqual(result.project.title, "Legacy import")
+    }
+
+    func testLegacyAndroidProjectCannotBeExported() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var fields = ProjectDocument.starter(title: "Legacy import").fields
+        fields["format"] = .string("knsproj")
+        fields["formatVersion"] = .number(12)
+        let legacy = ProjectDocument(fields: fields)
+        XCTAssertThrowsError(try ZIPProjectArchive().write(legacy, to: directory.appendingPathComponent("legacy.knsproj"))) { error in
+            XCTAssertEqual(error as? ZIPProjectArchiveError, .legacyFormatExportNotSupported)
+        }
     }
 
     func testRejectsTraversalEntry() throws {
