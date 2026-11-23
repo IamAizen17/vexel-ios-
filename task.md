@@ -79,7 +79,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - Verify asset path semantics against Android-generated archives and validate every referenced asset on import.
 - Harden ZIP handling: reject all unsupported special entry types, use overflow-checked size accumulation, enforce practical per-file and compression-ratio limits, and make destination replacement failure-safe.
 - Make archive import transactional so a failed import does not leave partial asset directories or project records.
-- Confirm the app's file importer/exporter supports the Vexel compatibility import and native `.vexelproj` export and document native Vexel project files and the isolated Android compatibility import path.
+- Keep project creation, editing, persistence, and export entirely native to Vexel. Retain Android compatibility only in the isolated `VexelCompatibilityImporter` and verify it with real fixtures.
 
 ### P1: Canonical editing model and command engine
 
