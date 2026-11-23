@@ -16,6 +16,12 @@ Port the reference editor's project semantics and editing/rendering behavior to 
 - VexelPlugins: manifest/archive validation and a capability-limited extension model. Do not execute arbitrary plugin scripts in the app process.
 - VexelApp: adaptive iPhone/iPad workspace, document browser, accessibility and platform integration.
 
+## Source contract reference
+
+See [ENGINE_FIELD_MATRIX.md](ENGINE_FIELD_MATRIX.md) for the pinned v12 field matrix, layer/time invariants, typed animation/easing contract, effect serialization, Rhino sandbox limits, validator issue families, archive limits and source test inventory.
+
+The source core is immutable Kotlin data. `History<T>` stores a 200-step bounded history by default, ignores equal states, clears redo on push and coalesces consecutive operations with the same non-null gesture key. Timeline operations include move, trim-start (including shifting keyframe/media content), trim-end, split, duplicate with recursive ID remapping, group/ungroup, reorder and parent assignment. Port those semantics into typed commands; do not make SwiftUI local state the source of truth.
+
 ## Compatibility boundary
 
 Keep .vexelproj as the native project extension, but make its versioned model able to represent the full source project semantics. A Vexel archive should carry a declared source compatibility record and preserve unknown JSON fields. The .knsproj adapter must read v12 and earlier supported versions, map representable data losslessly where possible, and return structured warnings for every unsupported or lossy field. Never silently drop layers, effects, animation, media or plugin data.
