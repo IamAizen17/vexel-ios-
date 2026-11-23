@@ -37,6 +37,31 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertEqual(result.project.title, "Android import")
     }
 
+
+    func testImporterRejectsUnknownExternalFormat() throws {
+        let fields: [String: JSONValue] = [
+            "format": .string("unrelated-project"),
+            "formatVersion": .number(1),
+            "composition": .object([
+                "width": .number(1080),
+                "height": .number(1920),
+                "fps": .number(30),
+                "duration": .number(5)
+            ]),
+            "layers": .array([])
+        ]
+        let data = try ProjectDocument(fields: fields).encoded()
+        XCTAssertThrowsError(try VexelProjectImporter.importDocument(from: data))
+    }
+
+    func testImporterRejectsUnsupportedAndroidSourceVersion() throws {
+        var fields = ProjectDocument.starter(title: "Unsupported").fields
+        fields["format"] = .string(VexelProjectImporter.legacyAndroidFormatIdentifier)
+        fields["formatVersion"] = .number(13)
+        let data = try ProjectDocument(fields: fields).encoded()
+        XCTAssertThrowsError(try VexelProjectImporter.importDocument(from: data))
+    }
+
     func testNonVexelFormatCannotBeExported() throws {
         var fields = ProjectDocument.starter(title: "Android").fields
         fields["format"] = .string("android-project")
