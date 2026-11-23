@@ -557,6 +557,8 @@ struct VexelPropertiesPanel: View {
     let layerKind: VexelTimelineTrack.Kind?
     let onCurve: () -> Void
     let onAddEffect: () -> Void
+    let effectIDs: [String]
+    let onRemoveEffect: (String) -> Void
 
     @State private var positionX = 0.0
     @State private var positionY = 0.0
@@ -678,10 +680,22 @@ struct VexelPropertiesPanel: View {
 
                 case "Effects":
                     propertyGroup("EFFECT STACK") {
-                        Text("No effects applied").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
+                        if effectIDs.isEmpty {
+                            Text("No effects applied").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
+                        } else {
+                            ForEach(effectIDs, id: \.self) { effectID in
+                                HStack {
+                                    Text(effectID).font(.system(size: 10, weight: .medium)).foregroundStyle(VexelPalette.text)
+                                    Spacer()
+                                    Button(role: .destructive) { onRemoveEffect(effectID) } label: {
+                                        Image(systemName: "trash").foregroundStyle(VexelPalette.pink)
+                                    }
+                                }
+                            }
+                        }
                         VexelActionButton(title: "Open effect library", systemImage: "plus", prominent: true, action: onAddEffect)
                     }
-                    Text("Effect parameter controls are generated from the source registry in the effect browser. Effect stack ordering and persistence are pending.")
+                    Text("Effect identifiers are stored on the layer. Shader execution and parameter serialization remain pending.")
                         .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
 
                 case "Masks":
@@ -741,7 +755,7 @@ struct VexelPropertiesPanel: View {
                     VexelEmptyState(symbol: "slider.horizontal.3", title: "Inspector", detail: "Select a layer to inspect its properties.")
                 }
 
-                Text("Inspector controls are currently UI state only. Changes are not yet committed to the project engine.")
+                Text("Transform, text, mask and transition controls are not yet committed to the project model.")
                     .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
             }
             .padding(.bottom, 12)
