@@ -130,7 +130,9 @@ struct VexelEditorWorkspace: View {
             VexelPropertiesSheet(
                 layerName: selectedTimelineTrack?.name ?? "Composition",
                 layerKind: selectedTimelineTrack?.kind,
-                onAddEffect: { showingNotice = "Open the Effects tool to browse source-defined effect parameters. Effect insertion will be connected with the editing engine." }
+                onAddEffect: { selectedTool = .effects },
+                effectIDs: selectedTimelineTrack?.effects ?? [],
+                onRemoveEffect: { removeEffect($0) }
             )
                 .presentationDetents([.medium, .large])
         }
@@ -398,7 +400,9 @@ struct VexelEditorWorkspace: View {
                 layerName: selectedTimelineTrack?.name ?? "Composition",
                 layerKind: selectedTimelineTrack?.kind,
                 onCurve: { showCurve = true },
-                onAddEffect: { showingNotice = "Open the Effects tool to browse source-defined effect parameters. Effect insertion will be connected with the editing engine." }
+                onAddEffect: { selectedTool = .effects },
+                effectIDs: selectedTimelineTrack?.effects ?? [],
+                onRemoveEffect: { removeEffect($0) }
             )
             Spacer(minLength: 0)
         }
@@ -566,6 +570,15 @@ struct VexelEditorWorkspace: View {
             }
         }
         return false
+    }
+
+    private func removeEffect(_ effectID: String) {
+        guard let selectedTrackID else { return }
+        commitEdit {
+            _ = updateTrack(id: selectedTrackID, in: &project.timelineTracks) { track in
+                track.effects.removeAll { $0 == effectID }
+            }
+        }
     }
 
     private func handleToolAction(_ action: String, for tool: VexelEditorTool) {
