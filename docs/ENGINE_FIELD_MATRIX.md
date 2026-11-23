@@ -233,7 +233,7 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 Source: the Android archive implementation.
 
 ZIP entries:
-- Native Vexel export: required `project.json`. The legacy Android `project.json` entry is import-only.
+- Native Vexel export: required `project.json`. The Android source archive's `project.json` entry is import-only.
 - Referenced `assets/<file>`.
 - Optional `thumbnail.jpg`.
 
