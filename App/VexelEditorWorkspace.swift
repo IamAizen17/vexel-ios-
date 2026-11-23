@@ -465,6 +465,22 @@ struct VexelEditorWorkspace: View {
         return "\(base) \(suffix)"
     }
 
+    private func cloneTrack(_ source: VexelTimelineTrack, name: String? = nil, start: Double? = nil, duration: Double? = nil, locked: Bool? = nil) -> VexelTimelineTrack {
+        VexelTimelineTrack(
+            name: name ?? source.name,
+            start: start ?? source.start,
+            duration: duration ?? source.duration,
+            kind: source.kind,
+            visible: source.visible,
+            locked: locked ?? source.locked,
+            isGroup: source.isGroup,
+            isExpanded: source.isExpanded,
+            children: source.children.map { cloneTrack($0) },
+            keyframes: source.keyframes,
+            effects: source.effects
+        )
+    }
+
     private func selectedTopLevelIndex() -> Int? {
         guard let selectedTrackID else { return nil }
         return project.timelineTracks.firstIndex { $0.id == selectedTrackID }
@@ -478,7 +494,7 @@ struct VexelEditorWorkspace: View {
         commitEdit {
             let source = project.timelineTracks[index]
             let name = uniqueLayerName(source.name + " Copy")
-            let duplicate = VexelTimelineTrack(name: name, start: source.start, duration: source.duration, kind: source.kind, visible: source.visible, locked: false, isGroup: source.isGroup, isExpanded: source.isExpanded, children: source.children, keyframes: source.keyframes, effects: source.effects)
+            let duplicate = cloneTrack(source, name: name, locked: false)
             project.timelineTracks.insert(duplicate, at: index + 1)
             layerNames.insert(name, at: min(index + 1, layerNames.count))
             selectedTrackID = duplicate.id
@@ -536,7 +552,8 @@ struct VexelEditorWorkspace: View {
             left.duration = splitTime - source.start
             left.keyframes = source.keyframes.filter { $0 <= splitTime }
             let rightName = uniqueLayerName(source.name + " Split")
-            let right = VexelTimelineTrack(name: rightName, start: splitTime, duration: end - splitTime, kind: source.kind, visible: source.visible, locked: source.locked, isGroup: source.isGroup, isExpanded: source.isExpanded, children: source.children, keyframes: source.keyframes.filter { $0 >= splitTime }.map { $0 - splitTime })
+            let right = cloneTrack(source, name: rightName, start: splitTime, duration: end - splitTime)
+
             project.timelineTracks[index] = left
             project.timelineTracks.insert(right, at: index + 1)
             layerNames.insert(rightName, at: min(index + 1, layerNames.count))
