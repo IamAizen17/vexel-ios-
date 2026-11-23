@@ -43,8 +43,20 @@ enum HomeDestination: String, CaseIterable {
 }
 
 struct VexelRootView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("vexel.onboarding.complete") private var onboardingComplete = false
     @AppStorage("vexel.theme") private var theme = "dark"
+
+    private var navigationAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.15) : VexelMotion.navigation
+    }
+
+    private var navigationTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .trailing).combined(with: .opacity)
+        )
+    }
     @State private var activeProject: VexelProjectItem?
     @State private var projects: [VexelProjectItem] = []
 
@@ -54,7 +66,7 @@ struct VexelRootView: View {
                 VexelOnboardingView {
                     withAnimation(VexelMotion.navigation) { onboardingComplete = true }
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                 .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985)))
             } else if let project = activeProject {
                 VexelEditorWorkspace(
                     project: project,
@@ -65,17 +77,17 @@ struct VexelRootView: View {
                         }
                     }
                 )
-                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .trailing).combined(with: .opacity)))
+                 .transition(navigationTransition)
             } else {
                 VexelHomeView(
                     projects: $projects,
                     onOpen: { project in withAnimation(VexelMotion.navigation) { activeProject = project } }
                 )
-                .transition(.asymmetric(insertion: .move(edge: .leading).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
+                 .transition(reduceMotion ? .opacity : .asymmetric(insertion: .move(edge: .leading).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
             }
         }
-        .animation(VexelMotion.navigation, value: activeProject?.id)
-        .animation(VexelMotion.navigation, value: onboardingComplete)
+         .animation(navigationAnimation, value: activeProject?.id)
+        .animation(navigationAnimation, value: onboardingComplete)
         .preferredColorScheme(theme == "system" ? nil : (theme == "light" ? .light : .dark))
         .tint(VexelPalette.accent)
     }
