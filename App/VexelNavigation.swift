@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import VexelCore
 
-struct VexelProjectItem: Identifiable, Hashable {
+struct VexelProjectItem: Identifiable, Hashable, Codable {
     let id: UUID
     var title: String
     var width: Int
@@ -59,6 +59,7 @@ struct VexelRootView: View {
     }
     @State private var activeProject: VexelProjectItem?
     @State private var projects: [VexelProjectItem] = []
+    @State private var persistenceError: String?
 
     var body: some View {
         Group {
@@ -88,6 +89,17 @@ struct VexelRootView: View {
         }
          .animation(navigationAnimation, value: activeProject?.id)
         .animation(navigationAnimation, value: onboardingComplete)
+        .task {
+            do { projects = try VexelProjectStore.load() }
+            catch { persistenceError = "Could not load saved projects: \(error.localizedDescription)" }
+        }
+        .onChange(of: projects) { updated in
+            do { try VexelProjectStore.save(updated); persistenceError = nil }
+            catch { persistenceError = "Could not save projects: \(error.localizedDescription)" }
+        }
+        .alert("Project storage", isPresented: Binding(get: { persistenceError != nil }, set: { if !$0 { persistenceError = nil } })) {
+            Button("OK", role: .cancel) { persistenceError = nil }
+        } message: { Text(persistenceError ?? "") }
         .preferredColorScheme(theme == "system" ? nil : (theme == "light" ? .light : .dark))
         .tint(VexelPalette.accent)
     }
