@@ -2,17 +2,34 @@ import SwiftUI
 
 struct VexelPropertiesSheet: View {
     let layerName: String
+    let layerKind: VexelTimelineTrack.Kind?
+    let onAddEffect: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var tab = "Transform"
+
+    private var availableTabs: [String] {
+        var values = ["Transform"]
+        if layerKind == .text { values.append("Text") }
+        if layerKind != .audio { values.append("Effects") }
+        if layerKind == .visual || layerKind == .text || layerKind == .group { values.append("Masks") }
+        if layerKind != .audio { values.append("Transitions") }
+        return values
+    }
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
                 Picker("Property group", selection: $tab) {
-                    ForEach(["Transform", "Style", "Content", "Effects", "Masks", "Layer"], id: \.self) { Text($0).tag($0) }
+                    ForEach(availableTabs, id: \.self) { Text($0).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                VexelPropertiesPanel(tab: tab, layerName: layerName, onCurve: {})
+                VexelPropertiesPanel(
+                    tab: tab,
+                    layerName: layerName,
+                    layerKind: layerKind,
+                    onCurve: {},
+                    onAddEffect: onAddEffect
+                )
                 Spacer(minLength: 0)
             }
             .padding(16)
@@ -21,8 +38,9 @@ struct VexelPropertiesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-            }
+    }
 }
+
 
 struct VexelAudioWorkspace: View {
     @Environment(\.dismiss) private var dismiss
