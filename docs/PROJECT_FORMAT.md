@@ -44,13 +44,13 @@ Only project.json is mandatory. Metadata and thumbnail are optional. Asset paths
 This is an envelope example, not the complete schema. Field-level contracts must be derived from the reference schema and models before version 1 is frozen.
 
 ## Compatibility
-- Import .knsproj through a dedicated adapter.
-- Decode to a canonical internal model.
+- Import legacy Android project archives through a dedicated, isolated adapter.
+- Convert imported data into the canonical Vexel project model.
 - Preserve unknown fields in extension storage where possible.
 - Do not silently discard unsupported effects, layers, parameters or metadata.
 - Report features that cannot yet be rendered or edited.
-- Save using Vexel's independent version number.
-- Export to .knsproj only when used features can be represented losslessly; otherwise require explicit lossy-export confirmation or refuse.
+- Save and export only as `.vexelproj` using Vexel's independent version number.
+- Do not export to the legacy Android format. Legacy compatibility is import-only; users save and share native `.vexelproj` documents.
 
 ## Archive security
 - Reject absolute paths, traversal, drive prefixes, alternate separators and duplicate normalized paths.
