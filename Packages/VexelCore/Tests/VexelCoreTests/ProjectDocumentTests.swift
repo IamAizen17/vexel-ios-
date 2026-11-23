@@ -86,6 +86,37 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(project.validate().contains { $0.path == "$.composition.width" })
     }
 
+
+    func testValidatesAssetReferencesAndExpectedAssetTypesRecursively() {
+        var project = ProjectDocument.starter()
+        project.fields["assets"] = .array([
+            .object(["id": .string("photo"), "type": .string("image"), "path": .string("assets/photo.png")]),
+            .object(["id": .string("font"), "type": .string("font"), "path": .string("assets/font.ttf")])
+        ])
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("group"),
+                "type": .string("group"),
+                "layers": .array([
+                    .object([
+                        "id": .string("text"),
+                        "type": .string("text"),
+                        "text": .object(["font": .object(["asset": .string("photo")])])
+                    ]),
+                    .object([
+                        "id": .string("image"),
+                        "type": .string("image"),
+                        "image": .object(["asset": .string("missing")])
+                    ])
+                ])
+            ])
+        ])
+
+        let issues = project.validate()
+        XCTAssertTrue(issues.contains { $0.path == "layers[0].layers[0].text.font.asset" && $0.message.contains("font") })
+        XCTAssertTrue(issues.contains { $0.path == "layers[0].layers[1].image.asset" && $0.message.contains("does not exist") })
+    }
+
     func testSceneEvaluatorProducesVisibleShapeLayers() {
         var project = ProjectDocument.starter(title: "Scene")
         project.fields["layers"] = .array([
