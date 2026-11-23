@@ -21,8 +21,7 @@ struct VexelPropertiesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 }
 
 struct VexelAudioWorkspace: View {
@@ -77,8 +76,7 @@ struct VexelAudioWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 
     private func mixerRow(_ title: String, value: Binding<Double>, symbol: String) -> some View {
         HStack {
@@ -133,8 +131,7 @@ struct VexelCaptionWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 }
 
 struct VexelCameraWorkspace: View {
@@ -171,8 +168,7 @@ struct VexelCameraWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 
     private func cameraSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -224,8 +220,7 @@ struct VexelCutoutBrushWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Close") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 
     private func brushSlider(_ title: String, value: Binding<Double>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -288,8 +283,7 @@ struct VexelExpressionWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 }
 
 
@@ -341,8 +335,7 @@ struct VexelTextToSpeechWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 
     private func slider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -401,8 +394,7 @@ struct VexelEffectDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Close") { dismiss() } } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 
     private func effectSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
