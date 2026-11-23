@@ -123,6 +123,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         }
 
         var assetTypes: [String: String] = [:]
+        var assetIdentifiers = Set<String>()
         if let assets = fields["assets"]?.arrayValue {
             for (index, asset) in assets.enumerated() {
                 guard let object = asset.objectValue else {
@@ -133,14 +134,15 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].id", message: "Asset ID is required."))
                     continue
                 }
-                if assetTypes[id] != nil {
+                if !assetIdentifiers.insert(id).inserted {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].id", message: "Asset IDs must be unique."))
                 }
                 let type = object["type"]?.stringValue
-                if let type, !["image", "video", "audio", "model", "font"].contains(type) {
-                    issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].type", message: "Asset type '\(type)' is unsupported."))
+                if let type, ["image", "video", "audio", "model", "font"].contains(type) {
+                    assetTypes[id] = type
+                } else {
+                    issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].type", message: "Asset type must be one of image, video, audio, model, or font."))
                 }
-                assetTypes[id] = type
                 guard let path = object["path"]?.stringValue, Self.isSafeAssetPath(path) else {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].path", message: "Asset path must be a safe relative path under assets/."))
                     continue
