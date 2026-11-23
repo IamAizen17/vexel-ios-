@@ -123,7 +123,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
 - The project/document bridge is provisional. It guesses parts of the legacy Android layer schema, omits keyframe/property animation decoding, and does not preserve unknown nested-layer fields reliably.
-- legacy Android format acceptance in validation is only a format/version gate. It does not establish full KNS v12 semantic compatibility.
+- legacy Android format acceptance in validation is only a format/version gate. It does not establish full legacy Android schema v12 semantic compatibility.
 - Archive read/write code exists and is connected to UI flows, but must receive security hardening and real Android fixture tests before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
 - Undo/redo covers current workspace snapshot operations only. Timeline gesture coalescing and all source editing commands are not represented.
