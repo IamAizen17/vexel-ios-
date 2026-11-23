@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct VexelMarker: Identifiable {
+struct VexelMarker: Identifiable, Hashable {
     var id = UUID()
     var name = "Marker"
     var time: Double
