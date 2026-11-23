@@ -67,6 +67,7 @@ struct VexelEditorWorkspace: View {
     @State private var selectedTrackID: UUID?
     @State private var loopPlayback = false
     @State private var isTimelineGestureActive = false
+    @StateObject private var audioPlayback = VexelAudioPlaybackEngine()
 
     private var selectedTimelineTrack: VexelTimelineTrack? {
         func find(_ values: [VexelTimelineTrack]) -> VexelTimelineTrack? {
@@ -204,7 +205,16 @@ struct VexelEditorWorkspace: View {
             onProjectChange(snapshot)
         }
         .task(id: isPlaying) {
-            guard isPlaying else { return }
+            guard isPlaying else {
+                audioPlayback.stop()
+                return
+            }
+            do {
+                try audioPlayback.play(project: project, from: currentTime)
+            } catch {
+                showingNotice = "Audio playback failed: \(error.localizedDescription)"
+            }
+            defer { audioPlayback.stop() }
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 33_333_333)
                 guard !Task.isCancelled else { break }
@@ -212,6 +222,8 @@ struct VexelEditorWorkspace: View {
                 if nextTime >= project.duration {
                     if loopPlayback {
                         currentTime = 0
+                        do { try audioPlayback.play(project: project, from: 0) }
+                        catch { showingNotice = "Audio loop failed: \(error.localizedDescription)" }
                     } else {
                         currentTime = project.duration
                         isPlaying = false
@@ -221,6 +233,7 @@ struct VexelEditorWorkspace: View {
                 }
             }
         }
+        .onDisappear { audioPlayback.stop() }
     }
 
     private var editorHeader: some View {
@@ -318,6 +331,7 @@ struct VexelEditorWorkspace: View {
             onMarkerEdit: { editingMarker = $0 },
             onNotice: { showingNotice = $0 },
             onEditBegan: {
+                audioPlayback.stop()
                 isTimelineGestureActive = true
                 undoStack.append(project)
                 if undoStack.count > 100 { undoStack.removeFirst() }
@@ -330,6 +344,10 @@ struct VexelEditorWorkspace: View {
                 project.modified = Date()
                 project.synchronizeDocument()
                 onProjectChange(project)
+                if isPlaying {
+                    do { try audioPlayback.play(project: project, from: currentTime) }
+                    catch { showingNotice = "Audio playback failed: \(error.localizedDescription)" }
+                }
             }
         )
     }
