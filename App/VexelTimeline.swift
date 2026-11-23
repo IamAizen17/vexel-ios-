@@ -14,8 +14,10 @@ struct VexelTimelineTrack: Identifiable, Hashable, Codable {
     var keyframes: [Double]
     var effects: [String]
     var sourceID: String?
+    var sourceType: String?
+    var sourceJSON: String?
 
-    enum Kind: String, Hashable {
+    enum Kind: String, Codable, Hashable {
         case visual
         case text
         case audio
@@ -36,7 +38,9 @@ struct VexelTimelineTrack: Identifiable, Hashable, Codable {
         children: [VexelTimelineTrack] = [],
         keyframes: [Double] = [],
         effects: [String] = [],
-        sourceID: String? = nil
+        sourceID: String? = nil,
+        sourceType: String? = nil,
+        sourceJSON: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -51,6 +55,8 @@ struct VexelTimelineTrack: Identifiable, Hashable, Codable {
         self.keyframes = keyframes
         self.effects = effects
         self.sourceID = sourceID
+        self.sourceType = sourceType
+        self.sourceJSON = sourceJSON
     }
 }
 
