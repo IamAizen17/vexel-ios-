@@ -49,7 +49,7 @@ struct VexelEditorWorkspace: View {
     @State private var showingAudioPicker = false
     @State private var showingNotice: String?
     @State private var layerNames: [String] = ["Text Layer", "Shape Layer", "Audio Layer"]
-    @State private var showLayerInspector = false
+    @State private var showProperties = false
 
     private var isWide: Bool { horizontalSizeClass == .regular }
 
@@ -94,6 +94,10 @@ struct VexelEditorWorkspace: View {
         .sheet(isPresented: $showCompositionSettings) { CompositionSettingsSheet(project: $project) .presentationDetents([.medium, .large]) }
         .sheet(isPresented: $showGraph) { VexelGraphEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showCurve) { VexelCurveEditor() .presentationDetents([.large]) }
+        .sheet(isPresented: $showProperties) {
+            VexelPropertiesSheet(layerName: layerNames.indices.contains(selectedLayer) ? layerNames[selectedLayer] : "Composition")
+                .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showingMediaPicker) {
             MediaPicker { _ in
                 layerNames.insert("Image Layer", at: 0)
@@ -233,7 +237,7 @@ struct VexelEditorWorkspace: View {
                     }
                     ForEach(Array(layerNames.enumerated()), id: \.offset) { index, name in
                         HStack(spacing: 5) {
-                            Button { selectedLayer = index; showLayerInspector = true } label: {
+                            Button { selectedLayer = index; showProperties = true } label: {
                                 HStack(spacing: 4) {
                                     Image(systemName: index == 2 ? "waveform" : (index == 0 ? "textformat" : "square"))
                                         .foregroundStyle(index == 2 ? VexelPalette.pink : VexelPalette.accent)
@@ -276,7 +280,7 @@ struct VexelEditorWorkspace: View {
                     .font(.system(size: 10, weight: .semibold))
             }
             Spacer()
-            Button { showLayerInspector = true; selectedTool = .layers } label: {
+            Button { showProperties = true } label: {
                 Label("Properties", systemImage: "slider.horizontal.3")
                     .font(.system(size: 10, weight: .semibold))
             }
@@ -343,7 +347,13 @@ struct VexelEditorWorkspace: View {
         case "show-composition": showCompositionSettings = true
         case "show-plugins": selectedTool = .plugins
         case "add-layer": layerNames.insert("New Layer", at: 0); selectedTool = nil
-        default: showingNotice = "\(tool.rawValue) controls are ready for the native editing engine integration."
+        case "add-keyframe": showingNotice = "Keyframe controls will connect to the animation engine."
+        default:
+            if action.hasPrefix("effect:") {
+                showingNotice = "Effect selected. The 73-effect registry will be connected to the effect engine."
+            } else {
+                showingNotice = "\(tool.rawValue) controls are ready for the native editing engine integration."
+            }
         }
     }
 }
