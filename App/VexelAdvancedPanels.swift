@@ -347,6 +347,7 @@ struct VexelTextToSpeechWorkspace: View {
 
 struct VexelEffectDetailSheet: View {
     let effect: VexelEffectItem
+    let targetLayerName: String?
     let onApply: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var parameterValues: [String: JSONValue] = [:]
@@ -389,6 +390,8 @@ struct VexelEffectDetailSheet: View {
                     VexelPanel {
                         VStack(alignment: .leading, spacing: 7) {
                             Label(effect.needsBackdrop ? "Reads the backdrop" : "Layer-local processing", systemImage: "square.3.layers.3d")
+                            Text("Target layer: \(targetLayerName ?? "None selected")")
+                                .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                                 .font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
                             if effect.target == "layer_3d" {
                                 Text("This effect only accepts rendered 3D object or model layers. Target validation will be enforced by the editing engine.")
