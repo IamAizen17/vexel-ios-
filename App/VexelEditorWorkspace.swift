@@ -193,6 +193,7 @@ struct VexelEditorWorkspace: View {
         .onChange(of: project.timelineTracks) { tracks in
             layerNames = flattenTrackNames(tracks)
             project.layerNames = layerNames
+            guard !isTimelineGestureActive else { return }
             project.modified = Date()
             project.synchronizeDocument()
             onProjectChange(project)
