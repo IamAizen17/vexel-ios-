@@ -407,38 +407,3 @@ private struct CompositionSettingsSheet: View {
     }
 }
 
-private struct VexelExportSheet: View {
-    let project: VexelProjectItem
-    @Environment(\.dismiss) private var dismiss
-    @State private var resolution = "1080p"
-    @State private var format = "MP4"
-    @State private var fps = 30.0
-    @State private var quality = 0.85
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Output") {
-                    Picker("Format", selection: $format) { Text("MP4").tag("MP4"); Text("MOV").tag("MOV"); Text("Image sequence").tag("Image sequence") }
-                    Picker("Resolution", selection: $resolution) { Text("Original").tag("Original"); Text("1080p").tag("1080p"); Text("720p").tag("720p"); Text("4K").tag("4K") }
-                    Picker("Frame rate", selection: $fps) { ForEach([24.0, 30.0, 60.0, 120.0], id: \.self) { Text("\(Int($0)) FPS").tag($0) } }
-                    VStack(alignment: .leading) { Text("Quality · \(Int(quality * 100))%"); Slider(value: $quality, in: 0.1...1).tint(VexelPalette.accent) }
-                }
-                Section("Project") {
-                    LabeledContent("Composition", value: "\(project.width) × \(project.height)")
-                    LabeledContent("Duration", value: "\(Int(project.duration)) sec")
-                }
-                Section {
-                    Text("Export controls are designed. Rendering and AVFoundation export will be connected after the editor engine port.")
-                        .font(.system(size: 11)).foregroundStyle(.secondary)
-                }
-            }
-            .scrollContentBackground(.hidden).background(VexelPalette.background)
-            .navigationTitle("Export").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Prepare") { dismiss() } }
-            }
-        }.preferredColorScheme(.dark)
-    }
-}
