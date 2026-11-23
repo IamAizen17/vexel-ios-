@@ -137,7 +137,7 @@ struct VexelEditorWorkspace: View {
             VexelPropertiesSheet(
                 layerName: selectedTimelineTrack?.name ?? "Composition",
                 layerKind: selectedTimelineTrack?.kind,
-                onAddEffect: { selectedTool = .effects },
+                onAddEffect: { showProperties = false; selectedTool = .effects },
                 effectIDs: selectedTimelineTrack?.effects ?? [],
                 onRemoveEffect: { removeEffect($0) }
             )
