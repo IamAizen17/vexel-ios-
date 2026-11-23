@@ -308,8 +308,8 @@ struct VexelToolSheet: View {
             return all.filter { $0.0.localizedCaseInsensitiveContains(search) || $0.2.localizedCaseInsensitiveContains(search) }
                 .map { ($0.0, $0.1, $0.2) }
         }
-        guard let category = effectCategory else { return [] }
-        return all.filter { category == "All effects" || VexelEffectCatalog.categoryName(for: $0.3) == category }
+        guard let category = effectCategory, category != "All effects" else { return [] }
+        return all.filter { VexelEffectCatalog.categoryName(for: $0.3) == category }
             .map { ($0.0, $0.1, $0.2) }
     }
 
