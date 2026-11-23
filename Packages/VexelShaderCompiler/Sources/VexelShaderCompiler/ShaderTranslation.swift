@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 public enum ShaderSourceLanguage: String, Codable, Sendable, Equatable {
     case glslES300
@@ -127,7 +128,7 @@ public protocol SPIRVToMSLCompiler: Sendable {
         _ spirv: Data,
         stage: ShaderStage,
         entryPoint: String
-    ) throws -> (source: String, bindings: [ShaderResourceBinding])
+    ) throws -> (source: String, entryPoint: String, bindings: [ShaderResourceBinding])
 }
 
 public struct ShaderTranslationPipeline: Sendable {
@@ -182,18 +183,15 @@ public struct ShaderTranslationPipeline: Sendable {
             sourceDigest: Self.digest(input.source),
             spirv: module,
             metalSource: translated.source,
-            entryPoint: input.entryPoint,
+            entryPoint: translated.entryPoint,
             stage: input.stage,
             bindings: translated.bindings
         )
     }
 
     private static func digest(_ source: String) -> String {
-        var hash: UInt64 = 14_695_981_039_346_656_037
-        for byte in source.utf8 {
-            hash ^= UInt64(byte)
-            hash &*= 1_099_511_628_211
-        }
-        return String(hash, radix: 16)
+        SHA256.hash(data: Data(source.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
     }
 }
