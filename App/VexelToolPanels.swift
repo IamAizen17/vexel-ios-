@@ -554,13 +554,42 @@ struct VexelToolSheet: View {
 struct VexelPropertiesPanel: View {
     let tab: String
     let layerName: String
+    let layerKind: VexelTimelineTrack.Kind?
     let onCurve: () -> Void
+    let onAddEffect: () -> Void
+
     @State private var positionX = 0.0
     @State private var positionY = 0.0
+    @State private var anchorX = 0.0
+    @State private var anchorY = 0.0
     @State private var scaleX = 100.0
     @State private var scaleY = 100.0
     @State private var rotation = 0.0
     @State private var opacity = 100.0
+    @State private var startTime = 0.0
+    @State private var layerDuration = 10.0
+    @State private var visible = true
+    @State private var locked = false
+    @State private var motionBlur = false
+    @State private var blendMode = "Normal"
+    @State private var textContent = "Text"
+    @State private var fontFamily = "sans-serif"
+    @State private var fontSize = 96.0
+    @State private var fontWeight = 700.0
+    @State private var letterSpacing = 0.0
+    @State private var lineHeight = 1.2
+    @State private var italic = false
+    @State private var textAlignment = "Center"
+    @State private var animatorType = "Fade"
+    @State private var maskShape = "Rectangle"
+    @State private var maskMode = "Add"
+    @State private var maskEnabled = true
+    @State private var maskInverted = false
+    @State private var matteLayer = "None"
+    @State private var matteMode = "Alpha"
+    @State private var transitionIn = "None"
+    @State private var transitionOut = "None"
+    @State private var transitionDuration = 0.5
 
     var body: some View {
         ScrollView {
@@ -573,11 +602,16 @@ struct VexelPropertiesPanel: View {
                     Spacer()
                     Image(systemName: "eye").foregroundStyle(VexelPalette.secondary)
                 }
+
                 switch tab {
                 case "Transform":
                     propertyGroup("POSITION") {
                         valueField("X", value: $positionX, unit: "px")
                         valueField("Y", value: $positionY, unit: "px")
+                    }
+                    propertyGroup("ANCHOR") {
+                        valueField("X", value: $anchorX, unit: "px")
+                        valueField("Y", value: $anchorY, unit: "px")
                     }
                     propertyGroup("SCALE") {
                         valueField("X", value: $scaleX, unit: "%")
@@ -585,41 +619,118 @@ struct VexelPropertiesPanel: View {
                     }
                     propertyGroup("ROTATION") { valueField("Z", value: $rotation, unit: "°") }
                     propertyGroup("OPACITY") { valueField("Alpha", value: $opacity, unit: "%") }
-                case "Style":
-                    propertyGroup("FILL") { colorSwatch("Fill color"); colorSwatch("Stroke color") }
-                    propertyGroup("STROKE") { valueField("Width", value: .constant(2), unit: "px"); valueField("Feather", value: .constant(0), unit: "px") }
-                case "Content":
-                    propertyGroup("CONTENT") {
-                        TextField("Layer content", text: .constant(layerName)).font(.system(size: 11)).padding(9).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 8))
+                    propertyGroup("LAYER SETTINGS") {
+                        Toggle("Visible", isOn: $visible).tint(VexelPalette.accent)
+                        Toggle("Locked", isOn: $locked).tint(VexelPalette.accent)
+                        valueField("Start", value: $startTime, unit: "s")
+                        valueField("Duration", value: $layerDuration, unit: "s")
+                        Picker("Blend mode", selection: $blendMode) {
+                            ForEach(["Normal", "Add", "Multiply", "Screen"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        Toggle("Motion blur", isOn: $motionBlur).tint(VexelPalette.accent)
                     }
-                    propertyGroup("TEXT") { valueField("Font size", value: .constant(48), unit: "pt"); valueField("Tracking", value: .constant(0), unit: "px") }
+                    propertyGroup("KEYFRAMES") {
+                        HStack {
+                            VexelActionButton(title: "Add keyframe", systemImage: "diamond.fill") {}
+                                .disabled(true)
+                            VexelActionButton(title: "Edit curve", systemImage: "point.topleft.down.to.point.bottomright.curvepath", action: onCurve)
+                        }
+                        Text("Keyframe commands and parenting are pending the editing engine.")
+                            .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                    }
+
+                case "Text":
+                    propertyGroup("TEXT CONTENT") {
+                        TextEditor(text: $textContent)
+                            .font(.system(size: 12))
+                            .frame(minHeight: 76)
+                            .scrollContentBackground(.hidden)
+                            .padding(6)
+                            .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    propertyGroup("FONT") {
+                        Picker("Family", selection: $fontFamily) {
+                            ForEach(["sans-serif", "serif", "monospace", "cursive", "sans-serif-condensed"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        valueField("Size", value: $fontSize, unit: "px")
+                        valueField("Weight", value: $fontWeight, unit: "")
+                        Toggle("Italic", isOn: $italic).tint(VexelPalette.accent)
+                        valueField("Line height", value: $lineHeight, unit: "×")
+                        valueField("Letter spacing", value: $letterSpacing, unit: "em")
+                        Picker("Alignment", selection: $textAlignment) {
+                            ForEach(["Left", "Center", "Right"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                    }
+                    propertyGroup("TEXT ANIMATORS") {
+                        Picker("Animator type", selection: $animatorType) {
+                            ForEach(["Typewriter", "Fade", "Slide up", "Slide down", "Slide left", "Slide right", "Scale", "Rotate", "Wave"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        Text("Character, word and line selectors, ordering, stagger, duration and expression selectors will be connected to the text animation model.")
+                            .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                    }
+
                 case "Effects":
                     propertyGroup("EFFECT STACK") {
                         Text("No effects applied").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
-                        Button { } label: { Label("Add effect", systemImage: "plus").font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.accent) }
+                        VexelActionButton(title: "Open effect library", systemImage: "plus", prominent: true, action: onAddEffect)
                     }
+                    Text("Effect parameter controls are generated from the source registry in the effect browser. Effect stack ordering and persistence are pending.")
+                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+
                 case "Masks":
-                    propertyGroup("MASKS") {
-                        Text("No masks on this layer").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
-                        Button { } label: { Label("Add mask", systemImage: "plus").font(.system(size: 11)).foregroundStyle(VexelPalette.accent) }
+                    propertyGroup("MASK") {
+                        Picker("Shape", selection: $maskShape) {
+                            ForEach(["Rectangle", "Ellipse"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        Picker("Mode", selection: $maskMode) {
+                            ForEach(["Add", "Subtract", "Intersect"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        Toggle("Enabled", isOn: $maskEnabled).tint(VexelPalette.accent)
+                        Toggle("Invert", isOn: $maskInverted).tint(VexelPalette.accent)
+                        Text("Position, size, roundness, feather and opacity are animated properties.")
+                            .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
+                    propertyGroup("TRACK MATTE") {
+                        Picker("Source layer", selection: $matteLayer) {
+                            Text("None").tag("None")
+                            Text("Sibling layer").tag("Sibling layer")
+                        }.tint(VexelPalette.accent)
+                        Picker("Mode", selection: $matteMode) {
+                            ForEach(["Alpha", "Alpha inverted", "Luma", "Luma inverted"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                    }
+
+                case "Transitions":
+                    propertyGroup("TRANSITION IN") {
+                        Picker("Type", selection: $transitionIn) {
+                            ForEach(["None", "Fade", "Slide left", "Slide right", "Slide up", "Slide down", "Zoom in", "Zoom out", "Spin", "Blur", "Wipe left", "Wipe right"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        valueField("Duration", value: $transitionDuration, unit: "s")
+                    }
+                    propertyGroup("TRANSITION OUT") {
+                        Picker("Type", selection: $transitionOut) {
+                            ForEach(["None", "Fade", "Slide left", "Slide right", "Slide up", "Slide down", "Zoom in", "Zoom out", "Spin", "Blur", "Wipe left", "Wipe right"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        valueField("Duration", value: $transitionDuration, unit: "s")
+                    }
+                    Text("Transition easing and duration will be stored in the layer model.")
+                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+
                 default:
-                    propertyGroup("LAYER SETTINGS") {
-                        Toggle("Visible", isOn: .constant(true)).tint(VexelPalette.accent)
-                        Toggle("Locked", isOn: .constant(false)).tint(VexelPalette.accent)
-                        valueField("Start time", value: .constant(0), unit: "s")
-                        valueField("Duration", value: .constant(10), unit: "s")
-                    }
+                    VexelEmptyState(symbol: "slider.horizontal.3", title: "Inspector", detail: "Select a layer to inspect its properties.")
                 }
-                VexelActionButton(title: "Edit animation curve", systemImage: "point.topleft.down.to.point.bottomright.curvepath", action: onCurve)
+
+                Text("Inspector controls are currently UI state only. Changes are not yet committed to the project engine.")
+                    .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
             }
+            .padding(.bottom, 12)
         }
     }
 
     private func propertyGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 9) {
             VexelSectionLabel(title: title)
-            VexelPanel(padding: 10) { VStack(spacing: 9, content: content) }
+            VexelPanel(padding: 10) { VStack(alignment: .leading, spacing: 9, content: content) }
         }
     }
 
@@ -630,16 +741,8 @@ struct VexelPropertiesPanel: View {
             TextField(title, value: value, format: .number.precision(.fractionLength(0...2)))
                 .multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation)
                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.text)
-                .frame(width: 60).padding(6).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 6))
-            Text(unit).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary).frame(width: 20, alignment: .leading)
-        }
-    }
-
-    private func colorSwatch(_ title: String) -> some View {
-        HStack {
-            Text(title).font(.system(size: 10)).foregroundStyle(VexelPalette.soft)
-            Spacer()
-            RoundedRectangle(cornerRadius: 5).fill(VexelPalette.accent).frame(width: 28, height: 20)
+                .frame(width: 64).padding(6).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 6))
+            Text(unit).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary).frame(width: 24, alignment: .leading)
         }
     }
 }
