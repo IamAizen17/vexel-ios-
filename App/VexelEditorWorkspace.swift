@@ -48,7 +48,7 @@ struct VexelEditorWorkspace: View {
     @State private var showingMediaPicker = false
     @State private var showingAudioPicker = false
     @State private var showingNotice: String?
-    @State private var layerNames: [String] = ["Text Layer", "Shape Layer", "Audio Layer"]
+    @State private var layerNames: [String] = []
     @State private var showProperties = false
     @State private var showStabilization = false
     @State private var showCutoutBrush = false
@@ -81,7 +81,7 @@ struct VexelEditorWorkspace: View {
                     .frame(maxHeight: .infinity)
                 transportBar
                 timelinePanel
-                selectionBar
+                if !layerNames.isEmpty { selectionBar }
                 toolBar
             }
         }
@@ -145,6 +145,14 @@ struct VexelEditorWorkspace: View {
         .alert("Editor", isPresented: Binding(get: { showingNotice != nil }, set: { if !$0 { showingNotice = nil } })) {
             Button("OK", role: .cancel) { showingNotice = nil }
         } message: { Text(showingNotice ?? "") }
+        .onAppear {
+            layerNames = project.layerNames
+        }
+        .onChange(of: layerNames) { names in
+            project.layerNames = names
+            project.modified = Date()
+            onProjectChange(project)
+        }
         .onChange(of: currentTime) { _ in project.modified = Date() }
     }
 
