@@ -25,20 +25,20 @@ The core targets Kotlin/JVM/Java 17. It is not a Kotlin Multiplatform module. A 
 
 Observed in core/model/Project.kt:
 
-- Legacy Android format ID: `knsproj`; current source format version: 12. This identifier is accepted only by the compatibility importer.
+- Legacy Android format ID: `legacy Android project format`; current source format version: 12. This identifier is accepted only by the compatibility importer.
 - Root document contains generator, metadata, composition, assets, timeline markers, editor viewport state and ordered top-level layers.
 - Composition includes dimensions, floating-point FPS, duration, background, motion-blur settings and 3D environment.
 - Assets are typed as image, video, audio, model or font and carry a relative archive path plus optional media metadata and SHA-256.
 - Layer types include text, shape, image, video, audio, group, 3D object, 3D model, camera, light and null.
 - Layer data includes timing, visibility/lock, sibling parent, blend mode, 2D/3D transforms, effects, masks, matte, transitions, type-specific content and nested children.
 
-Observed in core/format/KnsprojJson.kt:
+Observed in core/format/legacy project JSON serializer.kt:
 
 - The reader checks the format ID and integer version before typed decoding.
 - Projects newer than version 12 and versions below 1 are rejected; older versions are migrated one version at a time.
 - The serializer ignores unknown JSON keys and omits null/default fields on output. This means a future iOS importer should preserve unknown fields separately if round-trip forward compatibility is a product requirement.
 
-Migration history observed in Migrations inside core/format/KnsprojJson.kt:
+Migration history observed in Migrations inside core/format/legacy project JSON serializer.kt:
 
 - v1 to v2 expands the old colorAdjust effect into hueShift, brightnessContrast and saturation entries while preserving the original parameter/keyframe payloads.
 - v2 to v3 and v3 to v4 add optional expression/text animator and null/camera fields.
@@ -47,7 +47,7 @@ Migration history observed in Migrations inside core/format/KnsprojJson.kt:
 - v7 to v8 adds markers and audio/video EQ; v8 to v9 adds editorView, TimeSlice and cutout brush strokes.
 - v9 to v10 and v10 to v11 add effect entries; v11 to v12 renames the media roto recipe to cutout while preserving legacy read compatibility.
 
-Observed in core/format/KnsprojArchive.kt:
+Observed in core/format/legacy archive implementation.kt:
 
 - ZIP container with required project.json, assets/** and optional thumbnail.jpg.
 - Limits: 64 MiB project JSON, 8 GiB aggregate uncompressed input and 10,000 entries.
@@ -116,7 +116,7 @@ Observed in app/render/Compositor.kt:
 
 ## Effects contract
 
-Observed in core/model/EffectRegistry.kt and generated tools/knsproj/effects.json:
+Observed in core/model/EffectRegistry.kt and generated tools/legacy Android project format/effects.json:
 
 - 73 effect IDs, 13 categories, one canonical registry.
 - Registry entries define stable ID, localized names, category, target, backdrop requirements, typed parameters, defaults, valid ranges, slider ranges, units, choices and conditional visibility.
