@@ -436,8 +436,7 @@ private struct MediaPicker: View {
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .onChange(of: selection) { item in if let item { onSelect(item); dismiss() } }
         }
-        .preferredColorScheme(.dark)
-    }
+            }
 }
 
 private struct CompositionSettingsSheet: View {
@@ -458,7 +457,6 @@ private struct CompositionSettingsSheet: View {
             .scrollContentBackground(.hidden).background(VexelPalette.background)
             .navigationTitle("Composition settings").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-        }.preferredColorScheme(.dark)
-    }
+        }    }
 }
 
