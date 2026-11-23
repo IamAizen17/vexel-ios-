@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   test:
-    name: Core tests
+    name: Swift package tests
     runs-on: macos-15
     steps:
       - name: Check out source
@@ -25,8 +25,15 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           swift --version
-      - name: Run Swift package tests
-        run: swift test --package-path Packages/VexelCore
+      - name: Test every engine package
+        run: |
+          set -euo pipefail
+          for package in Packages/*; do
+            if [ -f "$package/Package.swift" ]; then
+              echo "Testing $package"
+              swift test --package-path "$package"
+            fi
+          done
 
   build-ipa:
     name: Build unsigned iOS IPA
