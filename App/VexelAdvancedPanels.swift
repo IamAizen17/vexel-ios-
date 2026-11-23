@@ -9,6 +9,7 @@ struct VexelPropertiesSheet: View {
     @State private var tab = "Transform"
 
     private var availableTabs: [String] {
+        guard let layerKind else { return ["Composition"] }
         var values = ["Transform"]
         if layerKind == .text { values.append("Text") }
         if layerKind != .audio { values.append("Effects") }
