@@ -22,7 +22,8 @@ public struct TimelineTimebase: Equatable, Sendable {
     }
 
     public func frame(at time: Double) -> Int {
-        Int((time * framesPerSecond).rounded())
+        guard time.isFinite else { return 0 }
+        return Int((time * framesPerSecond).rounded())
     }
 
     public func snap(_ time: Double) -> Double {
@@ -30,7 +31,8 @@ public struct TimelineTimebase: Equatable, Sendable {
     }
 
     public func clamped(_ time: Double) -> Double {
-        min(max(time, 0), duration)
+        guard time.isFinite else { return 0 }
+        return min(max(time, 0), duration)
     }
 
     public func timecode(_ time: Double) -> String {
@@ -61,14 +63,14 @@ public enum TimelineError: Error, Equatable, LocalizedError {
         switch self {
         case .invalidTimebase: return "The composition frame rate or duration is invalid."
         case .invalidLayer: return "A timeline layer must be a JSON object with a non-empty id and type."
-        case .layerNotFound(let id): return "Timeline layer '(id)' does not exist."
-        case .duplicateLayerID(let id): return "Timeline layer ID '(id)' is already in use."
-        case .invalidContainer(let id): return "Timeline container '(id)' does not exist."
+        case .layerNotFound(let id): return "Timeline layer '\\(id)' does not exist."
+        case .duplicateLayerID(let id): return "Timeline layer ID '\\(id)' is already in use."
+        case .invalidContainer(let id): return "Timeline container '\\(id)' does not exist."
         case .layersMustBeSiblings: return "The selected layers must belong to the same timeline container."
-        case .groupRequired(let id): return "Timeline container '(id)' is not a group."
+        case .groupRequired(let id): return "Timeline container '\\(id)' is not a group."
         case .invalidTime: return "Timeline time must be a finite number."
         case .invalidIndex: return "The requested timeline index is invalid."
-        case .invalidProject(let reason): return "The timeline operation would make the project invalid: (reason)"
+        case .invalidProject(let reason): return "The timeline operation would make the project invalid: \\(reason)"
         }
     }
 }
@@ -194,7 +196,7 @@ public actor TimelineEngine {
     }
 
     public func groupLayers(_ ids: Set<String>, id groupID: String, name: String = "Group") throws -> ProjectDocument {
-        guard !ids.isEmpty else { throw TimelineError.invalidLayer }
+        guard !ids.isEmpty, !groupID.isEmpty else { throw TimelineError.invalidLayer }
         guard !allIDs().contains(groupID) else { throw TimelineError.duplicateLayerID(groupID) }
         let rootLayers = project.fields["layers"]?.arrayValue ?? []
         let locations = ids.compactMap { locate($0, in: rootLayers) }
@@ -202,8 +204,9 @@ public actor TimelineEngine {
             let missing = ids.first { locate($0, in: rootLayers) == nil } ?? ""
             throw TimelineError.layerNotFound(missing)
         }
-        guard let containerID = locations.first?.containerID,
-              locations.allSatisfy({ $0.containerID == containerID }) else {
+        guard let firstLocation = locations.first else { throw TimelineError.invalidLayer }
+        let containerID = firstLocation.containerID
+        guard locations.allSatisfy({ $0.containerID == containerID }) else {
             throw TimelineError.layersMustBeSiblings
         }
 
@@ -329,9 +332,13 @@ public actor TimelineEngine {
             document.fields["layers"] = .array(transform(document.fields["layers"]?.arrayValue ?? []))
             return
         }
-        guard containsInDocument(groupID, document: document) else { throw TimelineError.invalidContainer(groupID) }
+        guard let container = findLayer(groupID, in: document.fields["layers"]?.arrayValue ?? []) else {
+            throw TimelineError.invalidContainer(groupID)
+        }
+        guard container.objectValue?["type"]?.stringValue == "group" else {
+            throw TimelineError.groupRequired(groupID)
+        }
         document = updateLayer(document, id: groupID) { object in
-            guard object["type"]?.stringValue == "group" else { return }
             object["layers"] = .array(transform(object["layers"]?.arrayValue ?? []))
         }
     }
