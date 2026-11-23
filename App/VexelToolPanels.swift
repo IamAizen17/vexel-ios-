@@ -128,14 +128,14 @@ struct VexelToolSheet: View {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(["Rectangle", "Ellipse", "Polygon", "Star", "Line", "Path"], id: \.self) { shape in
                     toolTile(shape, symbol: shapeSymbol(shape)) {
-                        layerNames.insert("\(shape) Layer", at: 0)
+                        onAction("add-shape:\(shape)")
                     }
                 }
             }
             VexelSectionLabel(title: "3D primitives")
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(["Cube", "Sphere", "Cylinder", "Cone", "Plane", "Torus", "Point light", "Spot light", "Area light"], id: \.self) { shape in
-                    toolTile(shape, symbol: "cube") { layerNames.insert("\(shape) Layer", at: 0) }
+                    toolTile(shape, symbol: "cube") { }.disabled(true)
                 }
             }
             Spacer()
@@ -157,7 +157,7 @@ struct VexelToolSheet: View {
             VexelActionButton(title: "Add text layer", systemImage: "textformat", prominent: true) {
                 onAction("add-text")
             }
-            VexelActionButton(title: "Add 3D text", systemImage: "cube.transparent") { layerNames.insert("3D Text Layer", at: 0) }
+            VexelActionButton(title: "Add 3D text (unavailable)", systemImage: "cube.transparent") {}.disabled(true)
             Spacer()
         }
     }
