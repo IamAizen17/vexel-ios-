@@ -818,6 +818,9 @@ struct VexelGraphEditor: View {
 
 struct VexelCurveEditor: View {
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("vexel.savedEasings") private var savedEasingsData = "[]"
+    @State private var curveName = "Custom curve"
+    @State private var showingSaveCurve = false
     @State private var x1 = 0.25
     @State private var y1 = 0.1
     @State private var x2 = 0.25
@@ -849,12 +852,53 @@ struct VexelCurveEditor: View {
                     VexelActionButton(title: "Ease out", systemImage: "arrow.up.right") { x1 = 0; y1 = 0; x2 = 0.58; y2 = 1 }
                     VexelActionButton(title: "Linear", systemImage: "line.diagonal") { x1 = 0.33; y1 = 0.33; x2 = 0.66; y2 = 0.66 }
                 }
+                HStack {
+                    Menu {
+                        ForEach(savedCurves) { curve in
+                            Button(curve.name) {
+                                x1 = curve.x1; y1 = curve.y1; x2 = curve.x2; y2 = curve.y2
+                            }
+                        }
+                    } label: {
+                        Label("Saved curves", systemImage: "bookmark")
+                            .font(.system(size: 10, weight: .semibold)).foregroundStyle(VexelPalette.accent)
+                    }
+                    .disabled(savedCurves.isEmpty)
+                    Spacer()
+                    VexelActionButton(title: "Save curve", systemImage: "bookmark.fill", action: { showingSaveCurve = true })
+                }
                 Spacer()
             }
             .padding(16).background(VexelPalette.background)
             .navigationTitle("Curve editor").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
-        }    }
+        }
+        .alert("Save curve", isPresented: $showingSaveCurve) {
+            TextField("Curve name", text: $curveName)
+            Button("Save", action: saveCurve)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Saved curves are available in the curve editor and Settings. Up to 24 are kept.")
+        }
+    }
+
+    private var savedCurves: [VexelSavedEasing] {
+        guard let data = savedEasingsData.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([VexelSavedEasing].self, from: data)) ?? []
+    }
+
+    private func saveCurve() {
+        let trimmedName = curveName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = trimmedName.isEmpty ? "Custom curve" : trimmedName
+        let curve = VexelSavedEasing(name: name, x1: x1, y1: y1, x2: x2, y2: y2)
+        var values = savedCurves
+        values.removeAll { abs($0.x1 - x1) < 0.00001 && abs($0.y1 - y1) < 0.00001 && abs($0.x2 - x2) < 0.00001 && abs($0.y2 - y2) < 0.00001 }
+        values.append(curve)
+        if values.count > 24 { values = Array(values.suffix(24)) }
+        guard let data = try? JSONEncoder().encode(values) else { return }
+        savedEasingsData = String(decoding: data, as: UTF8.self)
+        curveName = "Custom curve"
+    }
 
     private func curveSlider(_ title: String, value: Binding<Double>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
