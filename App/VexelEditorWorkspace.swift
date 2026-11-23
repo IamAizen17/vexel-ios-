@@ -313,13 +313,13 @@ struct VexelEditorWorkspace: View {
                     if layerNames.indices.contains(selectedLayer) { layerNames.insert(layerNames[selectedLayer] + " Copy", at: selectedLayer + 1); undoCount += 1; redoCount = 0 }
                 }
                 Menu {
-                    Button("Audio controls", systemImage: "waveform") { selectedTool = .audio }
-                    Button("Extract audio", systemImage: "waveform.badge.plus") { showingNotice = "Audio extraction will connect to AVFoundation media processing." }
-                    Button("Remove background", systemImage: "person.crop.rectangle") { showMediaJob = true }
-                    Button("Stabilize", systemImage: "scope") { showStabilization = true }
-                    Button("Cutout brush", systemImage: "scribble.variable") { showCutoutBrush = true }
-                    Button("Camera controls", systemImage: "camera.aperture") { showCameraControls = true }
-                    Button("Loop playback", systemImage: "repeat") { loopPlayback.toggle() }
+                    Button { selectedTool = .audio } label: { Label("Audio controls", systemImage: "waveform") }
+                    Button { showingNotice = "Audio extraction will connect to AVFoundation media processing." } label: { Label("Extract audio", systemImage: "waveform.badge.plus") }
+                    Button { showMediaJob = true } label: { Label("Remove background", systemImage: "person.crop.rectangle") }
+                    Button { showStabilization = true } label: { Label("Stabilize", systemImage: "scope") }
+                    Button { showCutoutBrush = true } label: { Label("Cutout brush", systemImage: "scribble.variable") }
+                    Button { showCameraControls = true } label: { Label("Camera controls", systemImage: "camera.aperture") }
+                    Button { loopPlayback.toggle() } label: { Label("Loop playback", systemImage: "repeat") }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle").font(.system(size: 10, weight: .semibold))
                 }
