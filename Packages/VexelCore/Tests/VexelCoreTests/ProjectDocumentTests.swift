@@ -53,12 +53,12 @@ final class ProjectDocumentTests: XCTestCase {
         project.fields["formatVersion"] = .number(99)
         XCTAssertEqual(project.validate().first?.path, "formatVersion")
     }
-    func testRejectsLegacyFormatOutsideCompatibilityAdapter() throws {
-        let source = """
-        {"format":"knsproj","formatVersion":12,"composition":{"width":1080,"height":1920,"fps":30,"duration":5},"layers":[]}
-        """.data(using: .utf8)!
-        let project = try ProjectDocument(data: source)
+
+    func testNativeDocumentRejectsForeignFormatIdentifiers() {
+        let project = ProjectDocument(fields: [
+            "format": .string("foreign-format"),
+            "formatVersion": .number(1)
+        ])
         XCTAssertEqual(project.validate().first?.path, "format")
     }
-
 }
