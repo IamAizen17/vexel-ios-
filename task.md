@@ -116,3 +116,4 @@ The Android source has a reusable Kotlin/JVM core and Android integration. The K
 - Unsigned IPA packaging and artifact upload: passed.
 - Real iPhone/iPad installation and runtime testing: not performed.
 - The current UI changes require a fresh CI run; do not treat the previous run as verification of these changes.
+- Latest UI branch validation attempts reached GitHub Actions but the macOS hosted runner was not provisioned for the archive job (runner_id 0 and no execution steps); a later package-test job was also not provisioned. This is an infrastructure execution gap, not a compiler result. A successful fresh archive is still required.
