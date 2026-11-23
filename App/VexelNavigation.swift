@@ -255,7 +255,7 @@ struct VexelHomeView: View {
         .fileImporter(isPresented: Binding(
             get: { showingImporter },
             set: { showingImporter = $0 }
-        ), allowedContentTypes: [.vexelProject, .zip], allowsMultipleSelection: false) { result in
+        ), allowedContentTypes: [.vexelProject, .zip, .data], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
