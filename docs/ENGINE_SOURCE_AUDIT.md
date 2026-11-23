@@ -32,6 +32,21 @@ Observed in core/model/Project.kt:
 - Layer types include text, shape, image, video, audio, group, 3D object, 3D model, camera, light and null.
 - Layer data includes timing, visibility/lock, sibling parent, blend mode, 2D/3D transforms, effects, masks, matte, transitions, type-specific content and nested children.
 
+Observed in core/format/KnsprojJson.kt:
+
+- The reader checks the format ID and integer version before typed decoding.
+- Projects newer than version 12 and versions below 1 are rejected; older versions are migrated one version at a time.
+- The serializer ignores unknown JSON keys and omits null/default fields on output. This means a future iOS importer should preserve unknown fields separately if round-trip forward compatibility is a product requirement.
+
+Migration history observed in Migrations inside core/format/KnsprojJson.kt:
+
+- v1 to v2 expands the old colorAdjust effect into hueShift, brightnessContrast and saturation entries while preserving the original parameter/keyframe payloads.
+- v2 to v3 and v3 to v4 add optional expression/text animator and null/camera fields.
+- v4 to v5 adds cyclic easing; v5 to v6 adds 3D materials, lights, camera depth of field, environment, 3D text and packed-alpha video.
+- v6 to v7 changes cyclic easing offset semantics and preserves the old phase as cyclic.phase.
+- v7 to v8 adds markers and audio/video EQ; v8 to v9 adds editorView, TimeSlice and cutout brush strokes.
+- v9 to v10 and v10 to v11 add effect entries; v11 to v12 renames the media roto recipe to cutout while preserving legacy read compatibility.
+
 Observed in core/format/KnsprojArchive.kt:
 
 - ZIP container with required project.json, assets/** and optional thumbnail.jpg.
@@ -73,6 +88,16 @@ Observed in core/expr/ExpressionEngine.kt:
 - Expression errors preserve line information.
 
 iOS implication: do not evaluate project expressions with unrestricted JavaScriptCore globals. Reproduce the exposed expression API and deterministic seed behavior behind a sandbox with instruction/time/memory limits, or explicitly mark expressions unsupported until an equivalent safe runtime exists.
+
+## UI command/state boundary
+
+Observed in app/ui/editor/EditorViewModel.kt (64,871 characters at the pinned revision):
+
+- The ViewModel owns project/time/playback/selection/multi-selection, undo/redo, editor-view state, media revision, export/caption/media-job state and command dispatch.
+- Its command surface covers layer creation/update/delete/duplicate/split/group/ungroup/reorder/parenting, timeline move/trim, keyframes, markers, easing/clipboard, expressions, media replacement/import, audio solo/preview/extraction, presets, plugin commands, captions, camera motion, stabilization, background removal, cutout brush and export.
+- Long-running operations are dispatched off the UI thread; project edits flow through the immutable core model/history and are persisted through ProjectStore.
+
+This is the key UI-to-engine mapping target. SwiftUI views should not reimplement these operations as local state mutations.
 
 ## Scene evaluation and renderer
 
@@ -117,6 +142,7 @@ iOS mapping candidates: AVFoundation readers/writers for media, AVAudioEngine fo
 Observed in core/plugin/**, app/plugins/** and native/**:
 
 - Plugin packages have manifests, archive validation, presets/commands and a constrained script host.
+- PluginHost checks declared permissions, exposes project data only with project.read, validates returned projects, requires project.write for mutations and prevents plugins from changing the asset set.
 - UI includes plugin manager, preset commands and TTS workflows.
 - Advanced functionality includes real-camera integration, stabilization, speech/caption workflows, background removal/roto tools, model import and 3D text extrusion.
 - Rust/JNI modules must be evaluated individually for algorithm reuse, platform-specific dependencies, licensing and memory/ABI costs. No blanket Rust reuse decision is made.
@@ -129,7 +155,7 @@ The existing SwiftUI port has all 73 effect IDs with matching English names and 
 - Reference home includes a two-column project grid, import/export, duplicate/delete, recovery and import warnings/errors, presets, settings and plugin installation. iOS home currently uses an in-memory project list and its import path is a placeholder.
 - Reference settings include language, appearance, preview resolution/3D quality, proxy usage, storage safety/mirroring/snapshots, fonts, third-party licenses, app version and project format. iOS now represents language, appearance, preview scale/quality, proxies, auto-keyframe, layer names, mirroring and snapshots; font management and a full license browser remain missing, and several preferences are not engine-bound.
 - Reference timeline includes gesture-driven navigation, clip selection, markers, snapping, keyframe diamonds, waveform, layer visibility/lock and layer-name display controls. iOS timeline is a visual mock with a time slider and placeholder clips.
-- Reference editor connects selection, multi-selection, undo/redo, split/duplicate, keyframes, transforms, viewport modes, real camera, layer tree and export to a ViewModel. iOS controls are mostly local presentation state.
+- Reference editor connects selection, multi-selection, undo/redo, split/duplicate, keyframes, transforms, viewport modes, real camera, layer tree and export to a ViewModel. iOS controls are mostly local presentation state. A real-camera settings page and saved-versions empty state have since been added, but capture/review and snapshot restore are still missing.
 - Reference effect picker includes target-compatibility filtering, apply-to selection, search, category grid and shortcuts. iOS has all 73 catalogue entries and now displays the four shortcut affordances, but target filtering, apply-to selection, parameter schema editing and actual insertion are pending.
 - Reference plugin sheet exposes installed plugin commands, animation/text/transition presets, TTS and plugin manager. iOS has TTS UI and a plugin page shell, but installed-plugin discovery, preset application and package installation are pending. The current plugin list is sample data.
 
