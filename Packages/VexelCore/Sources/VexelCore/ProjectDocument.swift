@@ -87,7 +87,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             return Int(value)
         }
         guard let documentFormat, documentFormat == Self.format || documentFormat == "knsproj" else {
-            issues.append(ProjectIssue(severity: .error, path: "format", message: "Expected a vexelproj or knsproj document."))
+            issues.append(ProjectIssue(severity: .error, path: "format", message: "Expected a native Vexel project or a supported legacy Android project."))
             return issues
         }
         guard let version else {
