@@ -16,7 +16,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertNotNil(result.extractedAssetsDirectory)
     }
 
-    func testLegacyAndroidProjectArchiveCanBeImported() throws {
+    func testLegacyAndroidArchiveIsConvertedToNativeVexelProject() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -25,27 +25,16 @@ final class ZIPProjectArchiveTests: XCTestCase {
         fields["format"] = .string("knsproj")
         fields["formatVersion"] = .number(12)
         try ProjectDocument(fields: fields).encoded().write(to: jsonURL)
-        let archiveURL = directory.appendingPathComponent("legacy.knsproj")
+        let archiveURL = directory.appendingPathComponent("legacy-source.zip")
         let archive = try XCTUnwrap(Archive(url: archiveURL, accessMode: .create))
         try archive.addEntry(with: ZIPProjectArchive.projectEntry, fileURL: jsonURL, compressionMethod: .deflate)
 
         let result = try ZIPProjectArchive().read(from: archiveURL)
-        XCTAssertEqual(result.project.fields["format"], .string("knsproj"))
+        XCTAssertEqual(result.project.fields["format"], .string(ProjectDocument.format))
+        XCTAssertEqual(result.project.fields["formatVersion"], .number(Double(ProjectDocument.currentVersion)))
+        XCTAssertEqual(result.project.fields["compatibility"]?.objectValue?["source"], .string("legacy-android"))
+        XCTAssertEqual(result.project.fields["compatibility"]?.objectValue?["sourceVersion"], .number(12))
         XCTAssertEqual(result.project.title, "Legacy import")
-    }
-
-    func testLegacyAndroidProjectCanBeExportedAndRoundTripped() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        var fields = ProjectDocument.starter(title: "Legacy round trip").fields
-        fields["format"] = .string("knsproj")
-        fields["formatVersion"] = .number(12)
-        let legacy = ProjectDocument(fields: fields)
-        let url = directory.appendingPathComponent("legacy.knsproj")
-        try ZIPProjectArchive().write(legacy, to: url)
-        let imported = try ZIPProjectArchive().read(from: url)
-        XCTAssertEqual(imported.project, legacy)
     }
 
     func testMissingAssetPayloadFailsImport() throws {
