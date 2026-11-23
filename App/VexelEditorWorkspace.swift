@@ -50,6 +50,13 @@ struct VexelEditorWorkspace: View {
     @State private var showingNotice: String?
     @State private var layerNames: [String] = ["Text Layer", "Shape Layer", "Audio Layer"]
     @State private var showProperties = false
+    @State private var showStabilization = false
+    @State private var showCutoutBrush = false
+    @State private var showCameraControls = false
+    @State private var showMediaJob = false
+    @State private var editingMarker: VexelMarker?
+    @State private var markers: [VexelMarker] = []
+    @State private var loopPlayback = false
 
     private var isWide: Bool { horizontalSizeClass == .regular }
 
@@ -97,6 +104,20 @@ struct VexelEditorWorkspace: View {
         .sheet(isPresented: $showProperties) {
             VexelPropertiesSheet(layerName: layerNames.indices.contains(selectedLayer) ? layerNames[selectedLayer] : "Composition")
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showStabilization) { VexelStabilizationSheet().presentationDetents([.medium, .large]) }
+        .sheet(isPresented: $showCutoutBrush) { VexelCutoutBrushWorkspace().presentationDetents([.large]) }
+        .sheet(isPresented: $showCameraControls) { VexelCameraWorkspace().presentationDetents([.large]) }
+        .sheet(isPresented: $showMediaJob) { VexelMediaJobSheet(title: "Media analysis").presentationDetents([.medium, .large]) }
+        .sheet(item: $editingMarker) { marker in
+            VexelMarkerSheet(marker: marker) { updated in
+                if let index = markers.firstIndex(where: { $0.id == updated.id }) {
+                    markers[index] = updated
+                } else {
+                    markers.append(updated)
+                }
+            }
+            .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showingMediaPicker) {
             MediaPicker { _ in
@@ -202,7 +223,14 @@ struct VexelEditorWorkspace: View {
                     .frame(width: 38, height: 38).background(VexelPalette.accent, in: Circle())
             }.buttonStyle(.plain)
             VexelIconButton(symbol: "goforward.5") { currentTime = min(project.duration, currentTime + 5) }
-            VexelIconButton(symbol: "repeat") { showingNotice = "Loop playback controls will connect to the timeline engine." }
+            VexelIconButton(symbol: "repeat", active: loopPlayback) { loopPlayback.toggle() }
+            VexelIconButton(symbol: "bookmark") {
+                if let marker = markers.first(where: { abs($0.time - currentTime) <= 0.5 / Double(max(project.fps, 1)) }) {
+                    editingMarker = marker
+                } else {
+                    editingMarker = VexelMarker(time: currentTime)
+                }
+            }
             Spacer()
             Text(String(format: "%.2f s", currentTime))
                 .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(VexelPalette.accent)
@@ -214,7 +242,7 @@ struct VexelEditorWorkspace: View {
     private var timelinePanel: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                VexelSectionLabel(title: "Timeline", trailing: "\(layerNames.count) TRACKS")
+                VexelSectionLabel(title: "Timeline", trailing: "\(layerNames.count) TRACKS · \(markers.count) MARKERS")
                 Spacer()
                 Button { showGraph = true } label: {
                     Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
@@ -274,26 +302,45 @@ struct VexelEditorWorkspace: View {
     }
 
     private var selectionBar: some View {
-        HStack(spacing: 8) {
-            Button { selectedTool = .layers } label: {
-                Label("Layers", systemImage: "square.3.layers.3d")
-                    .font(.system(size: 10, weight: .semibold))
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 15) {
+                actionItem("Layers", symbol: "square.3.layers.3d") { selectedTool = .layers }
+                actionItem("Properties", symbol: "slider.horizontal.3") { showProperties = true }
+                actionItem("Keyframe", symbol: "diamond.fill") { showingNotice = "Keyframe controls will connect to the animation engine." }
+                actionItem("Split", symbol: "scissors") { showingNotice = "Layer splitting will connect to the editing command engine." }
+                actionItem("Group", symbol: "square.3.layers.3d") { showingNotice = "Grouping will connect to the layer tree engine." }
+                actionItem("Duplicate", symbol: "plus.square.on.square") {
+                    if layerNames.indices.contains(selectedLayer) { layerNames.insert(layerNames[selectedLayer] + " Copy", at: selectedLayer + 1); undoCount += 1; redoCount = 0 }
+                }
+                Menu {
+                    Button("Audio controls", systemImage: "waveform") { selectedTool = .audio }
+                    Button("Extract audio", systemImage: "waveform.badge.plus") { showingNotice = "Audio extraction will connect to AVFoundation media processing." }
+                    Button("Remove background", systemImage: "person.crop.rectangle") { showMediaJob = true }
+                    Button("Stabilize", systemImage: "scope") { showStabilization = true }
+                    Button("Cutout brush", systemImage: "scribble.variable") { showCutoutBrush = true }
+                    Button("Camera controls", systemImage: "camera.aperture") { showCameraControls = true }
+                    Button("Loop playback", systemImage: "repeat") { loopPlayback.toggle() }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle").font(.system(size: 10, weight: .semibold))
+                }
+                actionItem("Delete", symbol: "trash", tint: VexelPalette.pink) {
+                    if !layerNames.isEmpty { layerNames.remove(at: min(selectedLayer, layerNames.count - 1)); selectedLayer = max(0, selectedLayer - 1) }
+                }
             }
-            Spacer()
-            Button { showProperties = true } label: {
-                Label("Properties", systemImage: "slider.horizontal.3")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            Button { undoCount += 1; redoCount = 0 } label: {
-                Image(systemName: "plus.square.on.square").font(.system(size: 13))
-            }
-            Button { if !layerNames.isEmpty { layerNames.remove(at: min(selectedLayer, layerNames.count - 1)); selectedLayer = max(0, selectedLayer - 1) } } label: {
-                Image(systemName: "trash").font(.system(size: 13))
-            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
         }
         .foregroundStyle(VexelPalette.soft)
-        .padding(.horizontal, 16).padding(.vertical, 10)
         .background(VexelPalette.bar)
+    }
+
+    private func actionItem(_ title: String, symbol: String, tint: Color = VexelPalette.soft, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(tint)
+                .fixedSize()
+        }
+        .buttonStyle(.plain)
     }
 
     private var toolBar: some View {
