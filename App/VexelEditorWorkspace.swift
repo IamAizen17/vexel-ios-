@@ -398,7 +398,7 @@ struct VexelEditorWorkspace: View {
             HStack {
                 VexelSectionLabel(title: "Inspector")
                 Spacer()
-                VexelIconButton(symbol: "point.topleft.down.to.point.bottomright.curvepath") { showGraph = true }
+                VexelIconButton(symbol: "point.topleft.down.to.point.bottomright.curvepath", disabled: true) { showGraph = true }
             }
             Picker("Inspector", selection: $selectedTab) {
                 ForEach(availablePropertyTabs, id: \.self) { Text($0).tag($0) }
@@ -650,6 +650,10 @@ struct VexelEditorWorkspace: View {
                 toggleLayerProperty(at: action, prefix: "toggle-visibility:", property: "visible")
             } else if action.hasPrefix("toggle-lock:") {
                 toggleLayerProperty(at: action, prefix: "toggle-lock:", property: "locked")
+            } else if action.hasPrefix("add-shape:") {
+                let shapeName = String(action.dropFirst("add-shape:".count))
+                addLayer(named: shapeName + " Layer", kind: .visual)
+                selectedTool = nil
             } else if action.hasPrefix("effect:") {
                 guard let selectedTrackID else {
                     showingNotice = "Select a layer before adding an effect."
