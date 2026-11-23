@@ -71,9 +71,6 @@ extension VexelProjectItem {
     }
 
     func makeProjectDocument() throws -> ProjectDocument {
-        if let documentJSON, let data = documentJSON.data(using: .utf8) {
-            return try ProjectDocument(data: data)
-        }
         var copy = self
         copy.synchronizeDocument()
         guard let json = copy.documentJSON, let data = json.data(using: .utf8) else {
