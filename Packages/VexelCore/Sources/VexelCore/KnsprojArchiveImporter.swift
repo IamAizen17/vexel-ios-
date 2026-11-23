@@ -66,7 +66,8 @@ public struct KnsprojArchiveImporter {
 
         for entry in entries {
             let path = entry.path
-            guard let normalized = Self.normalizedPath(path), normalized == path.trimmingCharacters(in: CharacterSet(charactersIn: "/")) else {
+            let candidate = entry.type == .directory && path.hasSuffix("/") ? String(path.dropLast()) : path
+            guard let normalized = Self.normalizedPath(candidate), normalized == candidate else {
                 throw KnsprojImportError.unsafeEntryPath(path)
             }
             guard seenPaths.insert(normalized).inserted else {
@@ -133,9 +134,10 @@ public struct KnsprojArchiveImporter {
               versionNumber.rounded(.towardZero) == versionNumber,
               versionNumber >= 1,
               versionNumber <= Double(Self.currentSourceVersion) else {
-            let version = Int(originalFields["formatVersion"]?.numberValue ?? 0)
-            if version > Self.currentSourceVersion {
-                throw KnsprojImportError.unsupportedVersion(version)
+            let rawVersion = originalFields["formatVersion"]?.numberValue ?? 0
+            if rawVersion > Double(Self.currentSourceVersion) {
+                let safeVersion = rawVersion >= Double(Int.max) ? Int.max : Int(rawVersion)
+                throw KnsprojImportError.unsupportedVersion(safeVersion)
             }
             throw KnsprojImportError.missingOrInvalidFormat
         }
