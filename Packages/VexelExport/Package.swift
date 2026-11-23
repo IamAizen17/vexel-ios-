@@ -11,5 +11,10 @@ let package = Package(
         .package(path: "../VexelMedia"),
         .package(path: "../VexelAudio")
     ],
-    targets: [.target(name: "VexelExport", dependencies: ["VexelCore", "VexelRenderer", "VexelMedia", "VexelAudio"])]
+    targets: [.target(name: "VexelExport", dependencies: [
+        .product(name: "VexelCore", package: "vexelcore"),
+        .product(name: "VexelRenderer", package: "vexelrenderer"),
+        .product(name: "VexelMedia", package: "vexelmedia"),
+        .product(name: "VexelAudio", package: "vexelaudio")
+    ])]
 )
