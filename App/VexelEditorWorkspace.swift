@@ -9,6 +9,12 @@ enum VexelEditorTool: String, CaseIterable, Identifiable {
     case elements = "Elements", plugins = "Plugins"
 
     var id: String { rawValue }
+    var isAvailable: Bool {
+        switch self {
+        case .layers, .shapes, .text, .media, .effects: return true
+        case .model3D, .motion, .audio, .camera, .captions, .elements, .plugins: return false
+        }
+    }
     var symbol: String {
         switch self {
         case .layers: return "square.3.layers.3d"
@@ -336,11 +342,11 @@ struct VexelEditorWorkspace: View {
                 actionItem("Duplicate", symbol: "plus.square.on.square") { duplicateSelectedTrack() }
                 Menu {
                     Button { selectedTool = .audio } label: { Label("Audio controls", systemImage: "waveform") }
-                    Button { showingNotice = "Audio extraction will connect to AVFoundation media processing." } label: { Label("Extract audio", systemImage: "waveform.badge.plus") }
-                    Button { showMediaJob = true } label: { Label("Remove background", systemImage: "person.crop.rectangle") }
-                    Button { showStabilization = true } label: { Label("Stabilize", systemImage: "scope") }
-                    Button { showCutoutBrush = true } label: { Label("Cutout brush", systemImage: "scribble.variable") }
-                    Button { showCameraControls = true } label: { Label("Camera controls", systemImage: "camera.aperture") }
+                    Button {} label: { Label("Extract audio (unavailable)", systemImage: "waveform.badge.plus") }.disabled(true)
+                    Button {} label: { Label("Remove background (unavailable)", systemImage: "person.crop.rectangle") }.disabled(true)
+                    Button {} label: { Label("Stabilize (unavailable)", systemImage: "scope") }.disabled(true)
+                    Button {} label: { Label("Cutout brush (unavailable)", systemImage: "scribble.variable") }.disabled(true)
+                    Button {} label: { Label("Camera controls (unavailable)", systemImage: "camera.aperture") }.disabled(true)
                     Button { loopPlayback.toggle() } label: { Label("Loop playback", systemImage: "repeat") }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle").font(.system(size: 10, weight: .semibold))
@@ -377,6 +383,8 @@ struct VexelEditorWorkspace: View {
                         .background(VexelPalette.field.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
                     }
                     .buttonStyle(.plain)
+                    .disabled(!tool.isAvailable)
+                    .opacity(tool.isAvailable ? 1 : 0.38)
                 }
             }
             .padding(.horizontal, 8).padding(.vertical, 8)
