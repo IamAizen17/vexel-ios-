@@ -14,7 +14,8 @@ assert len(shader_files) == 81, f"Expected 81 pinned source shaders, found {len(
 assert len({item["sourcePath"] for item in shader_files}) == len(shader_files), "Duplicate shader source path"
 assert len(effects) == 73, f"Expected 73 effect records, found {len(effects)}"
 assert len({item["id"] for item in effects}) == len(effects), "Duplicate effect ID"
-assert len({item["category"] for item in effects}) == 13, "Expected 13 effect categories"
+expected_categories = {item["id"] for item in registry["categories"] if item["id"] != "all"}
+assert {item["category"] for item in effects} == expected_categories, "Effect categories differ from the registry (excluding the 'all' picker filter)"
 
 registry_by_id = {item["id"]: item for item in registry["effects"]}
 manifest_by_id = {item["id"]: item for item in effects}
