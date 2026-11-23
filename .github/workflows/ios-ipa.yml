@@ -1,16 +1,19 @@
-name: iOS Build
+name: Vexel Validation
 
 on:
-  push:
-    branches: [main, "feat/**"]
-  pull_request:
   workflow_dispatch:
+    inputs:
+      build_ipa:
+        description: Build the unsigned iOS IPA after package tests
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-build-${{ github.ref }}-${{ github.event_name }}
+  group: vexel-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -43,6 +46,7 @@ jobs:
     name: Build unsigned iOS IPA
     runs-on: macos-15
     needs: test
+    if: ${{ inputs.build_ipa }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
