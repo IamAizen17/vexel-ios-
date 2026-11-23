@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import VexelCore
 import UniformTypeIdentifiers
+import AVFoundation
 
 enum VexelEditorTool: String, CaseIterable, Identifiable {
     case layers = "Layers", shapes = "Shapes", text = "Text", media = "Media", model3D = "3D"
@@ -12,8 +13,8 @@ enum VexelEditorTool: String, CaseIterable, Identifiable {
     var isAvailable: Bool {
         switch self {
         case .layers, .shapes, .text, .effects: return true
-        case .media: return false
-        case .model3D, .motion, .audio, .camera, .captions, .elements, .plugins: return false
+        case .media, .audio: return true
+        case .model3D, .motion, .camera, .captions, .elements, .plugins: return false
         }
     }
     var symbol: String {
@@ -159,15 +160,15 @@ struct VexelEditorWorkspace: View {
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showingMediaPicker) {
-            MediaPicker { _ in
-                showingNotice = "Media selected. Asset ingestion and timeline insertion will be connected in the media-engine milestone."
+            MediaPicker { item in
+                Task { await importPickedMedia(item) }
             }
         }
         .fileImporter(isPresented: $showingAudioPicker, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
-                showingNotice = "Selected \(url.lastPathComponent). Audio decoding and timeline insertion are not connected yet."
+                Task { await importAudioFile(url) }
             case .failure(let error):
                 showingNotice = error.localizedDescription
             }
@@ -637,6 +638,117 @@ struct VexelEditorWorkspace: View {
         }
     }
 
+    @MainActor
+    private func importPickedMedia(_ item: PhotosPickerItem) async {
+        var importedFile: VexelImportedFile?
+        var importedAsset: VexelProjectStore.ImportedAsset?
+        do {
+            guard let file = try await item.loadTransferable(type: VexelImportedFile.self) else {
+                throw VexelProjectStore.StoreError.invalidSourceFile
+            }
+            importedFile = file
+            let contentType = item.supportedContentTypes.first ?? .image
+            let kind = contentType.conforms(to: .movie) || contentType.conforms(to: .video) ? "video" : "image"
+            let asset = try VexelProjectStore.importAsset(
+                from: file.url,
+                projectID: project.id,
+                type: kind,
+                mimeType: contentType.preferredMIMEType
+            )
+            importedAsset = asset
+            try project.registerAsset(asset)
+
+            var duration = max(0.1, project.duration - currentTime)
+            if kind == "video" {
+                let mediaAsset = AVURLAsset(url: asset.fileURL)
+                if let loadedDuration = try? await mediaAsset.load(.duration),
+                   loadedDuration.seconds.isFinite, loadedDuration.seconds > 0 {
+                    duration = min(loadedDuration.seconds, max(0.1, project.duration - currentTime))
+                }
+            }
+            let track = makeImportedTrack(asset, start: currentTime, duration: duration)
+            commitEdit {
+                project.timelineTracks.append(track)
+                selectedTrackID = track.id
+            }
+            showingNotice = "Imported \(asset.name) into the project and added it to the timeline."
+        } catch {
+            if let importedAsset { try? FileManager.default.removeItem(at: importedAsset.fileURL) }
+            showingNotice = "Media import failed: \(error.localizedDescription)"
+        }
+        if let importedFile { try? FileManager.default.removeItem(at: importedFile.url) }
+    }
+
+    @MainActor
+    private func importAudioFile(_ url: URL) async {
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+        var importedAsset: VexelProjectStore.ImportedAsset?
+        do {
+            let mimeType = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType
+            let asset = try VexelProjectStore.importAsset(
+                from: url,
+                projectID: project.id,
+                type: "audio",
+                mimeType: mimeType
+            )
+            importedAsset = asset
+            try project.registerAsset(asset)
+            var duration = max(0.1, project.duration - currentTime)
+            let mediaAsset = AVURLAsset(url: asset.fileURL)
+            if let loadedDuration = try? await mediaAsset.load(.duration),
+               loadedDuration.seconds.isFinite, loadedDuration.seconds > 0 {
+                duration = min(loadedDuration.seconds, max(0.1, project.duration - currentTime))
+            }
+            let track = makeImportedTrack(asset, start: currentTime, duration: duration)
+            commitEdit {
+                project.timelineTracks.append(track)
+                selectedTrackID = track.id
+            }
+            showingNotice = "Imported \(asset.name) into the project and added an audio track."
+        } catch {
+            if let importedAsset { try? FileManager.default.removeItem(at: importedAsset.fileURL) }
+            showingNotice = "Audio import failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func makeImportedTrack(
+        _ asset: VexelProjectStore.ImportedAsset,
+        start: Double,
+        duration: Double
+    ) -> VexelTimelineTrack {
+        let transform: JSONValue = .object([
+            "anchor": .array([.number(0), .number(0)]),
+            "position": .array([.number(0), .number(0)]),
+            "scale": .array([.number(1), .number(1)]),
+            "rotation": .number(0),
+            "opacity": .number(1)
+        ])
+        let contentKey = asset.type == "image" ? "image" : asset.type
+        let layer = JSONValue.object([
+            "id": .string(asset.id),
+            "type": .string(asset.type),
+            "name": .string(asset.name),
+            "start": .number(start),
+            "duration": .number(duration),
+            "visible": .bool(true),
+            "locked": .bool(false),
+            "transform": transform,
+            contentKey: .object(["asset": .string(asset.id)])
+        ])
+        let sourceJSON = (try? JSONEncoder().encode(layer)).flatMap { String(data: $0, encoding: .utf8) }
+        return VexelTimelineTrack(
+            id: UUID(uuidString: asset.id) ?? UUID(),
+            name: asset.name,
+            kind: asset.type == "audio" ? .audio : .visual,
+            start: start,
+            duration: duration,
+            sourceID: asset.id,
+            sourceType: asset.type,
+            sourceJSON: sourceJSON
+        )
+    }
+
     private func handleToolAction(_ action: String, for tool: VexelEditorTool) {
         switch action {
         case "add-text": addLayer(named: "Text Layer", kind: .text); selectedTool = nil
@@ -699,7 +811,7 @@ private struct MediaPicker: View {
                         .padding(16).frame(maxWidth: .infinity)
                         .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 12))
                 }
-                Text("Selected media will appear as a new timeline layer.").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
+                Text("Media is copied into the project and added to the timeline.").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
                 Spacer()
             }
             .padding(18).background(VexelPalette.background)
