@@ -9,7 +9,7 @@
 - UI framework: SwiftUI
 - Source license: GPL-3.0; see LICENSE and NOTICE.md
 
-The Vexel UI is an original native redesign, not a pixel-for-pixel Compose recreation. The comparison criterion is screen coverage, interaction intent, information architecture and feature affordances. The engine behavior is not considered ported because a control exists.
+The Vexel UI is an original native redesign, not a pixel-for-pixel Compose recreation. The comparison criterion is screen coverage, interaction intent, information architecture and feature affordances. The engine behavior is not considered ported because a control exists. The design system now uses an AMOLED graphite base with teal accents rather than the earlier purple palette.
 
 ## Navigation and home
 
@@ -31,13 +31,13 @@ The Vexel UI is an original native redesign, not a pixel-for-pixel Compose recre
 | EditorScreen / EditorTopBar | VexelEditorWorkspace editorHeader | Main header, composition settings, rename and export entry points represented. |
 | Viewport / ViewModePill | previewCanvas and camera controls | Preview surface and inspector layout represented; actual viewport, gestures, gizmos, camera modes and rendering are pending. |
 | EditorControls | transportBar | Transport and time controls represented with local state; undo/redo and frame stepping are not connected to commands. |
-| Timeline.kt | timelinePanel | Ruler, tracks, clip blocks and playhead represented. Source pinch zoom, drag/snap, markers, keyframe diamonds, waveform, visibility and lock interactions are not fully ported. |
+| Timeline.kt | VexelTimelinePanel / VexelTimelineTrackRow | Native scrollable ruler, playhead, pinch zoom range (8...2000 px/s), frame/snap-point alignment, composition-time nested group offsets, marker flags/editing, clip move/trim gestures, visibility/lock and keyframe affordances. Missing: focus-preserving pinch anchor, playhead auto-follow during playback, populated keyframe data and PCM waveform. Track edits are local project state, not engine commands. |
 | LayersPanel / AddSheet | Layers, Shapes, Text, Media and 3D tool pages | Main layer and creation categories represented. Layer-tree hierarchy, typed layer creation and asset-backed imports are pending. |
 | SelectionActions | selectionBar | Common selection actions represented; split, group, keyframe and delete must be command-backed. |
 | PropertiesPanel.kt | VexelPropertiesPanel / VexelPropertiesSheet | Inspector tabs and major property groups represented. Source property coverage, per-type controls, gradients, media controls, effect parameter rows, masks, mattes, transitions and text animators require a detailed field-by-field pass. |
 | GraphEditor.kt | VexelGraphEditor | Graph editor surface exists; source tangent handles and keyframe editing semantics are not yet parity-tested. |
 | Curve editor in Panels.kt | VexelCurveEditor | Curve surface exists; saved easing persistence and exact source curve operations pending. |
-| AddEffectSheet.kt / EffectRegistry | effectsPage / VexelEffectCatalog | All 73 effect IDs, English names and category assignments match the generated source registry at the pinned revision. Four source shortcuts are now visible: Mask, Track matte, Transitions and Text animators. Target filtering, apply-to behavior, registry-backed parameter editing and real effect insertion remain pending. |
+| AddEffectSheet.kt / EffectRegistry | effectsPage / VexelEffectCatalog / VexelEffectDetailSheet | Bundles the pinned generated source registry (73 IDs, 13 categories, typed parameter defaults/ranges/choices). Category-grid and search flow are ported; effect target is the selected timeline track; 3D-only effects are disabled on non-rendered-3D tracks; shortcuts are category-scoped and disabled for incompatible track kinds. Detail controls are generated for number, integer, boolean, choice, color, point and gradient stops. Effect insertion, animated parameter serialization and rendering remain pending. |
 | AudioUi.kt | VexelAudioWorkspace | Mixer/EQ UI shell exists. Source audio clip controls, automation and realtime audio are pending. |
 | CaptionsUi.kt | VexelCaptionWorkspace | Caption list and styling shell exists. SRT parsing, speech alignment and project binding pending. |
 | ExpressionUi.kt | VexelExpressionWorkspace | Expression editor shell exists. Source language API, syntax validation, execution and error mapping pending. |
