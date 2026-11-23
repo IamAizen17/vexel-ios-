@@ -39,7 +39,7 @@ H. UI/interaction: navigation, inspector, timeline gestures, shortcuts, accessib
 ## Initial source observations
 - Root Gradle configuration includes core and app modules.
 - Core is Kotlin/JVM targeting Java 17, not currently configured as multiplatform.
-- The Android source Project.kt declares legacy format ID `knsproj` and source format version 12; Vexel treats this as import compatibility only.
+- The Android source Project.kt declares legacy format ID `legacy Android project format` and source format version 12; Vexel treats this as import compatibility only.
 - The Android source archive implementation defines a ZIP with required project.json, optional thumbnail.jpg and referenced assets. Declared limits: 64 MiB project JSON, 8 GiB aggregate uncompressed data and 10,000 entries.
 - SceneEvaluator.evaluate(project, time) is documented and implemented as deterministic project/time-to-frame-scene evaluation.
 - Compositor.kt implements OpenGL ES and caches textures, video frames, meshes, glyphs, environment maps and temporal slices.
