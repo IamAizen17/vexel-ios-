@@ -34,17 +34,47 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertEqual(result.project.title, "Legacy import")
     }
 
-    func testLegacyAndroidProjectCannotBeExported() throws {
+    func testLegacyAndroidProjectCanBeExportedAndRoundTripped() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        var fields = ProjectDocument.starter(title: "Legacy import").fields
+        var fields = ProjectDocument.starter(title: "Legacy round trip").fields
         fields["format"] = .string("knsproj")
         fields["formatVersion"] = .number(12)
         let legacy = ProjectDocument(fields: fields)
-        XCTAssertThrowsError(try ZIPProjectArchive().write(legacy, to: directory.appendingPathComponent("legacy.knsproj"))) { error in
-            XCTAssertEqual(error as? ZIPProjectArchiveError, .legacyFormatExportNotSupported)
-        }
+        let url = directory.appendingPathComponent("legacy.knsproj")
+        try ZIPProjectArchive().write(legacy, to: url)
+        let imported = try ZIPProjectArchive().read(from: url)
+        XCTAssertEqual(imported.project, legacy)
+    }
+
+    func testMissingAssetPayloadFailsImport() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var fields = ProjectDocument.starter(title: "Missing asset").fields
+        fields["assets"] = .array([.object(["id": .string("a"), "path": .string("assets/missing.png")])])
+        let jsonURL = directory.appendingPathComponent("project.json")
+        try ProjectDocument(fields: fields).encoded().write(to: jsonURL)
+        let url = directory.appendingPathComponent("missing-asset.zip")
+        let archive = try XCTUnwrap(Archive(url: url, accessMode: .create))
+        try archive.addEntry(with: ZIPProjectArchive.projectEntry, fileURL: jsonURL, compressionMethod: .deflate)
+        XCTAssertThrowsError(try ZIPProjectArchive().read(from: url))
+    }
+
+    func testRejectsUnexpectedRootPayload() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let jsonURL = directory.appendingPathComponent("project.json")
+        try ProjectDocument.starter().encoded().write(to: jsonURL)
+        let extraURL = directory.appendingPathComponent("unexpected.bin")
+        try Data([0x01]).write(to: extraURL)
+        let url = directory.appendingPathComponent("unexpected.zip")
+        let archive = try XCTUnwrap(Archive(url: url, accessMode: .create))
+        try archive.addEntry(with: ZIPProjectArchive.projectEntry, fileURL: jsonURL, compressionMethod: .deflate)
+        try archive.addEntry(with: "unexpected.bin", fileURL: extraURL, compressionMethod: .deflate)
+        XCTAssertThrowsError(try ZIPProjectArchive().read(from: url))
     }
 
     func testRejectsTraversalEntry() throws {
