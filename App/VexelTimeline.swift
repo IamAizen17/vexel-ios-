@@ -275,99 +275,80 @@ private struct VexelTimelineTrackRow: View {
     }
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(VexelPalette.lane.opacity(0.85))
-                .frame(height: 39)
+        VStack(spacing: 3) {
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(VexelPalette.lane.opacity(0.85))
+                    .frame(height: 39)
 
-            HStack(spacing: 0) {
-                Color.clear.frame(width: CGFloat(depth) * 18 + CGFloat(track.start) * zoom)
-                clip
-                Spacer(minLength: 0)
-            }
-            .frame(width: width, height: 39, alignment: .leading)
-        }
-        .frame(width: width, height: 42)
-        .overlay(alignment: .leading) {
-            if track.isGroup {
-                Button {
-                    track.isExpanded.toggle()
-                } label: {
-                    Image(systemName: track.isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(VexelPalette.secondary)
-                        .frame(width: 16, height: 26)
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: CGFloat(depth) * 18 + CGFloat(track.start) * zoom)
+                    clip
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.plain)
-                .offset(x: CGFloat(depth) * 18 + 2)
+                .frame(width: width, height: 39, alignment: .leading)
             }
-        }
-        .overlay(alignment: .leading) {
+            .frame(width: width, height: 42)
+
             if track.isGroup && track.isExpanded {
-                VStack(spacing: 3) {
-                    ForEach($track.children) { $child in
-                        VexelTimelineTrackRow(
-                            track: $child,
-                            depth: depth + 1,
-                            width: width,
-                            zoom: zoom,
-                            compositionDuration: compositionDuration,
-                            fps: fps,
-                            snapPoints: snapPoints,
-                            selectedTrackID: $selectedTrackID,
-                            onSelect: onSelect,
-                            onMarkerEdit: onMarkerEdit
-                        )
-                    }
+                ForEach($track.children) { $child in
+                    VexelTimelineTrackRow(
+                        track: $child,
+                        depth: depth + 1,
+                        width: width,
+                        zoom: zoom,
+                        compositionDuration: compositionDuration,
+                        fps: fps,
+                        snapPoints: snapPoints,
+                        selectedTrackID: $selectedTrackID,
+                        onSelect: onSelect,
+                        onMarkerEdit: onMarkerEdit
+                    )
                 }
-                .offset(y: 45)
             }
         }
     }
 
     private var clip: some View {
-        HStack(spacing: 0) {
-            Button { selectedTrackID = track.id; onSelect(track.name) } label: {
+        HStack(spacing: 5) {
+            if track.isGroup {
+                Button { track.isExpanded.toggle() } label: {
+                    Image(systemName: track.isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .frame(width: 12, height: 22)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                selectedTrackID = track.id
+                onSelect(track.name)
+            } label: {
                 HStack(spacing: 5) {
                     Image(systemName: track.kind == .audio ? "waveform" : (track.kind == .text ? "textformat" : (track.isGroup ? "folder" : "square")))
                         .font(.system(size: 9, weight: .bold))
                     Text(track.name.uppercased())
                         .font(.system(size: 8, weight: .bold))
                         .lineLimit(1)
-                    Button {
-                        track.visible.toggle()
-                    } label: {
-                        Image(systemName: track.visible ? "eye" : "eye.slash")
-                            .font(.system(size: 8))
-                    }
-                    .buttonStyle(.plain)
-                    Button {
-                        track.locked.toggle()
-                    } label: {
-                        Image(systemName: track.locked ? "lock.fill" : "lock.open")
-                            .font(.system(size: 8))
-                    }
-                    .buttonStyle(.plain)
                 }
-                .foregroundStyle(.white.opacity(track.visible ? 0.95 : 0.5))
-                .padding(.horizontal, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
 
-            Spacer(minLength: 0)
-
-            ForEach(track.keyframes, id: \.self) { keyframe in
-                Button { } label: {
-                    Image(systemName: "diamond.fill")
-                        .font(.system(size: 7))
-                        .foregroundStyle(.white)
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 2)
-                .accessibilityLabel("Keyframe at \(keyframe, specifier: "%.3f") seconds")
+            Button { track.visible.toggle() } label: {
+                Image(systemName: track.visible ? "eye" : "eye.slash")
+                    .font(.system(size: 8))
             }
+            .buttonStyle(.plain)
+            Button { track.locked.toggle() } label: {
+                Image(systemName: track.locked ? "lock.fill" : "lock.open")
+                    .font(.system(size: 8))
+            }
+            .buttonStyle(.plain)
         }
-        .frame(width: max(12, CGFloat(track.duration) * zoom), height: 28)
+        .foregroundStyle(.white.opacity(track.visible ? 0.95 : 0.5))
+        .padding(.horizontal, 7)
+        .frame(width: max(72, CGFloat(track.duration) * zoom), height: 28)
         .background(clipColor.opacity(track.visible ? 0.82 : 0.24), in: RoundedRectangle(cornerRadius: 5))
         .overlay(RoundedRectangle(cornerRadius: 5).stroke(selectedTrackID == track.id ? VexelPalette.accent : .clear, lineWidth: 1.5))
         .overlay(alignment: .leading) {
