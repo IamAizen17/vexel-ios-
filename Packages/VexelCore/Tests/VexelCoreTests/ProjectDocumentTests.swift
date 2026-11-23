@@ -53,36 +53,12 @@ final class ProjectDocumentTests: XCTestCase {
         project.fields["formatVersion"] = .number(99)
         XCTAssertEqual(project.validate().first?.path, "formatVersion")
     }
-    func testLegacyAndroidV12DocumentsCanBeReadWithoutLosingUnknownFields() throws {
+    func testRejectsLegacyFormatOutsideCompatibilityAdapter() throws {
         let source = """
-        {
-          "format": "knsproj",
-          "formatVersion": 12,
-          "meta": {"title": "Imported", "customMeta": "keep"},
-          "composition": {"width": 1080, "height": 1920, "fps": 30, "duration": 8},
-          "layers": [{"id": "layer-1", "type": "shape", "shape": {"kind": "rectangle"}, "futureLayerField": 42}],
-          "futureRootField": {"enabled": true}
-        }
+        {"format":"knsproj","formatVersion":12,"composition":{"width":1080,"height":1920,"fps":30,"duration":5},"layers":[]}
         """.data(using: .utf8)!
         let project = try ProjectDocument(data: source)
-        XCTAssertTrue(project.validate().filter { $0.severity == .error }.isEmpty)
-        let decoded = try ProjectDocument(data: project.encoded())
-        XCTAssertEqual(decoded.fields["format"], .string("knsproj"))
-        XCTAssertEqual(decoded.fields["formatVersion"], .number(12))
-        XCTAssertEqual(decoded.fields["futureRootField"], project.fields["futureRootField"])
-        XCTAssertEqual(decoded.layerCount, 1)
-    }
-
-    func testRejectsUnsupportedLegacyAndroidVersions() {
-        var project = ProjectDocument(fields: [
-            "format": .string("knsproj"),
-            "formatVersion": .number(13),
-            "composition": .object(["width": .number(1080), "height": .number(1920), "fps": .number(30), "duration": .number(5)]),
-            "layers": .array([])
-        ])
-        XCTAssertEqual(project.validate().first?.path, "formatVersion")
-        project.fields["formatVersion"] = .number(12)
-        XCTAssertTrue(project.validate().isEmpty)
+        XCTAssertEqual(project.validate().first?.path, "format")
     }
 
 }
