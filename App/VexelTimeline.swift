@@ -69,6 +69,8 @@ struct VexelTimelinePanel: View {
     let fps: Int
     let onMarkerEdit: (VexelMarker) -> Void
     let onNotice: (String) -> Void
+    let onEditBegan: () -> Void
+    let onEditEnded: () -> Void
 
     @State private var zoom: CGFloat = 72
     @State private var pinchStartZoom: CGFloat?
@@ -155,7 +157,9 @@ struct VexelTimelinePanel: View {
                                         onSelect: { name in
                                             onNotice("Selected \(name). Timeline selection is local until the editor command model is connected.")
                                         },
-                                        onMarkerEdit: onMarkerEdit
+                                        onMarkerEdit: onMarkerEdit,
+                                         onEditBegan: onEditBegan,
+                                         onEditEnded: onEditEnded
                                     )
                                 }
                             }
@@ -279,6 +283,8 @@ private struct VexelTimelineTrackRow: View {
     @Binding var selectedTrackID: UUID?
     let onSelect: (String) -> Void
     let onMarkerEdit: (VexelMarker) -> Void
+    let onEditBegan: () -> Void
+    let onEditEnded: () -> Void
 
     @State private var moveOrigin: Double?
     @State private var trimOrigin: (start: Double, duration: Double)?
@@ -323,7 +329,9 @@ private struct VexelTimelineTrackRow: View {
                         snapPoints: snapPoints,
                         selectedTrackID: $selectedTrackID,
                         onSelect: onSelect,
-                        onMarkerEdit: onMarkerEdit
+                        onMarkerEdit: onMarkerEdit,
+                                         onEditBegan: onEditBegan,
+                                         onEditEnded: onEditEnded
                     )
                 }
             }
@@ -391,19 +399,28 @@ private struct VexelTimelineTrackRow: View {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
                 guard !track.locked else { return }
-                if moveOrigin == nil { moveOrigin = track.start }
+                if moveOrigin == nil {
+                    moveOrigin = track.start
+                    onEditBegan()
+                }
                 let proposed = (moveOrigin ?? track.start) + Double(value.translation.width / zoom)
                 let absolute = snapped(containerOffset + proposed) - containerOffset
                 track.start = absolute.clamped(to: 0...(max(0, containerDuration - track.duration)))
             }
-            .onEnded { _ in moveOrigin = nil }
+             .onEnded { _ in
+                if moveOrigin != nil { onEditEnded() }
+                moveOrigin = nil
+            }
     }
 
     private var trimStartGesture: some Gesture {
         DragGesture(minimumDistance: 1)
             .onChanged { value in
                 guard !track.locked else { return }
-                if trimOrigin == nil { trimOrigin = (track.start, track.duration) }
+                if trimOrigin == nil {
+                    trimOrigin = (track.start, track.duration)
+                    onEditBegan()
+                }
                 guard let origin = trimOrigin else { return }
                 let delta = Double(value.translation.width / zoom)
                 let proposedAbsolute = snapped(containerOffset + origin.start + delta)
@@ -411,7 +428,10 @@ private struct VexelTimelineTrackRow: View {
                 track.start = newStart
                 track.duration = origin.duration - (newStart - origin.start)
             }
-            .onEnded { _ in trimOrigin = nil }
+             .onEnded { _ in
+                if trimOrigin != nil { onEditEnded() }
+                trimOrigin = nil
+            }
     }
 
     private var trimEndGesture: some Gesture {
