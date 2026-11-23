@@ -53,7 +53,7 @@ final class ProjectDocumentTests: XCTestCase {
         project.fields["formatVersion"] = .number(99)
         XCTAssertEqual(project.validate().first?.path, "formatVersion")
     }
-    func testKNSVersion12DocumentsAreAcceptedAndRoundTripUnknownFields() throws {
+    func testLegacyAndroidV12DocumentsCanBeReadWithoutLosingUnknownFields() throws {
         let source = """
         {
           "format": "knsproj",
@@ -73,7 +73,7 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertEqual(decoded.layerCount, 1)
     }
 
-    func testRejectsKNSVersionsNewerThanReference() {
+    func testRejectsUnsupportedLegacyAndroidVersions() {
         var project = ProjectDocument(fields: [
             "format": .string("knsproj"),
             "formatVersion": .number(13),
