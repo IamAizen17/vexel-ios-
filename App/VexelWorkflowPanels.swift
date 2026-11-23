@@ -5,6 +5,7 @@ struct VexelMarker: Identifiable, Hashable, Codable {
     var name = "Marker"
     var time: Double
     var color = "Teal"
+    var sourceID: String?
 }
 
 struct VexelMarkerSheet: View {
