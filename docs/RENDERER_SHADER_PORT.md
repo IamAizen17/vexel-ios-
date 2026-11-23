@@ -39,6 +39,19 @@ The reference uses a pure project/time scene evaluator followed by an OpenGL ES 
 - Temporal: motion blur, echo, strobe, time-slice.
 - 3D: mesh/material, environment, shadow depth, shadow resolve, depth, DOF.
 
+## GLSL translation pipeline
+
+The `VexelShaderCompiler` package defines a staged interface:
+
+1. Validate shader identity, language, source size and stage.
+2. Compile GLSL ES 3.00/3.10 into SPIR-V with glslang.
+3. Validate the SPIR-V module header.
+4. Translate SPIR-V into MSL with SPIRV-Cross and retrieve the translated entry point and reflected resource bindings.
+5. Compile the generated MSL with `MTLDevice.makeLibrary(source:options:)`.
+6. Build render pipeline states using the translated vertex/fragment functions and the renderer's explicit resource ABI.
+
+The Swift contracts, source fingerprinting, validation and Metal library compiler are present. The native glslang and SPIRV-Cross bridge implementations and their iOS build artifacts remain outstanding. Until those are linked and exercised on device, the pipeline must report `backendUnavailable`; it must not fall back to claiming that source translation succeeded. OpenGL API state (framebuffers, blend state, texture formats, sampler behavior and synchronization) is handled separately by the renderer compatibility layer and is not solved by shader-language translation alone.
+
 ## Shader parity checklist
 
 Each effect receives a record containing:
