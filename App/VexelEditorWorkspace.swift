@@ -177,10 +177,30 @@ struct VexelEditorWorkspace: View {
         .onChange(of: selectedTrackID) { _ in selectedTab = "Transform" }
         .onChange(of: layerNames) { names in
             project.layerNames = names
+            synchronizeTimelineTracks(names)
             project.modified = Date()
             onProjectChange(project)
         }
+        .onChange(of: project) { updated in onProjectChange(updated) }
         .onChange(of: currentTime) { _ in project.modified = Date() }
+        .task(id: isPlaying) {
+            guard isPlaying else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 33_333_333)
+                guard !Task.isCancelled else { break }
+                let nextTime = currentTime + 1.0 / Double(max(project.fps, 1))
+                if nextTime >= project.duration {
+                    if loopPlayback {
+                        currentTime = 0
+                    } else {
+                        currentTime = project.duration
+                        isPlaying = false
+                    }
+                } else {
+                    currentTime = nextTime
+                }
+            }
+        }
     }
 
     private var editorHeader: some View {
@@ -193,8 +213,8 @@ struct VexelEditorWorkspace: View {
             }
             .contentShape(Rectangle()).onTapGesture { showRename = true }
             Spacer(minLength: 4)
-            VexelIconButton(symbol: "arrow.uturn.backward", disabled: undoCount == 0) { undoCount = max(0, undoCount - 1); redoCount += 1 }
-            VexelIconButton(symbol: "arrow.uturn.forward", disabled: redoCount == 0) { redoCount = max(0, redoCount - 1); undoCount += 1 }
+            VexelIconButton(symbol: "arrow.uturn.backward", disabled: undoStack.isEmpty) { undoEdit() }
+            VexelIconButton(symbol: "arrow.uturn.forward", disabled: redoStack.isEmpty) { redoEdit() }
             VexelIconButton(symbol: "slider.horizontal.3") { showCompositionSettings = true }
             VexelIconButton(symbol: "square.and.arrow.up", active: true) { showExport = true }
         }
