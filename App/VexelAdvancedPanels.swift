@@ -407,6 +407,7 @@ struct VexelEffectDetailSheet: View {
                                 ForEach(effect.params) { parameter in
                                     parameterControl(parameter)
                                 }
+                                .disabled(true)
                             }
                         }
                     }
@@ -429,7 +430,7 @@ struct VexelEffectDetailSheet: View {
 
                     VexelActionButton(title: "Add to effect stack", systemImage: "plus", prominent: true) { onApply(); dismiss() }
                         .disabled(targetLayerName == nil)
-                    Text("This adds the effect identifier to the selected layer. GPU rendering remains unavailable until the shader runtime is integrated.")
+                    Text("Effect identifiers can be added to the layer stack. Parameter editing and GPU execution are disabled until serialization and the shader runtime are integrated.")
                         .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                 }
                 .padding(16)
