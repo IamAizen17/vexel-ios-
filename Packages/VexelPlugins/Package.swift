@@ -9,5 +9,8 @@ let package = Package(
         .package(path: "../VexelCore"),
         .package(path: "../VexelArchive")
     ],
-    targets: [.target(name: "VexelPlugins", dependencies: ["VexelCore", "VexelArchive"])]
+    targets: [.target(name: "VexelPlugins", dependencies: [
+        .product(name: "VexelCore", package: "vexelcore"),
+        .product(name: "VexelArchive", package: "vexelarchive")
+    ])]
 )
