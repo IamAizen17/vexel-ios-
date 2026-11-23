@@ -34,9 +34,16 @@ extension VexelProjectItem {
             document = ProjectDocument.starter(title: title)
         }
         var fields = document.fields
-        fields["format"] = .string(ProjectDocument.format)
-        fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
-        fields["generator"] = .string("Vexel")
+        let documentFormat = fields["format"]?.stringValue ?? ProjectDocument.format
+        if documentFormat == "knsproj" {
+            fields["format"] = .string("knsproj")
+        } else {
+            fields["format"] = .string(ProjectDocument.format)
+            fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion))
+        }
+        if fields["generator"] == nil {
+            fields["generator"] = .string("Vexel")
+        }
         var meta = fields["meta"]?.objectValue ?? [:]
         meta["title"] = .string(title)
         meta["modifiedAt"] = .string(ISO8601DateFormatter().string(from: modified))
@@ -174,8 +181,9 @@ extension VexelProjectItem {
         object["locked"] = .bool(track.locked)
         if object["transform"] == nil {
             object["transform"] = .object([
-                "position": .array([.number(0), .number(0)]),
-                "scale": .array([.number(1), .number(1)]),
+                "anchor": .object(["x": .number(0), "y": .number(0)]),
+                "position": .object(["x": .number(0), "y": .number(0)]),
+                "scale": .object(["x": .number(1), "y": .number(1)]),
                 "rotation": .number(0),
                 "opacity": .number(1)
             ])
@@ -185,7 +193,7 @@ extension VexelProjectItem {
             object["layers"] = .array(track.children.map { layerValue($0, previous: previous) })
         case .text:
             if object["text"] == nil {
-                object["text"] = .object(["content": .string(track.name), "fontSize": .number(64), "color": .string("#FFFFFF")])
+                object["text"] = .object(["content": .string(track.name), "fontSize": .number(64), "color": .object(["r": .number(1), "g": .number(1), "b": .number(1), "a": .number(1)])])
             }
         case .audio:
             if object["audio"] == nil {
@@ -199,8 +207,8 @@ extension VexelProjectItem {
             if object["shape"] == nil {
                 object["shape"] = .object([
                     "kind": .string("rectangle"),
-                    "size": .array([.number(400), .number(400)]),
-                    "fill": .object(["color": .string("#55CDBE")])
+                    "size": .object(["x": .number(400), "y": .number(400)]),
+                    "fill": .object(["color": .object(["r": .number(0.333), "g": .number(0.804), "b": .number(0.745), "a": .number(1)])])
                 ])
             }
         }
