@@ -25,20 +25,20 @@ The core targets Kotlin/JVM/Java 17. It is not a Kotlin Multiplatform module. A 
 
 Observed in core/model/Project.kt:
 
-- Legacy Android format ID: `legacy Android project format`; current source format version: 12. This identifier is accepted only by the compatibility importer.
+- The Android source format uses a legacy discriminator and schema version 12. Vexel recognizes it only at the import boundary and immediately converts the document to native Vexel format.
 - Root document contains generator, metadata, composition, assets, timeline markers, editor viewport state and ordered top-level layers.
 - Composition includes dimensions, floating-point FPS, duration, background, motion-blur settings and 3D environment.
 - Assets are typed as image, video, audio, model or font and carry a relative archive path plus optional media metadata and SHA-256.
 - Layer types include text, shape, image, video, audio, group, 3D object, 3D model, camera, light and null.
 - Layer data includes timing, visibility/lock, sibling parent, blend mode, 2D/3D transforms, effects, masks, matte, transitions, type-specific content and nested children.
 
-Observed in core/format/legacy project JSON serializer.kt:
+Observed in the Android project JSON serializer:
 
 - The reader checks the format ID and integer version before typed decoding.
 - Projects newer than version 12 and versions below 1 are rejected; older versions are migrated one version at a time.
 - The serializer ignores unknown JSON keys and omits null/default fields on output. This means a future iOS importer should preserve unknown fields separately if round-trip forward compatibility is a product requirement.
 
-Migration history observed in Migrations inside core/format/legacy project JSON serializer.kt:
+Migration history observed in the Android project serializer's migration table:
 
 - v1 to v2 expands the old colorAdjust effect into hueShift, brightnessContrast and saturation entries while preserving the original parameter/keyframe payloads.
 - v2 to v3 and v3 to v4 add optional expression/text animator and null/camera fields.
@@ -47,7 +47,7 @@ Migration history observed in Migrations inside core/format/legacy project JSON 
 - v7 to v8 adds markers and audio/video EQ; v8 to v9 adds editorView, TimeSlice and cutout brush strokes.
 - v9 to v10 and v10 to v11 add effect entries; v11 to v12 renames the media roto recipe to cutout while preserving legacy read compatibility.
 
-Observed in core/format/legacy archive implementation.kt:
+Observed in the Android archive implementation:
 
 - ZIP container with required project.json, assets/** and optional thumbnail.jpg.
 - Limits: 64 MiB project JSON, 8 GiB aggregate uncompressed input and 10,000 entries.
@@ -116,7 +116,7 @@ Observed in app/render/Compositor.kt:
 
 ## Effects contract
 
-Observed in core/model/EffectRegistry.kt and generated tools/legacy Android project format/effects.json:
+Observed in core/model/EffectRegistry.kt and the generated Android effect registry:
 
 - 73 effect IDs, 13 categories, one canonical registry.
 - Registry entries define stable ID, localized names, category, target, backdrop requirements, typed parameters, defaults, valid ranges, slider ranges, units, choices and conditional visibility.
@@ -162,7 +162,7 @@ The existing SwiftUI port has all 73 effect IDs with matching English names and 
 ## Known source discrepancies / audit cautions
 
 - Repository prose mentions a 69-effect library in at least one place, but the generated registry at the pinned commit contains 73. Treat the generated registry and its tests as canonical.
-- The current iOS ProjectDocument is a generic JSON container with a Vexel-specific version 1 validation contract. It is not yet a typed VexelProject model or a complete legacy Android compatibility importer.
+- The current iOS ProjectDocument is a generic JSON container with a Vexel-specific version 1 validation contract. The import adapter converts the legacy document discriminator and version, but does not yet provide typed semantic mapping or a complete compatibility importer.
 - A new source field matrix now records root/composition/layer/content contracts, local-time rules, transform semantics, animation/easing, effect serialization, expression sandbox limits, validator issue families, archive limits and source tests to port.
 - The current Swift validator is materially less strict than the source semantic validator. Do not rely on it for untrusted project import.
 - No source build, Android runtime, iOS build, or device comparison was executed during this source audit.
