@@ -71,13 +71,12 @@ public struct ZIPProjectArchive: Sendable {
                     }
                     var data = Data()
                     _ = try archive.extract(entry, consumer: { chunk in data.append(chunk) })
-                    let decoded = try ProjectDocument(data: data)
-                    project = try VexelCompatibilityImporter.importDocument(decoded)
+                    project = try VexelProjectImporter.importDocument(from: data)
                     continue
                 }
 
                 let isAssetFile = path.hasPrefix("assets/") && entry.type == .file
-                let isThumbnail = path == "thumbnail.png" && entry.type == .file
+                let isThumbnail = (path == "thumbnail.png" || path == "thumbnail.jpg") && entry.type == .file
                 guard isAssetFile || isThumbnail else {
                     throw ZIPProjectArchiveError.unsupportedEntryType(path)
                 }
