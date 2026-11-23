@@ -6,6 +6,18 @@ options:
 packages:
   VexelCore:
     path: Packages/VexelCore
+  VexelArchive:
+    path: Packages/VexelArchive
+  VexelRenderer:
+    path: Packages/VexelRenderer
+  VexelMedia:
+    path: Packages/VexelMedia
+  VexelAudio:
+    path: Packages/VexelAudio
+  VexelExport:
+    path: Packages/VexelExport
+  VexelPlugins:
+    path: Packages/VexelPlugins
 targets:
   Vexel:
     type: application
@@ -17,6 +29,18 @@ targets:
     dependencies:
       - package: VexelCore
         product: VexelCore
+      - package: VexelArchive
+        product: VexelArchive
+      - package: VexelRenderer
+        product: VexelRenderer
+      - package: VexelMedia
+        product: VexelMedia
+      - package: VexelAudio
+        product: VexelAudio
+      - package: VexelExport
+        product: VexelExport
+      - package: VexelPlugins
+        product: VexelPlugins
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel
