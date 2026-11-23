@@ -23,7 +23,7 @@ public struct UnavailableMSLTranslator: SPIRVToMSLCompiler {
         _ spirv: Data,
         stage: ShaderStage,
         entryPoint: String
-    ) throws -> (source: String, bindings: [ShaderResourceBinding]) {
+    ) throws -> (source: String, entryPoint: String, bindings: [ShaderResourceBinding]) {
         throw ShaderTranslationError.backendUnavailable(reason)
     }
 }
