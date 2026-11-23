@@ -56,7 +56,6 @@ struct VexelEditorWorkspace: View {
     @State private var showCameraControls = false
     @State private var showMediaJob = false
     @State private var editingMarker: VexelMarker?
-    @State private var markers: [VexelMarker] = []
     @State private var selectedTrackID: UUID?
     @State private var loopPlayback = false
 
@@ -127,10 +126,10 @@ struct VexelEditorWorkspace: View {
         .sheet(isPresented: $showMediaJob) { VexelMediaJobSheet(title: "Media analysis").presentationDetents([.medium, .large]) }
         .sheet(item: $editingMarker) { marker in
             VexelMarkerSheet(marker: marker) { updated in
-                if let index = markers.firstIndex(where: { $0.id == updated.id }) {
-                    markers[index] = updated
+                if let index = project.markers.firstIndex(where: { $0.id == updated.id }) {
+                    project.markers[index] = updated
                 } else {
-                    markers.append(updated)
+                    project.markers.append(updated)
                 }
             }
             .presentationDetents([.medium, .large])
@@ -246,7 +245,7 @@ struct VexelEditorWorkspace: View {
             VexelIconButton(symbol: "goforward.5") { currentTime = min(project.duration, currentTime + 5) }
             VexelIconButton(symbol: "repeat", active: loopPlayback) { loopPlayback.toggle() }
             VexelIconButton(symbol: "bookmark") {
-                if let marker = markers.first(where: { abs($0.time - currentTime) <= 0.5 / Double(max(project.fps, 1)) }) {
+                if let marker = project.markers.first(where: { abs($0.time - currentTime) <= 0.5 / Double(max(project.fps, 1)) }) {
                     editingMarker = marker
                 } else {
                     editingMarker = VexelMarker(time: currentTime)
@@ -264,7 +263,7 @@ struct VexelEditorWorkspace: View {
         VexelTimelinePanel(
             tracks: $project.timelineTracks,
             currentTime: $currentTime,
-            markers: $markers,
+            markers: $project.markers,
             selectedTrackID: $selectedTrackID,
             duration: project.duration,
             fps: project.fps,
