@@ -86,20 +86,16 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             guard value.isFinite, value.rounded(.towardZero) == value, value >= 1, value <= 10_000 else { return nil }
             return Int(value)
         }
-        guard let documentFormat, documentFormat == Self.format || documentFormat == "knsproj" else {
-            issues.append(ProjectIssue(severity: .error, path: "format", message: "Expected a Vexel or KNS project."))
+        guard let documentFormat, documentFormat == Self.format else {
+            issues.append(ProjectIssue(severity: .error, path: "format", message: "Expected a native Vexel project."))
             return issues
         }
         guard let version else {
             issues.append(ProjectIssue(severity: .error, path: "formatVersion", message: "A positive integer formatVersion is required."))
             return issues
         }
-        if documentFormat == Self.format && version != Self.currentVersion {
+        if version != Self.currentVersion {
             issues.append(ProjectIssue(severity: .error, path: "formatVersion", message: "Unsupported Vexel project version. Expected \(Self.currentVersion)."))
-            return issues
-        }
-        if documentFormat == "knsproj" && !(1...12).contains(version) {
-            issues.append(ProjectIssue(severity: .error, path: "formatVersion", message: "Unsupported KNS project version. Supported versions are 1 through 12."))
             return issues
         }
         guard let composition = fields["composition"]?.objectValue else {
