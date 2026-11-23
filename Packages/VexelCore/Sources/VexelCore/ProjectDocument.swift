@@ -81,22 +81,25 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
     public func validate() -> [ProjectIssue] {
         var issues: [ProjectIssue] = []
 
-        guard fields["format"]?.stringValue == Self.format else {
-            issues.append(ProjectIssue(
-                severity: .error,
-                path: "format",
-                message: "Expected format '\(Self.format)'."
-            ))
+        let documentFormat = fields["format"]?.stringValue
+        let version = fields["formatVersion"]?.numberValue.flatMap { value -> Int? in
+            guard value.isFinite, value.rounded(.towardZero) == value, value >= 1, value <= 10_000 else { return nil }
+            return Int(value)
+        }
+        guard let documentFormat, documentFormat == Self.format || documentFormat == "knsproj" else {
+            issues.append(ProjectIssue(severity: .error, path: "format", message: "Expected a vexelproj or knsproj document."))
             return issues
         }
-
-        let version = fields["formatVersion"]?.numberValue.map(Int.init)
-        guard version == Self.currentVersion else {
-            issues.append(ProjectIssue(
-                severity: .error,
-                path: "formatVersion",
-                message: "Unsupported Vexel project version. Expected \(Self.currentVersion)."
-            ))
+        guard let version else {
+            issues.append(ProjectIssue(severity: .error, path: "formatVersion", message: "A positive integer formatVersion is required."))
+            return issues
+        }
+        if documentFormat == Self.format && version != Self.currentVersion {
+            issues.append(ProjectIssue(severity: .error, path: "formatVersion", message: "Unsupported Vexel project version. Expected \(Self.currentVersion)."))
+            return issues
+        }
+        if documentFormat == "knsproj" && version > 12 {
+            issues.append(ProjectIssue(severity: .error, path: "formatVersion", message: "This KNS project uses version \(version); this port currently supports up to version 12."))
             return issues
         }
 
