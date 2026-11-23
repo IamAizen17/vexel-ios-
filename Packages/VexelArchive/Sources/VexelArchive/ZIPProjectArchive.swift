@@ -55,14 +55,23 @@ public struct ZIPProjectArchive: Sendable {
                 guard seen.insert(path).inserted else { throw ZIPProjectArchiveError.duplicateEntry(path) }
                 guard entry.type != .symlink else { throw ZIPProjectArchiveError.unsupportedEntryType(path) }
                 if entry.type == .directory { continue }
-                total = total.addingReportingOverflow(entry.uncompressedSize).partialValue
-                guard total <= Self.maximumUncompressedBytes else { throw ZIPProjectArchiveError.archiveTooLarge }
+                let (nextTotal, overflow) = total.addingReportingOverflow(entry.uncompressedSize)
+                guard !overflow, nextTotal <= Self.maximumUncompressedBytes else {
+                    throw ZIPProjectArchiveError.archiveTooLarge
+                }
+                total = nextTotal
                 if path == Self.projectEntry {
                     guard entry.uncompressedSize <= Self.maximumProjectBytes else { throw ZIPProjectArchiveError.projectDocumentTooLarge }
                     var data = Data()
                     _ = try archive.extract(entry, consumer: { chunk in data.append(chunk) })
                     projectData = data
                 } else {
+                    let isAssetsDirectory = entry.type == .directory && path == "assets"
+                    let isAssetFile = path.hasPrefix("assets/") && entry.type == .file
+                    let isThumbnail = path == "thumbnail.png" && entry.type == .file
+                    guard isAssetsDirectory || isAssetFile || isThumbnail else {
+                        throw ZIPProjectArchiveError.unsupportedEntryType(path)
+                    }
                     let target = temporary.appendingPathComponent(path)
                     let root = temporary.standardizedFileURL.path + "/"
                     let standardized = target.standardizedFileURL.path
@@ -77,6 +86,11 @@ public struct ZIPProjectArchive: Sendable {
             guard issues.isEmpty else {
                 throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")))
             }
+            let archivedAssets = Set(seen)
+            for asset in project.fields["assets"]?.arrayValue ?? [] {
+                guard let path = asset.objectValue?["path"]?.stringValue else { continue }
+                guard archivedAssets.contains(path) else { throw ZIPProjectArchiveError.missingAsset(path) }
+            }
             return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination == nil ? temporary : destination)
         } catch {
             if shouldRemove { try? FileManager.default.removeItem(at: temporary) }
@@ -85,7 +99,8 @@ public struct ZIPProjectArchive: Sendable {
     }
 
     public func write(_ project: ProjectDocument, assetsDirectory: URL? = nil, to archiveURL: URL) throws {
-        guard project.fields["format"]?.stringValue == ProjectDocument.format else {
+        let format = project.fields["format"]?.stringValue
+        guard format == ProjectDocument.format || format == "knsproj" else {
             throw ZIPProjectArchiveError.legacyFormatExportNotSupported
         }
         let issues = project.validate().filter { $0.severity == .error }
@@ -114,22 +129,29 @@ public struct ZIPProjectArchive: Sendable {
             guard written.insert(path).inserted else { continue }
             guard let assetsDirectory else { throw ZIPProjectArchiveError.missingAsset(path) }
             let source = assetsDirectory.appendingPathComponent(String(path.dropFirst("assets/".count)))
-            let root = assetsDirectory.standardizedFileURL.path + "/"
-            guard source.standardizedFileURL.path.hasPrefix(root),
-                  manager.fileExists(atPath: source.path) else { throw ZIPProjectArchiveError.missingAsset(path) }
-            try archive.addEntry(with: path, fileURL: source, compressionMethod: .none)
+            let rootURL = assetsDirectory.resolvingSymlinksInPath().standardizedFileURL
+            let sourceURL = source.resolvingSymlinksInPath().standardizedFileURL
+            let root = rootURL.path.hasSuffix("/") ? rootURL.path : rootURL.path + "/"
+            let values = try? sourceURL.resourceValues(forKeys: [.isRegularFileKey])
+            guard sourceURL.path.hasPrefix(root), values?.isRegularFile == true else {
+                throw ZIPProjectArchiveError.missingAsset(path)
+            }
+            try archive.addEntry(with: path, fileURL: sourceURL, compressionMethod: .none)
         }
         try manager.createDirectory(at: archiveURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if manager.fileExists(atPath: archiveURL.path) { try manager.removeItem(at: archiveURL) }
-        try manager.moveItem(at: partialURL, to: archiveURL)
+        if manager.fileExists(atPath: archiveURL.path) {
+            _ = try manager.replaceItemAt(archiveURL, withItemAt: partialURL, backupItemName: nil, options: [])
+        } else {
+            try manager.moveItem(at: partialURL, to: archiveURL)
+        }
     }
 
     private static func normalizedPath(_ raw: String, isDirectory: Bool = false) throws -> String {
         var path = raw.replacingOccurrences(of: "\\", with: "/")
         if isDirectory { while path.hasSuffix("/") { path.removeLast() } }
         let components = path.split(separator: "/", omittingEmptySubsequences: false)
-        guard !path.isEmpty, !path.hasPrefix("/"), !path.contains(":"),
-              !components.isEmpty,
+        guard !path.isEmpty, path.utf8.count <= 1024, !path.hasPrefix("/"), !path.contains(":"),
+              components.count <= 32, !components.isEmpty,
               !components.contains(where: { $0.isEmpty || $0 == "." || $0 == ".." }) else {
             throw ZIPProjectArchiveError.unsafePath(raw)
         }
