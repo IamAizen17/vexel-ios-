@@ -545,19 +545,39 @@ struct VexelSettingsPage: View {
                         Slider(value: $previewQuality, in: 0...2, step: 1).tint(VexelPalette.accent)
                     }
                     .font(.system(size: 12)).foregroundStyle(VexelPalette.text).padding(.vertical, 5)
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Label("Preview scale", systemImage: "viewfinder")
-                            Spacer()
-                            Text("\(Int(previewScale * 100))%").foregroundStyle(VexelPalette.secondary)
-                        }
-                        Slider(value: $previewScale, in: 0.25...1, step: 0.25).tint(VexelPalette.accent)
+                    settingRow("Preview scale", detail: "\(Int(previewScale * 100))% of display size", symbol: "viewfinder") {
+                        Picker("Preview scale", selection: $previewScale) {
+                            Text("100%").tag(1.0)
+                            Text("50%").tag(0.5)
+                            Text("25%").tag(0.25)
+                        }.pickerStyle(.menu).tint(VexelPalette.accent)
                     }
-                    .font(.system(size: 12)).foregroundStyle(VexelPalette.text).padding(.vertical, 5)
                 }
                 settingsGroup("STORAGE & SAFETY") {
                     settingToggle("Mirror projects to Files", detail: "Keep project copies in the Files app", symbol: "folder", value: $mirrorProjects)
                     settingToggle("Recovery snapshots", detail: "Keep periodic recovery copies while editing", symbol: "clock.arrow.circlepath", value: $safeSnapshots)
+                }
+                settingsGroup("SAVED CURVES") {
+                    if savedCurves.isEmpty {
+                        Text("No saved curves yet. Save a Bézier curve from the curve editor.")
+                            .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+                    } else {
+                        ForEach(savedCurves) { curve in
+                            HStack(spacing: 8) {
+                                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                    .foregroundStyle(VexelPalette.accent)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(curve.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
+                                    Text("Cubic Bézier").font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                                }
+                                Spacer()
+                                Button(role: .destructive) { deleteSavedCurve(curve.id) } label: {
+                                    Image(systemName: "trash").font(.system(size: 11))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
                 }
                 settingsGroup("INFORMATION") {
                     settingRow("Project format", detail: ".vexelproj · native project", symbol: "doc.zipper") {
@@ -586,6 +606,17 @@ struct VexelSettingsPage: View {
             }
             .padding(18)
         }
+    }
+
+    private var savedCurves: [VexelSavedEasing] {
+        guard let data = savedEasingsData.data(using: .utf8) else { return [] }
+        return (try? JSONDecoder().decode([VexelSavedEasing].self, from: data)) ?? []
+    }
+
+    private func deleteSavedCurve(_ id: UUID) {
+        let remaining = savedCurves.filter { $0.id != id }
+        guard let data = try? JSONEncoder().encode(remaining) else { return }
+        savedEasingsData = String(decoding: data, as: UTF8.self)
     }
 
     private func settingsGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
