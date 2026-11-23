@@ -37,6 +37,17 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertEqual(result.project.title, "Legacy import")
     }
 
+    func testLegacyAndroidProjectCannotBeExported() throws {
+        var fields = ProjectDocument.starter(title: "Legacy").fields
+        fields["format"] = .string("knsproj")
+        fields["formatVersion"] = .number(12)
+        let legacy = ProjectDocument(fields: fields)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".vexelproj")
+        XCTAssertThrowsError(try ZIPProjectArchive().write(legacy, to: url)) { error in
+            XCTAssertEqual(error as? ZIPProjectArchiveError, .legacyFormatExportNotSupported)
+        }
+    }
+
     func testMissingAssetPayloadFailsImport() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
