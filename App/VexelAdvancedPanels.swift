@@ -5,6 +5,8 @@ struct VexelPropertiesSheet: View {
     let layerName: String
     let layerKind: VexelTimelineTrack.Kind?
     let onAddEffect: () -> Void
+    let effectIDs: [String]
+    let onRemoveEffect: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var tab = "Transform"
 
@@ -30,7 +32,9 @@ struct VexelPropertiesSheet: View {
                     layerName: layerName,
                     layerKind: layerKind,
                     onCurve: {},
-                    onAddEffect: onAddEffect
+                    onAddEffect: onAddEffect,
+                    effectIDs: effectIDs,
+                    onRemoveEffect: onRemoveEffect
                 )
                 Spacer(minLength: 0)
             }
