@@ -25,7 +25,7 @@ Source: `core/model/Project.kt`.
 | `editorView` | Viewport mode and free editor camera | Persisted editor-only state, excluded from rendered output |
 | `layers` | Top-level painter-order layers | Recursive typed layer tree |
 
-The Android source archive uses `project.json`. Vexel's native archive uses `vexel.json`; the old entry name is accepted only by `VexelCompatibilityImporter`. Unknown JSON must be retained by the importer, even when the current Vexel renderer cannot interpret it. The generic `ProjectDocument` remains a preservation scaffold, not the complete source model.
+The Android source archive uses `project.json`. Vexel's native archive uses `vexel.json`; the old entry name is accepted only by `VexelProjectImporter`. Unknown JSON must be retained by the importer, even when the current Vexel renderer cannot interpret it. The generic `ProjectDocument` remains a preservation scaffold, not the complete source model.
 
 ## 2. Composition contract
 
