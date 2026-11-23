@@ -15,7 +15,7 @@ Source: `core/model/Project.kt`.
 
 | Source field | Type / meaning | iOS model |
 |---|---|---|
-| `format` | Legacy source literal `knsproj` | Recognize only inside the legacy import adapter; convert to the canonical Vexel model |
+| `format` | Legacy source literal `legacy Android project format` | Recognize only inside the legacy import adapter; convert to the canonical Vexel model |
 | `formatVersion` | Current writer version 12 | Source version retained for migrations/reporting |
 | `generator` | Optional producer string | Preserve |
 | `meta` | Title, description, author, createdAt, modifiedAt | Typed metadata plus unknown-field preservation |
@@ -140,7 +140,7 @@ The Swift implementation should make sampling pure and deterministic, then test 
 
 ## 7. Effects contract
 
-Sources: `model/Effects.kt`, `model/EffectRegistry.kt`, generated `tools/knsproj/effects.json`.
+Sources: `model/Effects.kt`, `model/EffectRegistry.kt`, generated `tools/legacy Android project format/effects.json`.
 
 - The generated registry at the pinned revision is canonical: 73 effect IDs across 13 categories.
 - Each definition carries ID, category, localized names, target, backdrop-read requirement and typed parameter definitions.
@@ -230,7 +230,7 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 
 ## 12. Archive contract
 
-Source: `format/KnsprojArchive.kt`.
+Source: `format/legacy archive implementation.kt`.
 
 ZIP entries:
 - Required `project.json`.
