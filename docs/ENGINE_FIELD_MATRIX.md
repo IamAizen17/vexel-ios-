@@ -15,8 +15,8 @@ Source: `core/model/Project.kt`.
 
 | Source field | Type / meaning | iOS model |
 |---|---|---|
-| `format` | Legacy source literal `legacy Android project format` | Recognize only inside the legacy import adapter; convert to the canonical Vexel model |
-| `formatVersion` | Current writer version 12 | Source version retained for migrations/reporting |
+| `format` | Legacy Android discriminator, recognized only by the import adapter | Recognize only inside the legacy import adapter; convert to the canonical Vexel model |
+| `formatVersion` | Legacy source schema version 12; Vexel writes its own versioned schema | Source version retained for migrations/reporting |
 | `generator` | Optional producer string | Preserve |
 | `meta` | Title, description, author, createdAt, modifiedAt | Typed metadata plus unknown-field preservation |
 | `composition` | Canvas, frame rate, duration, background, motion blur, environment | Typed composition |
@@ -140,7 +140,7 @@ The Swift implementation should make sampling pure and deterministic, then test 
 
 ## 7. Effects contract
 
-Sources: `model/Effects.kt`, `model/EffectRegistry.kt`, generated `tools/legacy Android project format/effects.json`.
+Sources: `model/Effects.kt`, `model/EffectRegistry.kt`, the generated Android effect registry.
 
 - The generated registry at the pinned revision is canonical: 73 effect IDs across 13 categories.
 - Each definition carries ID, category, localized names, target, backdrop-read requirement and typed parameter definitions.
@@ -230,7 +230,7 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 
 ## 12. Archive contract
 
-Source: `format/legacy archive implementation.kt`.
+Source: the Android archive implementation.
 
 ZIP entries:
 - Required `project.json`.
@@ -266,7 +266,7 @@ These are behavioral specifications to translate into Swift tests, not evidence 
 ## 14. iOS port implementation order
 
 1. **Import model:** complete typed v12 model, exact serializers, unknown-field preservation, all migrations and structured compatibility report.
-2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and .legacy Android import adapter.
+2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and import-only legacy Android adapter.
 3. **Validation:** port source semantic validation and stable issue codes.
 4. **Editing store:** immutable project commands, layer-tree operations, timeline operations, coalesced history and selection.
 5. **Animation:** typed animatables, easing, expressions and keyframe operations.
