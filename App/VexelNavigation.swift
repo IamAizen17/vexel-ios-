@@ -282,7 +282,7 @@ struct VexelHomeView: View {
                 Text("Project archive ready").font(.system(size: 18, weight: .bold))
                 if let sharingProjectURL {
                     ShareLink(item: sharingProjectURL) {
-                        Label("Share .knsproj archive", systemImage: "square.and.arrow.up")
+                        Label("Share Vexel project", systemImage: "square.and.arrow.up")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Color.black)
                             .padding(.horizontal, 18).frame(height: 46)
@@ -380,7 +380,7 @@ struct VexelHomeView: View {
                                 do {
                                     let document = try project.makeProjectDocument()
                                     let destination = FileManager.default.temporaryDirectory
-                                        .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).knsproj")
+                                        .appendingPathComponent("\(project.title.replacingOccurrences(of: "/", with: "-")).vexelproj")
                                     let assets = project.assetsDirectory.map(URL.init(fileURLWithPath:))
                                     try ZIPProjectArchive().write(document, assetsDirectory: assets, to: destination)
                                     sharingProjectURL = destination
