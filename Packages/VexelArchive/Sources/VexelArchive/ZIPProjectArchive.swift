@@ -91,6 +91,11 @@ public struct ZIPProjectArchive: Sendable {
                 guard let path = asset.objectValue?["path"]?.stringValue else { continue }
                 guard archivedAssets.contains(path) else { throw ZIPProjectArchiveError.missingAsset(path) }
             }
+            let archivedAssets = Set(seen)
+            for asset in project.fields["assets"]?.arrayValue ?? [] {
+                guard let path = asset.objectValue?["path"]?.stringValue else { continue }
+                guard archivedAssets.contains(path) else { throw ZIPProjectArchiveError.missingAsset(path) }
+            }
             return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination == nil ? temporary : destination)
         } catch {
             if shouldRemove { try? FileManager.default.removeItem(at: temporary) }
