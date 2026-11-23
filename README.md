@@ -6,7 +6,9 @@ rendering, and AVFoundation media pipeline.
 **Current status:** core-port milestone. The repository contains a universal SwiftUI app, a testable Swift core,
 secure .knsproj import with version 1–12 migration handling, native .vexelproj archive save/load, asset preservation,
 and an actor-based timeline engine with grouping, duplication, ordering, visibility, locking, timing and undo/redo.
-GitHub Actions builds an unsigned device IPA. Keyframes, rendering, effects, audio and export parity remain in progress.
+The SwiftUI workspace now displays imported layer rows and connects add-text, visibility, duplicate, delete and undo
+controls to that engine. GitHub Actions builds an unsigned device IPA. Keyframes, rendering, effects, audio and export
+parity remain in progress.
 
 ## Repository structure
 

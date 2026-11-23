@@ -17,8 +17,8 @@ Exit: reference projects import, preserve unknown data, save/reopen and pass str
 
 ## Phase 2 - Editing engine
 Implement timeline timebase, layer tree, groups, ordering, selection, visibility, lock, parenting, 2D/3D transforms, keyframes, interpolation, easing, markers, command-based undo/redo, masks, mattes, blend contracts and restricted expressions.
-Progress: frame snapping/timecode, actor-serialized timeline state, add/move/reorder/delete/visibility/lock/duration, duplicate with nested ID/reference remapping, group/ungroup with absolute timing preservation, and snapshot undo/redo are implemented. Six timeline tests cover core editing semantics.
-Remaining: selection model, parenting/transform preservation, trim semantics, keyframe operations/interpolation/easing, marker operations, masks/mattes and restricted expression evaluation.
+Progress: frame snapping/timecode, actor-serialized timeline state, add/move/reorder/delete/visibility/lock/duration, duplicate with nested ID/reference remapping, group/ungroup with absolute timing preservation, and snapshot undo/redo are implemented. The SwiftUI timeline renders imported layer rows and connects add-text, visibility, duplicate, delete and undo controls. Six timeline tests cover core editing semantics.
+Remaining: full selection model, parenting/transform preservation, trim semantics, keyframe operations/interpolation/easing, marker operations, masks/mattes and restricted expression evaluation.
 Exit: editing commands pass deterministic unit and serialization tests.
 
 ## Phase 3 - Preview renderer
