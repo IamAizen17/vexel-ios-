@@ -3,7 +3,7 @@
 A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
 rendering, and AVFoundation media pipeline.
 
-**Current status:** UI port milestone. The repository now contains the onboarding flow, empty project library, presets, settings, plugin manager, the 12 editor tools, all 73 reference effect entries, properties, graph/curve, audio, captions, text-to-speech, camera, cutout, stabilization, markers, and export screens in native SwiftUI. The editing engine, renderer, media pipeline, project archive, and export implementation are still pending.
+**Current status:** UI port milestone. The repository contains the onboarding flow, project library, presets, settings, plugin manager, editor tools, source-driven 73-effect catalogue with parameter controls, nested timeline UI, properties, graph/curve, audio, captions, text-to-speech, camera, cutout, stabilization, markers and export screens in native SwiftUI. Timeline/effect presentation state is not yet connected to a canonical editing engine. The KnsProject v12 importer, project archive, scene evaluator, Metal renderer, media/audio engine and export implementation remain pending.
 
 ## Repository structure
 
