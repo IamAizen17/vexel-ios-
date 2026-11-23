@@ -100,9 +100,17 @@ struct VexelToolSheet: View {
                                 Text(index == 2 ? "Audio · Stereo" : "2D Layer · Visible").font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                             }
                             Spacer()
-                            Image(systemName: "eye").foregroundStyle(VexelPalette.secondary)
-                            Image(systemName: "lock.open").foregroundStyle(VexelPalette.secondary)
+                            Button { onAction("toggle-visibility:\(index)") } label: {
+                                Image(systemName: "eye").foregroundStyle(VexelPalette.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            Button { onAction("toggle-lock:\(index)") } label: {
+                                Image(systemName: "lock.open").foregroundStyle(VexelPalette.secondary)
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture { onAction("select-layer:\(index)") }
                         .padding(10).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                     }
                 }
@@ -246,8 +254,8 @@ struct VexelToolSheet: View {
                                 .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
                         }
                         .buttonStyle(.plain)
-                        .disabled(!shortcutAvailable(item.2))
-                        .opacity(shortcutAvailable(item.2) ? 1 : 0.4)
+                        .disabled(true)
+                        .opacity(0.4)
                     }
                 }
 
