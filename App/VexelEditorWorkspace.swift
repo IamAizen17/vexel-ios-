@@ -70,6 +70,17 @@ struct VexelEditorWorkspace: View {
         return find(project.timelineTracks)
     }
 
+    private var availablePropertyTabs: [String] {
+        var tabs = ["Transform"]
+        if selectedTimelineTrack?.kind == .text { tabs.append("Text") }
+        if selectedTimelineTrack?.kind != .audio { tabs.append("Effects") }
+        if selectedTimelineTrack?.kind == .visual || selectedTimelineTrack?.kind == .text || selectedTimelineTrack?.kind == .group {
+            tabs.append("Masks")
+        }
+        if selectedTimelineTrack?.kind != .audio { tabs.append("Transitions") }
+        return tabs
+    }
+
     private var isWide: Bool { horizontalSizeClass == .regular }
 
     var body: some View {
@@ -363,10 +374,16 @@ struct VexelEditorWorkspace: View {
                 VexelIconButton(symbol: "point.topleft.down.to.point.bottomright.curvepath") { showGraph = true }
             }
             Picker("Inspector", selection: $selectedTab) {
-                ForEach(["Transform", "Style", "Content", "Effects", "Masks", "Layer"], id: \.self) { Text($0).tag($0) }
+                ForEach(availablePropertyTabs, id: \.self) { Text($0).tag($0) }
             }
             .pickerStyle(.menu).tint(VexelPalette.accent)
-            VexelPropertiesPanel(tab: selectedTab, layerName: layerNames.indices.contains(selectedLayer) ? layerNames[selectedLayer] : "Composition", onCurve: { showCurve = true })
+            VexelPropertiesPanel(
+                tab: selectedTab,
+                layerName: selectedTimelineTrack?.name ?? "Composition",
+                layerKind: selectedTimelineTrack?.kind,
+                onCurve: { showCurve = true },
+                onAddEffect: { showingNotice = "Open the Effects tool to browse source-defined effect parameters. Effect insertion will be connected with the editing engine." }
+            )
             Spacer(minLength: 0)
         }
         .padding(14)
