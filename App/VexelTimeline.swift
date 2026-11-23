@@ -64,8 +64,8 @@ struct VexelTimelinePanel: View {
 
     private let rulerHeight: CGFloat = 34
     private let rowHeight: CGFloat = 44
-    private let minimumZoom: CGFloat = 24
-    private let maximumZoom: CGFloat = 240
+    private let minimumZoom: CGFloat = 8
+    private let maximumZoom: CGFloat = 2000
 
     private var contentWidth: CGFloat { max(320, CGFloat(duration) * zoom + 32) }
 
@@ -134,6 +134,8 @@ struct VexelTimelinePanel: View {
                                         width: width,
                                         zoom: zoom,
                                         compositionDuration: duration,
+                                        containerOffset: 0,
+                                        containerDuration: duration,
                                         fps: fps,
                                         snapPoints: snapPoints,
                                         selectedTrackID: $selectedTrackID,
@@ -257,6 +259,8 @@ private struct VexelTimelineTrackRow: View {
     let width: CGFloat
     let zoom: CGFloat
     let compositionDuration: Double
+    let containerOffset: Double
+    let containerDuration: Double
     let fps: Int
     let snapPoints: [Double]
     @Binding var selectedTrackID: UUID?
@@ -284,7 +288,7 @@ private struct VexelTimelineTrackRow: View {
                     .frame(height: 39)
 
                 HStack(spacing: 0) {
-                    Color.clear.frame(width: CGFloat(depth) * 18 + CGFloat(track.start) * zoom)
+                    Color.clear.frame(width: CGFloat(depth) * 18 + CGFloat(containerOffset + track.start) * zoom)
                     clip
                     Spacer(minLength: 0)
                 }
@@ -374,7 +378,8 @@ private struct VexelTimelineTrackRow: View {
                 guard !track.locked else { return }
                 if moveOrigin == nil { moveOrigin = track.start }
                 let proposed = (moveOrigin ?? track.start) + Double(value.translation.width / zoom)
-                track.start = snapped(proposed).clamped(to: 0...(max(0, compositionDuration - track.duration)))
+                let absolute = snapped(containerOffset + proposed) - containerOffset
+                track.start = absolute.clamped(to: 0...(max(0, containerDuration - track.duration)))
             }
             .onEnded { _ in moveOrigin = nil }
     }
@@ -386,7 +391,8 @@ private struct VexelTimelineTrackRow: View {
                 if trimOrigin == nil { trimOrigin = (track.start, track.duration) }
                 guard let origin = trimOrigin else { return }
                 let delta = Double(value.translation.width / zoom)
-                let newStart = snapped(origin.start + delta).clamped(to: 0...(origin.start + origin.duration - 1 / Double(max(fps, 1))))
+                let proposedAbsolute = snapped(containerOffset + origin.start + delta)
+                let newStart = (proposedAbsolute - containerOffset).clamped(to: 0...(origin.start + origin.duration - 1 / Double(max(fps, 1))))
                 track.start = newStart
                 track.duration = origin.duration - (newStart - origin.start)
             }
@@ -400,7 +406,7 @@ private struct VexelTimelineTrackRow: View {
                 if trimOrigin == nil { trimOrigin = (track.start, track.duration) }
                 guard let origin = trimOrigin else { return }
                 let proposed = origin.duration + Double(value.translation.width / zoom)
-                track.duration = max(1 / Double(max(fps, 1)), min(compositionDuration - origin.start, proposed))
+                track.duration = max(1 / Double(max(fps, 1)), min(containerDuration - origin.start, proposed))
             }
             .onEnded { _ in trimOrigin = nil }
     }
