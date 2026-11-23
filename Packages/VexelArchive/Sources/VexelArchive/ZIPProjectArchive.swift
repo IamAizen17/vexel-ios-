@@ -22,6 +22,7 @@ public enum ZIPProjectArchiveError: Error, Equatable {
     case archiveTooLarge
     case missingProjectDocument
     case missingAsset(String)
+    case legacyFormatExportNotSupported
 }
 
 public struct ZIPProjectArchive: Sendable {
