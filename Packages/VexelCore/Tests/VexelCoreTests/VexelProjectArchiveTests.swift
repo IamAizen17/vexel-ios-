@@ -28,7 +28,7 @@ final class VexelProjectArchiveTests: XCTestCase {
         try VexelProjectArchive().save(project, assetsDirectory: assetsDirectory, to: archiveURL)
         let savedArchive = try Archive(url: archiveURL, accessMode: .read, pathEncoding: .utf8)
         let savedEntries = Array(savedArchive).map { "\($0.path):\($0.type)" }
-        XCTAssertTrue(savedEntries.contains { $0.hasPrefix("assets/clip.bin:") }, "Saved entries: \(savedEntries)")
+        XCTAssertEqual(savedEntries, ["project.json:file", "assets/clip.bin:file"])
 
         let loaded = try VexelProjectArchive().open(from: archiveURL, into: root)
         let copiedAsset = loaded.projectDirectory.appendingPathComponent("assets/clip.bin")
