@@ -50,7 +50,7 @@ This is an envelope example, not the complete schema. Field-level contracts must
 - Do not silently discard unsupported effects, layers, parameters or metadata.
 - Report features that cannot yet be rendered or edited.
 - Save and export only as `.vexelproj` using Vexel's independent version number.
-- Do not export to the external Android project format. Legacy compatibility is import-only; users save and share native `.vexelproj` documents.
+- Do not export to an external project format. The Vexel importer converts supported Android reference archives into native Vexel documents; users save and share only `.vexelproj` files.
 
 ## Archive security
 - Reject absolute paths, traversal, drive prefixes, alternate separators and duplicate normalized paths.
