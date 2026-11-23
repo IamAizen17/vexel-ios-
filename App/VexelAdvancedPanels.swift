@@ -423,9 +423,9 @@ struct VexelEffectDetailSheet: View {
                         }
                     }
 
-                    VexelActionButton(title: "Apply effect (engine pending)", systemImage: "plus", prominent: true) {}
-                        .disabled(true)
-                    Text("Values in this panel are an editing preview only. No project effect is created until the effect command and parameter serialization are ported.")
+                    VexelActionButton(title: "Add to effect stack", systemImage: "plus", prominent: true) { onApply(); dismiss() }
+                        .disabled(targetLayerName == nil)
+                    Text("This adds the effect identifier to the selected layer. GPU rendering remains unavailable until the shader runtime is integrated.")
                         .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                 }
                 .padding(16)
