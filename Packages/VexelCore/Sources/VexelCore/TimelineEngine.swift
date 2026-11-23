@@ -63,14 +63,14 @@ public enum TimelineError: Error, Equatable, LocalizedError {
         switch self {
         case .invalidTimebase: return "The composition frame rate or duration is invalid."
         case .invalidLayer: return "A timeline layer must be a JSON object with a non-empty id and type."
-        case .layerNotFound(let id): return "Timeline layer '\\(id)' does not exist."
-        case .duplicateLayerID(let id): return "Timeline layer ID '\\(id)' is already in use."
-        case .invalidContainer(let id): return "Timeline container '\\(id)' does not exist."
+        case .layerNotFound(let id): return "Timeline layer '\(id)' does not exist."
+        case .duplicateLayerID(let id): return "Timeline layer ID '\(id)' is already in use."
+        case .invalidContainer(let id): return "Timeline container '\(id)' does not exist."
         case .layersMustBeSiblings: return "The selected layers must belong to the same timeline container."
-        case .groupRequired(let id): return "Timeline container '\\(id)' is not a group."
+        case .groupRequired(let id): return "Timeline container '\(id)' is not a group."
         case .invalidTime: return "Timeline time must be a finite number."
         case .invalidIndex: return "The requested timeline index is invalid."
-        case .invalidProject(let reason): return "The timeline operation would make the project invalid: \\(reason)"
+        case .invalidProject(let reason): return "The timeline operation would make the project invalid: \(reason)"
         }
     }
 }
