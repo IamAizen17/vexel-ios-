@@ -50,7 +50,10 @@ public struct KnsprojArchiveImporter {
     public init() {}
 
     public func importProject(from archiveURL: URL, into destination: URL) throws -> KnsprojImportResult {
-        guard let archive = Archive(url: archiveURL, accessMode: .read) else {
+        let archive: Archive
+        do {
+            archive = try Archive(url: archiveURL, accessMode: .read)
+        } catch {
             throw KnsprojImportError.archiveCannotOpen
         }
 
