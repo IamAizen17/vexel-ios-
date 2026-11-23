@@ -60,7 +60,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         ProjectDocument(fields: [
             "format": .string(format),
             "formatVersion": .number(Double(currentVersion)),
-            "generator": .string("Vexel iOS"),
+            "generator": .string("Vexel"),
             "meta": .object([
                 "title": .string(title),
                 "createdAt": .string(ISO8601DateFormatter().string(from: Date()))
