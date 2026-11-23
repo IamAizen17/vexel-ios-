@@ -3,7 +3,7 @@
 A native iPhone and iPad motion-graphics editor port, built around a Swift editing core, SwiftUI workspace, Metal
 rendering, and AVFoundation media pipeline.
 
-**Current status:** UI port milestone plus modular engine foundation. The repository now defines separate Swift packages for Core, Archive, Renderer, Media, Audio, Export and Plugins. The renderer has an initial validated render-graph model and native MSL implementations for copy, brightness/contrast, Gaussian blur and multi-scale glow combination. These are foundations, not a complete renderer: the typed legacy Android project importer, secure ZIP implementation, editing command system, deterministic scene evaluator, full effect pass library, media decoding, audio mixer and export writer remain in progress.
+**Current status:** UI port milestone plus modular engine foundation. The repository now defines separate Swift packages for Core, Archive, Renderer, Media, Audio, Export and Plugins. The renderer has an initial validated render-graph model and native MSL implementations for copy, brightness/contrast, Gaussian blur and multi-scale glow combination. These are foundations, not a complete renderer: the Vexel project compatibility importer, secure ZIP implementation, editing command system, deterministic scene evaluator, full effect pass library, media decoding, audio mixer and export writer remain in progress.
 
 ## Repository structure
 
@@ -57,7 +57,7 @@ xcodegen generate
 
 ## Compatibility and licensing
 
-Vexel uses `.vexelproj` as its native project format. Legacy Android project archives are accepted through a dedicated compatibility import path and are converted to the native Vexel format when saved or exported. Vexel does not export projects in the legacy format.
+Vexel uses `.vexelproj` as its native project format. Android reference project archives are accepted through a dedicated compatibility import path and are converted to the native Vexel format when saved or exported. Vexel does not export projects in the external source format.
 Unknown JSON fields are retained by the initial Swift document model to avoid discarding future project data.
 
 The Android reference UI is GPL-3.0. The UI adaptation is distributed under GPL-3.0; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). Review distribution obligations before shipping binaries.
