@@ -8,7 +8,7 @@ struct VexelToolSheet: View {
     let onCurve: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
-    @State private var effectCategory = "All"
+    @State private var effectCategory = "All effects"
     @State private var selectedSubpage = "Overview"
 
     var body: some View {
@@ -155,7 +155,7 @@ struct VexelToolSheet: View {
             .padding(11).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 10))
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 7) {
-                    ForEach(["All", "Blur", "Color", "Distortion", "Stylize", "Keying", "Light", "Generate", "3D", "Time"], id: \.self) { category in
+                    ForEach(VexelEffectCatalog.categories, id: \.self) { category in
                         Button { effectCategory = category } label: {
                             Text(category).font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(effectCategory == category ? Color.black : VexelPalette.soft)
@@ -165,18 +165,21 @@ struct VexelToolSheet: View {
                     }
                 }
             }
-            VexelSectionLabel(title: "Effect library", trailing: "73 EFFECTS")
-            let effects = ["Gaussian Blur", "Directional Blur", "Radial Blur", "Glow", "Drop Shadow", "Motion Blur", "Color Balance", "Hue / Saturation", "Curves", "Levels", "Chromatic Aberration", "Displacement", "Turbulent Noise", "Vignette", "Sharpen", "Pixelate", "Corner Pin", "Luma Key", "Light Rays", "Echo"]
+            VexelSectionLabel(title: "Effect library", trailing: "\(VexelEffectCatalog.all.count) EFFECTS")
+            let effects = VexelEffectCatalog.all.filter {
+                (effectCategory == "All effects" || $0.category == effectCategory) &&
+                (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search))
+            }
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
-                    ForEach(effects.filter { search.isEmpty || $0.localizedCaseInsensitiveContains(search) }, id: \.self) { effect in
+                    ForEach(effects) { effect in
                         Button { onAction("add-layer") } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 RoundedRectangle(cornerRadius: 7).fill(VexelPalette.field)
                                     .frame(height: 58)
-                                    .overlay(Image(systemName: effectSymbol(effect)).font(.system(size: 21)).foregroundStyle(VexelPalette.accent))
-                                Text(effect).font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
-                                Text(effectCategory == "All" ? "Effect" : effectCategory).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                                    .overlay(Image(systemName: effectSymbol(effect.name)).font(.system(size: 21)).foregroundStyle(VexelPalette.accent))
+                                Text(effect.name).font(.system(size: 11, weight: .semibold)).foregroundStyle(VexelPalette.text)
+                                Text(effect.category).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                             }
                             .padding(9).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                         }.buttonStyle(.plain)
