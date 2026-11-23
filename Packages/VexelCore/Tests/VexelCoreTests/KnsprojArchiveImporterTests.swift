@@ -134,9 +134,7 @@ final class KnsprojArchiveImporterTests: XCTestCase {
     }
 
     private func createArchive(at url: URL, entries: [(String, Data)]) throws {
-        guard let archive = Archive(url: url, accessMode: .create) else {
-            throw CocoaError(.fileWriteUnknown)
-        }
+        let archive = try Archive(url: url, accessMode: .create)
         for (path, data) in entries {
             try archive.addEntry(
                 with: path,
