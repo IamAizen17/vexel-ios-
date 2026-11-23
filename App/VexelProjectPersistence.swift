@@ -24,7 +24,11 @@ enum VexelProjectStore {
         let url = directory.appendingPathComponent(fileName)
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         let data = try Data(contentsOf: url, options: [.mappedIfSafe])
-        return try decoder.decode([VexelProjectItem].self, from: data)
+        var projects = try decoder.decode([VexelProjectItem].self, from: data)
+        for index in projects.indices {
+            projects[index].synchronizeDocument()
+        }
+        return projects
     }
 
     static func save(_ projects: [VexelProjectItem]) throws {
