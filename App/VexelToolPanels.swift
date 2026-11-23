@@ -28,6 +28,9 @@ struct VexelToolSheet: View {
     @State private var effectCategory = "All effects"
     @State private var selectedSubpage = "Overview"
     @State private var advancedPage: VexelAdvancedEditorPage?
+    @State private var savedElements: [String] = []
+    @State private var showSaveElementDialog = false
+    @State private var newElementName = "New element"
 
     var body: some View {
         NavigationStack {
@@ -316,9 +319,45 @@ struct VexelToolSheet: View {
 
     private var elementsPage: some View {
         VStack(alignment: .leading, spacing: 14) {
-            VexelSectionLabel(title: "Saved elements")
-            VexelEmptyState(symbol: "square.grid.2x2", title: "No saved elements", detail: "Save reusable compositions, title cards and graphics here.")
-            VexelActionButton(title: "Save current selection", systemImage: "bookmark", prominent: true) { onAction("save-element") }
+            VexelSectionLabel(title: "Saved elements", trailing: "\(savedElements.count) ITEMS")
+            if savedElements.isEmpty {
+                VexelEmptyState(symbol: "square.grid.2x2", title: "No saved elements", detail: "Save reusable compositions, title cards and graphics here.")
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 9) {
+                        ForEach(savedElements, id: \.self) { element in
+                            HStack(spacing: 10) {
+                                Image(systemName: "square.grid.2x2").foregroundStyle(VexelPalette.accent)
+                                    .frame(width: 34, height: 34).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 8))
+                                Text(element).font(.system(size: 12, weight: .semibold)).foregroundStyle(VexelPalette.text)
+                                Spacer()
+                                Button { layerNames.insert(element, at: 0) } label: {
+                                    Image(systemName: "plus.circle").foregroundStyle(VexelPalette.accent)
+                                }
+                                Button { savedElements.removeAll { $0 == element } } label: {
+                                    Image(systemName: "trash").foregroundStyle(VexelPalette.pink)
+                                }
+                            }
+                            .padding(10).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+                }
+            }
+            VexelActionButton(title: "Save current selection", systemImage: "bookmark", prominent: true) {
+                newElementName = "New element"
+                showSaveElementDialog = true
+            }
+            Spacer()
+        }
+        .alert("Save element", isPresented: $showSaveElementDialog) {
+            TextField("Element name", text: $newElementName)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                let name = newElementName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty { savedElements.append(name) }
+            }
+        } message: {
+            Text("Save the current selection to your reusable element library.")
         }
     }
 
