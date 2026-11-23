@@ -12,6 +12,7 @@ struct VexelTimelineTrack: Identifiable, Hashable {
     var isExpanded: Bool
     var children: [VexelTimelineTrack]
     var keyframes: [Double]
+    var effects: [String]
 
     enum Kind: String, Hashable {
         case visual
@@ -32,7 +33,8 @@ struct VexelTimelineTrack: Identifiable, Hashable {
         isGroup: Bool = false,
         isExpanded: Bool = false,
         children: [VexelTimelineTrack] = [],
-        keyframes: [Double] = []
+        keyframes: [Double] = [],
+        effects: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -45,6 +47,7 @@ struct VexelTimelineTrack: Identifiable, Hashable {
         self.isExpanded = isExpanded
         self.children = children
         self.keyframes = keyframes
+        self.effects = effects
     }
 }
 
