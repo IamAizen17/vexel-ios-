@@ -1,4 +1,4 @@
-# Kinesis Engine Source Contract and iOS Field Matrix
+# Vexel Engine Port Contract and Legacy Compatibility Field Matrix
 
 ## Audit baseline
 
@@ -15,7 +15,7 @@ Source: `core/model/Project.kt`.
 
 | Source field | Type / meaning | iOS model |
 |---|---|---|
-| `format` | Literal `knsproj` | Import discriminator; never rewrite to `vexelproj` during decode |
+| `format` | Legacy source literal `knsproj` | Recognize only inside the legacy import adapter; convert to the canonical Vexel model |
 | `formatVersion` | Current writer version 12 | Source version retained for migrations/reporting |
 | `generator` | Optional producer string | Preserve |
 | `meta` | Title, description, author, createdAt, modifiedAt | Typed metadata plus unknown-field preservation |
@@ -195,7 +195,7 @@ Sources: `scene/SceneEvaluator.kt`, `scene/RenderModel.kt`, `app/render/Composit
 
 The key deterministic boundary is:
 
-`KnsProject + composition time -> FrameScene -> renderer`
+`VexelProject + composition time -> FrameScene -> renderer`
 
 Scene evaluation:
 - Resolves camera and lights, layer active intervals, nested group timing, parent transforms, animation and expressions.
@@ -266,7 +266,7 @@ These are behavioral specifications to translate into Swift tests, not evidence 
 ## 14. iOS port implementation order
 
 1. **Import model:** complete typed v12 model, exact serializers, unknown-field preservation, all migrations and structured compatibility report.
-2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and .knsproj adapter.
+2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and .legacy Android import adapter.
 3. **Validation:** port source semantic validation and stable issue codes.
 4. **Editing store:** immutable project commands, layer-tree operations, timeline operations, coalesced history and selection.
 5. **Animation:** typed animatables, easing, expressions and keyframe operations.
@@ -275,4 +275,4 @@ These are behavioral specifications to translate into Swift tests, not evidence 
 8. **Media/audio:** AVFoundation decode, AVAudioEngine preview, deterministic offline PCM mixer and proxies.
 9. **Export:** shared render path, AVAssetWriter, cancellation, progress and output validation.
 
-The current app has timeline presentation state and source-driven effect controls, but no canonical KnsProject model, importer, command store, renderer or export pipeline. Do not mark those milestones complete based on UI controls.
+The current app has timeline presentation state and source-driven effect controls, but no canonical VexelProject model, importer, command store, renderer or export pipeline. Do not mark those milestones complete based on UI controls.
