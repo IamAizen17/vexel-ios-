@@ -136,7 +136,11 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 if assetTypes[id] != nil {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].id", message: "Asset IDs must be unique."))
                 }
-                assetTypes[id] = object["type"]?.stringValue
+                let type = object["type"]?.stringValue
+                if let type, !["image", "video", "audio", "model", "font"].contains(type) {
+                    issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].type", message: "Asset type '\(type)' is unsupported."))
+                }
+                assetTypes[id] = type
                 guard let path = object["path"]?.stringValue, Self.isSafeAssetPath(path) else {
                     issues.append(ProjectIssue(severity: .error, path: "assets[\(index)].path", message: "Asset path must be a safe relative path under assets/."))
                     continue
@@ -268,11 +272,11 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
     }
 
     private static func isSafeAssetPath(_ path: String) -> Bool {
-        let normalized = path.replacingOccurrences(of: "\\", with: "/")
-        guard normalized.hasPrefix("assets/"),
-              !normalized.hasPrefix("/"),
-              !normalized.contains(":") else { return false }
-        let components = normalized.split(separator: "/", omittingEmptySubsequences: false)
+        guard path.hasPrefix("assets/"),
+              !path.hasPrefix("/"),
+              !path.contains("\\"),
+              !path.contains(":") else { return false }
+        let components = path.split(separator: "/", omittingEmptySubsequences: false)
         return components.count >= 2 && !components.contains("..") && !components.contains(".") && !components.contains("")
     }
 }
