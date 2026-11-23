@@ -163,6 +163,7 @@ The existing SwiftUI port has all 73 effect IDs with matching English names and 
 
 - Repository prose mentions a 69-effect library in at least one place, but the generated registry at the pinned commit contains 73. Treat the generated registry and its tests as canonical.
 - The current iOS ProjectDocument is a generic JSON container with a Vexel-specific version 1 validation contract. It is not yet a typed model of KnsProject v12 and must not be treated as a completed .knsproj importer.
+- A new source field matrix now records root/composition/layer/content contracts, local-time rules, transform semantics, animation/easing, effect serialization, expression sandbox limits, validator issue families, archive limits and source tests to port.
 - The current Swift validator is materially less strict than the source semantic validator. Do not rely on it for untrusted project import.
 - No source build, Android runtime, iOS build, or device comparison was executed during this source audit.
 
