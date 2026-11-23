@@ -62,8 +62,7 @@ struct VexelToolSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() }.foregroundStyle(VexelPalette.accent) }
             }
         }
-        .preferredColorScheme(.dark)
-        .sheet(item: $advancedPage) { page in
+                .sheet(item: $advancedPage) { page in
             switch page {
             case .audio: VexelAudioWorkspace().presentationDetents([.large])
             case .captions: VexelCaptionWorkspace().presentationDetents([.large])
@@ -558,8 +557,7 @@ struct VexelGraphEditor: View {
             .padding(16).background(VexelPalette.background)
             .navigationTitle("Graph editor").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
-        }.preferredColorScheme(.dark)
-    }
+        }    }
 }
 
 struct VexelCurveEditor: View {
@@ -600,8 +598,7 @@ struct VexelCurveEditor: View {
             .padding(16).background(VexelPalette.background)
             .navigationTitle("Curve editor").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
-        }.preferredColorScheme(.dark)
-    }
+        }    }
 
     private func curveSlider(_ title: String, value: Binding<Double>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -639,6 +636,5 @@ struct VexelExportSheet: View {
             .scrollContentBackground(.hidden).background(VexelPalette.background)
             .navigationTitle("Export").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Prepare") { dismiss() } } }
-        }.preferredColorScheme(.dark)
-    }
+        }    }
 }
