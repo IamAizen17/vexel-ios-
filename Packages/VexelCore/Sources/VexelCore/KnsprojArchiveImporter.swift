@@ -52,7 +52,7 @@ public struct KnsprojArchiveImporter {
     public func importProject(from archiveURL: URL, into destination: URL) throws -> KnsprojImportResult {
         let archive: Archive
         do {
-            archive = try Archive(url: archiveURL, accessMode: .read)
+            archive = try Archive(url: archiveURL, accessMode: .read, pathEncoding: .utf8)
         } catch {
             throw KnsprojImportError.archiveCannotOpen
         }
