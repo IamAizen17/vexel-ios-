@@ -1,8 +1,20 @@
 import SwiftUI
 
-private enum VexelAdvancedEditorPage: String, Identifiable {
-    case audio, captions, camera, cutout, expression
-    var id: String { rawValue }
+private enum VexelAdvancedEditorPage: Identifiable {
+    case audio, captions, camera, cutout, expression, speech
+    case effect(VexelEffectItem)
+
+    var id: String {
+        switch self {
+        case .audio: return "audio"
+        case .captions: return "captions"
+        case .camera: return "camera"
+        case .cutout: return "cutout"
+        case .expression: return "expression"
+        case .speech: return "speech"
+        case .effect(let effect): return "effect-\(effect.id)"
+        }
+    }
 }
 
 struct VexelToolSheet: View {
@@ -55,6 +67,10 @@ struct VexelToolSheet: View {
             case .camera: VexelCameraWorkspace().presentationDetents([.large])
             case .cutout: VexelCutoutBrushWorkspace().presentationDetents([.large])
             case .expression: VexelExpressionWorkspace().presentationDetents([.large])
+            case .speech: VexelTextToSpeechWorkspace().presentationDetents([.large])
+            case .effect(let effect):
+                VexelEffectDetailSheet(effect: effect) { onAction("effect:\(effect.id)") }
+                    .presentationDetents([.medium, .large])
             }
         }
     }
@@ -188,7 +204,7 @@ struct VexelToolSheet: View {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
                     ForEach(effects) { effect in
-                        Button { onAction("effect:\(effect.id)") } label: {
+                        Button { advancedPage = .effect(effect) } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 RoundedRectangle(cornerRadius: 7).fill(VexelPalette.field)
                                     .frame(height: 58)
@@ -289,10 +305,11 @@ struct VexelToolSheet: View {
                     VexelActionButton(title: "Open caption editor", systemImage: "captions.bubble") { advancedPage = .captions }
                 }
             }
-            ForEach(["Import SRT", "Generate from speech", "Text-to-speech", "Caption style", "Timing and alignment"], id: \.self) { item in
+            ForEach(["Import SRT", "Generate from speech", "Caption style", "Timing and alignment"], id: \.self) { item in
                 HStack { Text(item).font(.system(size: 12)).foregroundStyle(VexelPalette.text); Spacer(); Image(systemName: "chevron.right").foregroundStyle(VexelPalette.secondary) }
                     .padding(12).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 10))
             }
+            VexelActionButton(title: "Text to speech", systemImage: "waveform", prominent: true) { advancedPage = .speech }
             Spacer()
         }
     }
