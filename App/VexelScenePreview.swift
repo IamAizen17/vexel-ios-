@@ -1,13 +1,32 @@
 import SwiftUI
+import UIKit
 import VexelCore
 
 struct VexelScenePreview: View {
     let project: VexelProjectItem
     let time: Double
+    @State private var images: [String: UIImage] = [:]
 
     private var document: ProjectDocument? {
         guard let data = project.documentJSON?.data(using: .utf8) else { return nil }
         return try? ProjectDocument(data: data)
+    }
+
+    private var assetURLs: [String: URL] {
+        guard let document, let root = project.assetsDirectory else { return [:] }
+        return Dictionary(
+            (document.fields["assets"]?.arrayValue ?? []).compactMap { value -> (String, URL)? in
+                guard let asset = value.objectValue,
+                      let id = asset["id"]?.stringValue,
+                      let path = asset["path"]?.stringValue else { return nil }
+                return (id, URL(fileURLWithPath: root).appendingPathComponent(path))
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private var assetSignature: String {
+        assetURLs.keys.sorted().joined(separator: "|")
     }
 
     var body: some View {
@@ -27,7 +46,7 @@ struct VexelScenePreview: View {
                     context.translateBy(x: origin.x, y: origin.y)
                     context.scaleBy(x: fit, y: fit)
                     for layer in scene.layers {
-                        Self.draw(layer, scene: scene, in: &context)
+                        Self.draw(layer, scene: scene, images: images, in: &context)
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
@@ -37,9 +56,22 @@ struct VexelScenePreview: View {
                 VexelEmptyState(symbol: "exclamationmark.triangle", title: "Preview unavailable", detail: "The project document could not be decoded.")
             }
         }
+        .task(id: assetSignature) {
+            var loaded: [String: UIImage] = [:]
+            for (id, url) in assetURLs {
+                guard let image = UIImage(contentsOfFile: url.path) else { continue }
+                loaded[id] = image
+            }
+            images = loaded
+        }
     }
 
-    private static func draw(_ layer: EvaluatedLayer, scene: FrameScene, in context: inout GraphicsContext) {
+    private static func draw(
+        _ layer: EvaluatedLayer,
+        scene: FrameScene,
+        images: [String: UIImage],
+        in context: inout GraphicsContext
+    ) {
         context.drawLayer { layerContext in
             layerContext.opacity = layer.opacity
             layerContext.translateBy(
@@ -63,10 +95,22 @@ struct VexelScenePreview: View {
                     .font(.system(size: max(1, layer.fontSize ?? 64), weight: .medium))
                     .foregroundColor(color)
                 layerContext.draw(text, at: .zero, anchor: .center)
-            } else if layer.type == "image" || layer.type == "video" {
+            } else if layer.type == "image" {
+                if let assetID = layer.assetID, let image = images[assetID], let cgImage = image.cgImage {
+                    let resolved = layerContext.resolve(Image(decorative: cgImage, scale: image.scale))
+                    layerContext.draw(resolved, in: rect)
+                } else {
+                    layerContext.fill(Path(roundedRect: rect, cornerRadius: 12), with: .color(Color.white.opacity(0.08)))
+                    layerContext.stroke(Path(roundedRect: rect, cornerRadius: 12), with: .color(VexelPalette.secondary), lineWidth: 2)
+                    let text = Text("IMAGE SOURCE")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(VexelPalette.soft)
+                    layerContext.draw(text, at: .zero, anchor: .center)
+                }
+            } else if layer.type == "video" {
                 layerContext.fill(Path(roundedRect: rect, cornerRadius: 12), with: .color(Color.white.opacity(0.08)))
                 layerContext.stroke(Path(roundedRect: rect, cornerRadius: 12), with: .color(VexelPalette.secondary), lineWidth: 2)
-                let text = Text(layer.type == "video" ? "VIDEO SOURCE" : "IMAGE SOURCE")
+                let text = Text("VIDEO SOURCE")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(VexelPalette.soft)
                 layerContext.draw(text, at: .zero, anchor: .center)
