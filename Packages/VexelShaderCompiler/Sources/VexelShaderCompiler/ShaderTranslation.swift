@@ -1,6 +1,6 @@
 import Foundation
 
-public enum ShaderSourceLanguage: String, Codable, Sendable {
+public enum ShaderSourceLanguage: String, Codable, Sendable, Equatable {
     case glslES300
     case glslES310
     case metal
