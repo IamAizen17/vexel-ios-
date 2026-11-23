@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct VexelTimelineTrack: Identifiable, Hashable {
+struct VexelTimelineTrack: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var start: Double
