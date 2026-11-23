@@ -3,6 +3,17 @@ import Foundation
 enum VexelProjectStore {
     enum StoreError: Error {
         case invalidAssetDirectory
+        case invalidSourceFile
+        case assetTooLarge
+    }
+
+    struct ImportedAsset {
+        let id: String
+        let type: String
+        let path: String
+        let name: String
+        let mimeType: String?
+        let fileURL: URL
     }
 
     private static let directoryName = "Projects"
@@ -71,6 +82,40 @@ enum VexelProjectStore {
         copy.assetsDirectory = destination.path
         copy.synchronizeDocument()
         return copy
+    }
+
+    static func importAsset(from source: URL, projectID: UUID, type: String, mimeType: String?) throws -> ImportedAsset {
+        let sourceURL = source.resolvingSymlinksInPath().standardizedFileURL
+        let values = try? sourceURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+        guard values?.isRegularFile == true, (values?.fileSize ?? 0) > 0 else {
+            throw StoreError.invalidSourceFile
+        }
+        guard UInt64(values?.fileSize ?? 0) <= 4 * 1024 * 1024 * 1024 else {
+            throw StoreError.assetTooLarge
+        }
+        let id = UUID().uuidString.lowercased()
+        let ext = sourceURL.pathExtension.lowercased().filter { $0.isASCII && ($0.isLetter || $0.isNumber) }
+        let fileName = ext.isEmpty ? id : "\(id).\(ext)"
+        let root = try assetsDirectory(for: projectID)
+        let folder = root.appendingPathComponent("assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = folder.appendingPathComponent(fileName)
+        let temporary = folder.appendingPathComponent(".\(fileName).partial")
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: temporary)
+            try FileManager.default.moveItem(at: temporary, to: destination)
+        } catch {
+            try? FileManager.default.removeItem(at: temporary)
+            throw error
+        }
+        return ImportedAsset(
+            id: id,
+            type: type,
+            path: "assets/\(fileName)",
+            name: sourceURL.lastPathComponent,
+            mimeType: mimeType,
+            fileURL: destination
+        )
     }
 
     static func deleteAssets(for project: VexelProjectItem) throws {
