@@ -15,7 +15,7 @@ Source: `core/model/Project.kt`.
 
 | Source field | Type / meaning | iOS model |
 |---|---|---|
-| `format` | Legacy Android discriminator, recognized only by the import adapter | Recognize only inside the legacy import adapter; convert to the canonical Vexel model |
+| `format` | Legacy Android discriminator, recognized only by the import adapter | Recognize only inside the Vexel project importer; convert to the canonical Vexel model |
 | `formatVersion` | Legacy source schema version 12; Vexel writes its own versioned schema | Source version retained for migrations/reporting |
 | `generator` | Optional producer string | Preserve |
 | `meta` | Title, description, author, createdAt, modifiedAt | Typed metadata plus unknown-field preservation |
@@ -266,7 +266,7 @@ These are behavioral specifications to translate into Swift tests, not evidence 
 ## 14. iOS port implementation order
 
 1. **Import model:** complete typed v12 model, exact serializers, unknown-field preservation, all migrations and structured compatibility report.
-2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and import-only legacy Android adapter.
+2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and import-only Android source adapter.
 3. **Validation:** port source semantic validation and stable issue codes.
 4. **Editing store:** immutable project commands, layer-tree operations, timeline operations, coalesced history and selection.
 5. **Animation:** typed animatables, easing, expressions and keyframe operations.
