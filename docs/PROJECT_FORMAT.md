@@ -50,7 +50,7 @@ This is the native envelope, not the complete schema. Field-level contracts are 
 
 - Native Vexel documents use `vexel.json` and `.vexelproj`.
 - The importer recognizes the previous Android archive layout, whose root document is `project.json`, only at the import boundary.
-- `VexelProjectImporter` translates the legacy format/version envelope into the current Vexel envelope. The legacy identifier is not accepted by VexelCore and cannot be written by the native archive exporter.
+- `VexelCompatibilityImporter` translates the legacy format/version envelope into the current Vexel envelope. The legacy identifier is not accepted by VexelCore and cannot be written by the native archive exporter.
 - Imported unknown fields are retained where possible. Unsupported features must be reported rather than silently discarded.
 - All saves and exports use the native Vexel format.
 - The current adapter performs envelope migration only. Full layer, effect, animation, and media semantic parity requires source fixtures and dedicated migration tests.
