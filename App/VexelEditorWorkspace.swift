@@ -276,7 +276,13 @@ struct VexelEditorWorkspace: View {
     private func synchronizeTimelineTracks(_ names: [String]) {
         var existing = project.timelineTracks
         for name in names where !existing.contains(where: { $0.name == name }) {
-            existing.append(VexelTimelineTrack(name: name, duration: project.duration))
+            let kind: VexelTimelineTrack.Kind
+            switch name {
+            case "Text Layer", "Caption Layer": kind = .text
+            case "Cube", "Sphere", "Cylinder", "Cone", "Plane", "Torus", "Text 3D", "Model 3D": kind = .rendered3D
+            default: kind = .visual
+            }
+            existing.append(VexelTimelineTrack(name: name, duration: project.duration, kind: kind))
         }
         existing.removeAll { !names.contains($0.name) }
         project.timelineTracks = existing
