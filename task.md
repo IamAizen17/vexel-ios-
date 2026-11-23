@@ -17,6 +17,7 @@ This is the implementation handoff. “Added” means present in the iOS codebas
 - AMOLED graphite interface with teal/cyan accents and light appearance palette.
 - Reusable material-backed panels, gradient edge treatments, consistent rounded controls, and press feedback.
 - Spring-based navigation transitions between onboarding, home, and editor; destination changes animate with a native spring.
+- Reduce Motion support switches navigation to opacity transitions and removes press scaling when the accessibility preference is enabled.
 - Timeline UI with track rows, nested group display, zoom, ruler, playhead, marker affordances, clip move/trim gestures, visibility/lock affordances, and keyframe markers.
 - Layer and shape tool panels, text-layer creation UI, effect browser, effect detail sheet, property panel, graph/curve surfaces, composition settings, and export surface.
 - Saved easing preset storage (up to 24 entries).
