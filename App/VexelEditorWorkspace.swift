@@ -65,6 +65,7 @@ struct VexelEditorWorkspace: View {
     @State private var editingMarker: VexelMarker?
     @State private var selectedTrackID: UUID?
     @State private var loopPlayback = false
+    @State private var isTimelineGestureActive = false
 
     private var selectedTimelineTrack: VexelTimelineTrack? {
         func find(_ values: [VexelTimelineTrack]) -> VexelTimelineTrack? {
@@ -195,12 +196,12 @@ struct VexelEditorWorkspace: View {
             onProjectChange(project)
         }
         .onChange(of: project) { updated in
+            guard !isTimelineGestureActive else { return }
             var snapshot = updated
             snapshot.layerNames = flattenTrackNames(snapshot.timelineTracks)
             snapshot.synchronizeDocument()
             onProjectChange(snapshot)
         }
-        .onChange(of: currentTime) { _ in project.modified = Date() }
         .task(id: isPlaying) {
             guard isPlaying else { return }
             while !Task.isCancelled {
@@ -321,7 +322,21 @@ struct VexelEditorWorkspace: View {
             duration: project.duration,
             fps: project.fps,
             onMarkerEdit: { editingMarker = $0 },
-            onNotice: { showingNotice = $0 }
+            onNotice: { showingNotice = $0 },
+            onEditBegan: {
+                isTimelineGestureActive = true
+                undoStack.append(project)
+                if undoStack.count > 100 { undoStack.removeFirst() }
+                redoStack.removeAll()
+            },
+            onEditEnded: {
+                isTimelineGestureActive = false
+                project.layerNames = flattenTrackNames(project.timelineTracks)
+                layerNames = project.layerNames
+                project.modified = Date()
+                project.synchronizeDocument()
+                onProjectChange(project)
+            }
         )
     }
 
