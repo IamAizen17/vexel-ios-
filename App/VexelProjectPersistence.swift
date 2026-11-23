@@ -25,8 +25,19 @@ enum VexelProjectStore {
 
     static func save(_ projects: [VexelProjectItem]) throws {
         let directory = try projectDirectory()
-        let data = try encoder.encode(projects)
+        var snapshots = projects
+        for index in snapshots.indices {
+            snapshots[index].synchronizeDocument()
+        }
+        let data = try encoder.encode(snapshots)
         try data.write(to: directory.appendingPathComponent(fileName), options: [.atomic, .completeFileProtectionUnlessOpen])
+    }
+
+    static func assetsDirectory(for projectID: UUID) throws -> URL {
+        let directory = try projectDirectory().appendingPathComponent("Assets", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
     }
 
     private static func projectDirectory() throws -> URL {
