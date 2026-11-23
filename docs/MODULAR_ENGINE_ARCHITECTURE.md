@@ -30,7 +30,8 @@ The actual package dependency direction is acyclic:
 
 - VexelCore: typed project domain, validation, animation, commands/history, deterministic scene evaluation and effect contracts. Foundation only.
 - VexelArchive: secure .knsproj import and .vexelproj read/write. Depends on VexelCore.
-- VexelRenderer: Metal render graph, MSL library, GPU resource lifetime/caches, 2D/3D passes, masks, mattes and effects. Depends on VexelCore.
+- VexelShaderCompiler: compiler-neutral GLSL ES → SPIR-V → MSL pipeline contracts, input validation, SHA-256 source fingerprints and resource-binding metadata. The glslang and SPIRV-Cross native backends must be linked before runtime translation is enabled.
+- VexelRenderer: Metal render graph, MSL library compilation, GPU resource lifetime/caches, 2D/3D passes, masks, mattes and effects. Depends on VexelCore and VexelShaderCompiler.
 - VexelMedia: AVFoundation/CoreVideo asset probing, decoding, proxy generation and waveform extraction. Depends on VexelCore.
 - VexelAudio: AVAudioEngine preview and deterministic offline PCM mixer. Depends on VexelCore.
 - VexelExport: frame scheduling, offscreen renderer orchestration, AVAssetWriter muxing, cancellation and recovery. Depends on Core, Renderer, Media and Audio.
@@ -67,7 +68,7 @@ Preview and export use the same scene evaluator, effect implementation, pass ord
 
 ## Shader migration contract
 
-The reference project has GLSL ES 3.00 shaders and a shared include convention. iOS Metal does not compile GLSL. Each shader is re-authored in MSL and checked against the same mathematical contract.
+The reference project has GLSL ES 3.00 shaders and a shared include convention. Metal does not compile GLSL directly. Vexel now defines a translation pipeline: glslang compiles GLSL ES to SPIR-V, SPIRV-Cross emits MSL plus reflected resource bindings, and VexelRenderer compiles the MSL with the active Metal device. This keeps the original GLSL as the source of truth while targeting native Metal execution. The current Swift package contains the pipeline contracts and Metal library compiler; native glslang/SPIRV-Cross bridges are not yet linked, so translation is not enabled in production builds.
 
 Shared shader ABI:
 - UV origin and orientation are explicit.
