@@ -117,7 +117,11 @@ struct VexelEditorWorkspace: View {
         .sheet(isPresented: $showGraph) { VexelGraphEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showCurve) { VexelCurveEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showProperties) {
-            VexelPropertiesSheet(layerName: layerNames.indices.contains(selectedLayer) ? layerNames[selectedLayer] : "Composition")
+            VexelPropertiesSheet(
+                layerName: selectedTimelineTrack?.name ?? "Composition",
+                layerKind: selectedTimelineTrack?.kind,
+                onAddEffect: { showingNotice = "Open the Effects tool to browse source-defined effect parameters. Effect insertion will be connected with the editing engine." }
+            )
                 .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showStabilization) { VexelStabilizationSheet().presentationDetents([.medium, .large]) }
