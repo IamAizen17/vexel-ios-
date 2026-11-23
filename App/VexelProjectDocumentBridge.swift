@@ -4,10 +4,11 @@ import VexelCore
 extension VexelProjectItem {
     init(document: ProjectDocument) {
         let composition = document.fields["composition"]?.objectValue ?? [:]
-        let width = Int(composition["width"]?.numberValue ?? 1080)
-        let height = Int(composition["height"]?.numberValue ?? 1920)
-        let fps = Int(composition["fps"]?.numberValue ?? 30)
-        let duration = composition["duration"]?.numberValue ?? 10
+        let width = Self.boundedInteger(composition["width"]?.numberValue, range: 16...8192, fallback: 1080)
+        let height = Self.boundedInteger(composition["height"]?.numberValue, range: 16...8192, fallback: 1920)
+        let fps = Self.boundedInteger(composition["fps"]?.numberValue, range: 1...120, fallback: 30)
+        let rawDuration = composition["duration"]?.numberValue ?? 10
+        let duration = rawDuration.isFinite && (0.01...3600).contains(rawDuration) ? rawDuration : 10
         self.init(title: document.title, width: width, height: height, fps: fps, duration: duration)
         documentJSON = String(data: (try? document.encoded()) ?? Data(), encoding: .utf8)
         assetsDirectory = nil
@@ -48,13 +49,7 @@ extension VexelProjectItem {
         composition["duration"] = .number(duration)
         fields["composition"] = .object(composition)
 
-        let previous = Dictionary(
-            (fields["layers"]?.arrayValue ?? []).compactMap { value -> (String, [String: JSONValue])? in
-                guard let object = value.objectValue, let id = object["id"]?.stringValue else { return nil }
-                return (id, object)
-            },
-            uniquingKeysWith: { first, _ in first }
-        )
+        let previous = Self.layerObjectsByID(in: fields["layers"]?.arrayValue ?? [])
         fields["layers"] = .array(timelineTracks.map { Self.layerValue($0, previous: previous) })
         fields["markers"] = .array(markers.map { marker in
             .object([
@@ -139,6 +134,28 @@ extension VexelProjectItem {
 
     private static func flattenNames(_ tracks: [VexelTimelineTrack]) -> [String] {
         tracks.flatMap { [$0.name] + flattenNames($0.children) }
+    }
+
+    private static func boundedInteger(_ value: Double?, range: ClosedRange<Int>, fallback: Int) -> Int {
+        guard let value, value.isFinite, value >= Double(range.lowerBound), value <= Double(range.upperBound) else {
+            return fallback
+        }
+        return Int(value.rounded())
+    }
+
+    private static func layerObjectsByID(in layers: [JSONValue]) -> [String: [String: JSONValue]] {
+        var result: [String: [String: JSONValue]] = [:]
+        func collect(_ values: [JSONValue]) {
+            for value in values {
+                guard let object = value.objectValue else { continue }
+                if let id = object["id"]?.stringValue {
+                    result[id] = object
+                }
+                collect(object["layers"]?.arrayValue ?? [])
+            }
+        }
+        collect(layers)
+        return result
     }
 
     private static func layerValue(
