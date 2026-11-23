@@ -69,7 +69,7 @@ struct VexelEditorWorkspace: View {
                         previewCanvas
                         transportBar
                         timelinePanel
-                        selectionBar
+                        if !layerNames.isEmpty { selectionBar }
                         toolBar
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
