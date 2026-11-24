@@ -571,6 +571,8 @@ struct VexelPropertiesPanel: View {
     let onPositionCommit: (Double, Double) -> Void
     let transformValues: [String: [Double]]
     let onTransformCommit: (String, [Double]) -> Void
+    let textValues: [String: JSONValue]
+    let onTextCommit: (VexelTextProperty, JSONValue) -> Void
 
     @State private var positionX = 0.0
     @State private var positionY = 0.0
@@ -675,19 +677,38 @@ struct VexelPropertiesPanel: View {
                             .scrollContentBackground(.hidden)
                             .padding(6)
                             .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 8))
+                            .accessibilityIdentifier("inspector.text.content")
+                        VexelActionButton(title: "Apply text", systemImage: "checkmark", prominent: true) {
+                            onTextCommit(.content, .string(textContent))
+                        }
+                        .accessibilityIdentifier("inspector.text.save")
                     }
                     propertyGroup("FONT") {
                         Picker("Family", selection: $fontFamily) {
                             ForEach(["sans-serif", "serif", "monospace", "cursive", "sans-serif-condensed"], id: \.self) { Text($0).tag($0) }
-                        }.tint(VexelPalette.accent)
-                        valueField("Size", value: $fontSize, unit: "px")
-                        valueField("Weight", value: $fontWeight, unit: "")
-                        Toggle("Italic", isOn: $italic).tint(VexelPalette.accent)
-                        valueField("Line height", value: $lineHeight, unit: "×")
-                        valueField("Letter spacing", value: $letterSpacing, unit: "em")
+                        }
+                        .tint(VexelPalette.accent)
+                        .onChange(of: fontFamily) { onTextCommit(.fontFamily, .string($0)) }
+                        valueField("Size", value: $fontSize, unit: "px", accessibilityIdentifier: "inspector.text.fontSize") {
+                            onTextCommit(.fontSize, .number(fontSize))
+                        }
+                        valueField("Weight", value: $fontWeight, unit: "", accessibilityIdentifier: "inspector.text.fontWeight") {
+                            onTextCommit(.fontWeight, .number(fontWeight))
+                        }
+                        Toggle("Italic", isOn: $italic)
+                            .tint(VexelPalette.accent)
+                            .onChange(of: italic) { onTextCommit(.fontItalic, .bool($0)) }
+                        valueField("Line height", value: $lineHeight, unit: "×", accessibilityIdentifier: "inspector.text.lineHeight") {
+                            onTextCommit(.lineHeight, .number(lineHeight))
+                        }
+                        valueField("Letter spacing", value: $letterSpacing, unit: "em", accessibilityIdentifier: "inspector.text.letterSpacing") {
+                            onTextCommit(.letterSpacing, .number(letterSpacing))
+                        }
                         Picker("Alignment", selection: $textAlignment) {
                             ForEach(["Left", "Center", "Right"], id: \.self) { Text($0).tag($0) }
-                        }.tint(VexelPalette.accent)
+                        }
+                        .tint(VexelPalette.accent)
+                        .onChange(of: textAlignment) { onTextCommit(.alignment, .string($0.lowercased())) }
                     }
                     propertyGroup("TEXT ANIMATORS") {
                         Picker("Animator type", selection: $animatorType) {
@@ -781,13 +802,26 @@ struct VexelPropertiesPanel: View {
             positionX = position.first ?? 0
             positionY = position.dropFirst().first ?? 0
             synchronizeTransformFields()
+            synchronizeTextFields()
         }
+        .onChange(of: textValues) { _ in synchronizeTextFields() }
         .onChange(of: position) { values in
             positionX = values.first ?? 0
             positionY = values.dropFirst().first ?? 0
         }
         .onChange(of: transformValues) { _ in synchronizeTransformFields() }
-        .disabled(!["Transform", "Effects"].contains(tab))
+        .disabled(!["Transform", "Effects", "Text"].contains(tab))
+    }
+
+    private func synchronizeTextFields() {
+        textContent = textValues["content"]?.stringValue ?? "Text"
+        fontFamily = textValues["fontFamily"]?.stringValue ?? "sans-serif"
+        fontWeight = textValues["fontWeight"]?.numberValue ?? 700
+        italic = textValues["fontItalic"]?.boolValue ?? false
+        fontSize = textValues["fontSize"]?.numberValue ?? 96
+        lineHeight = textValues["lineHeight"]?.numberValue ?? 1.2
+        letterSpacing = textValues["letterSpacing"]?.numberValue ?? 0
+        textAlignment = (textValues["alignment"]?.stringValue ?? "center").capitalized
     }
 
     private func synchronizeTransformFields() {

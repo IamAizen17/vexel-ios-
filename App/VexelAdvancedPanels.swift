@@ -11,6 +11,8 @@ struct VexelPropertiesSheet: View {
     let onPositionCommit: (Double, Double) -> Void
     let transformValues: [String: [Double]]
     let onTransformCommit: (String, [Double]) -> Void
+    let textValues: [String: JSONValue]
+    let onTextCommit: (VexelTextProperty, JSONValue) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var tab = "Transform"
 
@@ -42,7 +44,9 @@ struct VexelPropertiesSheet: View {
                     position: position,
                     onPositionCommit: onPositionCommit,
                     transformValues: transformValues,
-                    onTransformCommit: onTransformCommit
+                    onTransformCommit: onTransformCommit,
+                    textValues: textValues,
+                    onTextCommit: onTextCommit
                 )
                 Spacer(minLength: 0)
             }

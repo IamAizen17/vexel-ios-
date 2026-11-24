@@ -362,17 +362,6 @@ final class VexelEditingStoreTests: XCTestCase {
     }
 
     func testTypedTextPropertyCommandsPreserveNestedFieldsAndAnimationMetadata() async throws {
-        let fontSizeTrack = VexelAnimationTrack(
-            keyframes: [
-                VexelKeyframe(time: 0, value: .number(80)),
-                VexelKeyframe(time: 3, value: .number(120))
-            ],
-            value: .number(96),
-            loop: .cycle,
-            expression: "time",
-            expressionEnabled: false,
-            unknownFields: ["futureAnimationFlag": .bool(true)]
-        )
         let layer = VexelLayer(
             id: "title",
             type: .text,

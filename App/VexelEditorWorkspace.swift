@@ -192,6 +192,57 @@ struct VexelEditorWorkspace: View {
         performEditingCommand(.setTransformValue(id: sourceID, property: property, value: value, is3D: is3D))
     }
 
+    private var selectedTextValues: [String: JSONValue] {
+        let defaults: [String: JSONValue] = [
+            "content": .string("Text"),
+            "fontFamily": .string("sans-serif"),
+            "fontWeight": .number(700),
+            "fontItalic": .bool(false),
+            "fontSize": .number(96),
+            "lineHeight": .number(1.2),
+            "letterSpacing": .number(0),
+            "alignment": .string("center")
+        ]
+        guard let track = selectedTimelineTrack, track.kind == .text,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              let native = try? VexelNativeProject(document: project.makeProjectDocument()) else { return defaults }
+        func findLayer(_ layers: [VexelLayer]) -> VexelLayer? {
+            for layer in layers {
+                if layer.id == sourceID { return layer }
+                if let nested = findLayer(layer.layers) { return nested }
+            }
+            return nil
+        }
+        guard let layer = findLayer(native.layers),
+              let object = layer.content?.objectValue else { return defaults }
+        let fields = VexelObjectFields(object)
+        let font = fields.object("font") ?? VexelObjectFields()
+        func baseValue(_ key: String, fallback: JSONValue) -> JSONValue {
+            switch fields.animatable(key) {
+            case .some(.constant(let value)): return value
+            case .some(.animated(let animation)):
+                return animation.value ?? animation.keyframes.first?.value ?? fallback
+            case .none: return fallback
+            }
+        }
+        return [
+            "content": .string(fields.string("content") ?? "Text"),
+            "fontFamily": .string(font.string("family") ?? "sans-serif"),
+            "fontWeight": .number(Double(font.integer("weight") ?? 700)),
+            "fontItalic": .bool(font.bool("italic") ?? false),
+            "fontSize": baseValue("fontSize", fallback: .number(96)),
+            "lineHeight": .number(fields.number("lineHeight") ?? 1.2),
+            "letterSpacing": baseValue("letterSpacing", fallback: .number(0)),
+            "alignment": .string(fields.string("align") ?? "center")
+        ]
+    }
+
+    private func commitSelectedTextProperty(property: VexelTextProperty, value: JSONValue) {
+        guard let track = selectedTimelineTrack, track.kind == .text,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString else { return }
+        performEditingCommand(.setTextProperty(id: sourceID, property: property, value: value))
+    }
+
     private var isWide: Bool { horizontalSizeClass == .regular }
 
     var body: some View {
@@ -263,7 +314,9 @@ struct VexelEditorWorkspace: View {
                 position: selectedPosition,
                 onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) },
                 transformValues: selectedTransformValues,
-                onTransformCommit: { property, values in commitSelectedTransform(property: property, values: values) }
+                onTransformCommit: { property, values in commitSelectedTransform(property: property, values: values) },
+                textValues: selectedTextValues,
+                onTextCommit: { property, value in commitSelectedTextProperty(property: property, value: value) }
             )
                 .presentationDetents([.medium, .large])
         }
@@ -566,7 +619,9 @@ struct VexelEditorWorkspace: View {
                 position: selectedPosition,
                 onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) },
                 transformValues: selectedTransformValues,
-                onTransformCommit: { property, values in commitSelectedTransform(property: property, values: values) }
+                onTransformCommit: { property, values in commitSelectedTransform(property: property, values: values) },
+                textValues: selectedTextValues,
+                onTextCommit: { property, value in commitSelectedTextProperty(property: property, value: value) }
             )
             Spacer(minLength: 0)
         }
