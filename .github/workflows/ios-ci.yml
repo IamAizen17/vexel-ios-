@@ -11,6 +11,7 @@ on:
       - App/VexelNavigation.swift
       - App/VexelEditorWorkspace.swift
       - App/VexelToolPanels.swift
+      - App/VexelAdvancedPanels.swift
       - AppUITests/**
       - Packages/VexelCore/Sources/VexelCore/**
       - Packages/VexelCore/Tests/**

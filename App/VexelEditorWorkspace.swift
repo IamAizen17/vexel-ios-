@@ -95,6 +95,21 @@ struct VexelEditorWorkspace: View {
         return tabs
     }
 
+    private func commitSelectedPosition(x: Double, y: Double) {
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString else { return }
+        let is3D = track.kind == .rendered3D
+        let vector: [JSONValue] = is3D
+            ? [.number(x), .number(y), .number(selectedPosition.count > 2 ? selectedPosition[2] : 0)]
+            : [.number(x), .number(y)]
+        performEditingCommand(.setTransformValue(
+            id: sourceID,
+            property: "position",
+            value: .constant(.array(vector)),
+            is3D: is3D
+        ))
+    }
+
     private var selectedPosition: [Double] {
         guard let track = selectedTimelineTrack,
               let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
@@ -194,20 +209,7 @@ struct VexelEditorWorkspace: View {
                 effectIDs: selectedTimelineTrack?.effects ?? [],
                 onRemoveEffect: { removeEffect($0) },
                 position: selectedPosition,
-                onPositionCommit: { x, y in
-                    guard let track = selectedTimelineTrack,
-                          let sourceID = track.sourceID ?? selectedTrackID?.uuidString else { return }
-                    let is3D = track.kind == .rendered3D
-                    let vector: [JSONValue] = is3D
-                        ? [.number(x), .number(y), .number(selectedPosition.count > 2 ? selectedPosition[2] : 0)]
-                        : [.number(x), .number(y)]
-                    performEditingCommand(.setTransformValue(
-                        id: sourceID,
-                        property: "position",
-                        value: .constant(.array(vector)),
-                        is3D: is3D
-                    ))
-                }
+                onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) }
             )
                 .presentationDetents([.medium, .large])
         }
@@ -506,7 +508,9 @@ struct VexelEditorWorkspace: View {
                 onCurve: { showCurve = true },
                 onAddEffect: { selectedTool = .effects },
                 effectIDs: selectedTimelineTrack?.effects ?? [],
-                onRemoveEffect: { removeEffect($0) }
+                onRemoveEffect: { removeEffect($0) },
+                position: selectedPosition,
+                onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) }
             )
             Spacer(minLength: 0)
         }
