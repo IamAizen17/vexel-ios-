@@ -410,7 +410,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertThrowsError(try archive.read(from: archiveURL, extractingAssetsTo: destination)) { error in
             guard let archiveError = error as? ZIPProjectArchiveError,
                   case .destinationRollbackFailed(let backupPath, _) = archiveError else {
-                return XCTFail("Unexpected error: \\(error)")
+                return XCTFail("Unexpected error: \(error)")
             }
             let backup = URL(fileURLWithPath: backupPath)
             XCTAssertTrue(FileManager.default.fileExists(atPath: backup.appendingPathComponent("existing.txt").path))
