@@ -582,7 +582,7 @@ struct VexelHomeView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("home.tab.\\(item.rawValue.lowercased())")
+                .accessibilityIdentifier("home.tab.\(item.rawValue.lowercased())")
             }
         }
         .padding(.top, 7)
@@ -684,7 +684,7 @@ private struct NewProjectSheet: View {
                         Button(preset.name) {
                             width = Double(preset.width); height = Double(preset.height); fps = Double(preset.fps); duration = preset.duration
                         }
-                        .accessibilityIdentifier("preset.\\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
+                        .accessibilityIdentifier("preset.\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
                     }
                 }
             }
