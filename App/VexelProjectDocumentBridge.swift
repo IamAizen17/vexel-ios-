@@ -12,7 +12,7 @@ extension VexelProjectItem {
         let duration = rawDuration.isFinite && (0.01...3600).contains(rawDuration) ? rawDuration : 10
         self.init(title: document.title, width: width, height: height, fps: fps, duration: duration)
         documentJSON = String(data: (try? document.encoded()) ?? Data(), encoding: .utf8)
-        self.sourceFPS = sourceFPS.flatMap { $0.isFinite && (1...120).contains($0) ? $0 : nil }
+        self.sourceFPS = sourceFPS.flatMap { $0.isFinite && (1.0...120.0).contains($0) ? $0 : nil }
         assetsDirectory = nil
         timelineTracks = (document.fields["layers"]?.arrayValue ?? []).compactMap(Self.track(from:))
         layerNames = Self.flattenNames(timelineTracks)
