@@ -254,7 +254,7 @@ public struct ZIPProjectArchive: Sendable {
     }
 
     private static func extract(
-        _ entry: Archive.Entry,
+        _ entry: Entry,
         from archive: Archive,
         maximumBytes: UInt64,
         consume: (Data) throws -> Void
