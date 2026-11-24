@@ -758,7 +758,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
 
             if let light = layer["light"]?.objectValue,
                light["kind"]?.stringValue == "ambient",
-               light["castShadows"]?.boolValue == true {
+               case .bool(true)? = light["castShadows"] {
                 issues.append(ProjectIssue(severity: .warning, path: "\(location).light.castShadows", message: "Ambient lights do not cast shadows."))
             }
             if let expression = layer["expression"]?.stringValue, !expression.isEmpty {
@@ -775,7 +775,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             if layer["null"] != nil && type != "null" {
                 issues.append(ProjectIssue(severity: .warning, path: "\(location).null", message: "Null content is only used by null layers."))
             }
-            if layer["video"]?.objectValue?["alphaPacked"]?.boolValue == true && type != "video" {
+            if case .bool(true)? = layer["video"]?.objectValue?["alphaPacked"], type != "video" {
                 issues.append(ProjectIssue(severity: .warning, path: location, message: "Packed-alpha video settings only apply to video layers."))
             }
 
