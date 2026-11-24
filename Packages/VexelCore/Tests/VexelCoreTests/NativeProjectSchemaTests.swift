@@ -46,7 +46,7 @@ final class NativeProjectSchemaTests: XCTestCase {
               "transform": {
                 "position": {
                   "keyframes": [
-                    {"time": 0, "value": [0, 0], "easing": "easeInOut"},
+                    {"time": 0, "value": [0, 0], "easing": "easeInOut", "futureKeyframe": {"kept": true}},
                     {"time": 2, "value": [100, 50], "easing": {"cubicBezier": [0.2, 0.1, 0.8, 0.9]}}
                   ],
                   "loop": "cycle",
@@ -80,7 +80,7 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(typed.layers.first?.layers.first?.transform?.properties["position"], .animated(
             VexelAnimationTrack(
                 keyframes: [
-                    VexelKeyframe(time: 0, value: .array([.number(0), .number(0)]), easing: .preset("easeInOut")),
+                    VexelKeyframe(time: 0, value: .array([.number(0), .number(0)]), easing: .preset("easeInOut"), unknownFields: ["futureKeyframe": .object(["kept": .bool(true)])]),
                     VexelKeyframe(time: 2, value: .array([.number(100), .number(50)]), easing: .cubicBezier(x1: 0.2, y1: 0.1, x2: 0.8, y2: 0.9))
                 ],
                 loop: .cycle,
@@ -90,6 +90,11 @@ final class NativeProjectSchemaTests: XCTestCase {
         ))
 
         let reopened = try typed.projectDocument()
+        XCTAssertEqual(typed.layers.first?.layers.first?.transform?.properties["futureTransform"], .constant(.object(["custom": .bool(true)])))
+        XCTAssertEqual(typed.layers.first?.layers.first?.transform?.properties["position"].flatMap { value -> VexelKeyframe? in
+            guard case .animated(let track) = value else { return nil }
+            return track.keyframes.first
+        }?.unknownFields["futureKeyframe"], .object(["kept": .bool(true)]))
         XCTAssertEqual(reopened.fields["futureRoot"], original.fields["futureRoot"])
         XCTAssertEqual(reopened.fields["composition"]?.objectValue?["futureComposition"], original.fields["composition"]?.objectValue?["futureComposition"])
         XCTAssertEqual(reopened.fields["layers"]?.arrayValue?.first?.objectValue?["layers"]?.arrayValue?.first?.objectValue?["futureLayer"],
