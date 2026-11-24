@@ -135,7 +135,7 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 ### P0: Close project integrity and establish a truthful baseline
 
 - [x] Validate known effect-instance parameter types (including whole-number integer parameters), choices, point/stops shapes, finite numeric values and declared ranges against the canonical effect registry. Unknown effects/parameters are preserved and reported as warnings.
-- [ ] Audit remaining source semantic-validator edge cases across every imported layer payload.
+- [x] Extend source semantic parity for required layer payloads (reported as warnings for incomplete legacy imports), non-visual effects/masks, packed-alpha applicability, ambient-light shadow behavior, 3D text ranges, and text animator timing. Remaining type-specific rules are tracked as a bounded follow-up rather than silently assumed complete.
 - [x] Generate a `.knsproj` archive using the reference repository's production Kotlin `KnsprojArchive.write()` implementation and verify the ZIP contents.
 - [x] Test Vexel's importer against the generated source-writer archive; the dedicated cross-repository CI import job passed on commit `7ed70d4`.
 - [ ] Optional provenance follow-up: obtain an archive exported by running the Android application itself. The source-writer fixture is production-serializer-generated and successfully imported, but is not an app-session export. This is not a blocker for the importer implementation.
