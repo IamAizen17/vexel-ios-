@@ -264,7 +264,8 @@ public actor VexelEditingStore {
             }
             guard group.transform == nil, group.transform3D == nil, group.effects.isEmpty,
                   group.masks.isEmpty, group.transitionIn == nil, group.transitionOut == nil,
-                  group.blendMode == nil, group.motionBlur == nil, group.unknownFields.isEmpty else {
+                  group.blendMode == nil, group.motionBlur == nil, group.label == nil,
+                  group.content == nil, group.unknownFields.isEmpty else {
                 throw VexelEditingStoreError.invalidOperation("Ungrouping would discard group-level properties.")
             }
             let container = containerID(of: id, in: project.layers)
