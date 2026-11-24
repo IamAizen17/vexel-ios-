@@ -88,8 +88,8 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - [x] Audit the Android v12 models, serializers, archive writer and migration registry against source.
 - [x] Add the Kotlin-generated v12 JSON fixture and an Android repository video/audio sample archive with its real referenced media payloads. The archive is assembled for tests, not exported by the Android app.
-- [x] Add typed accessors for all 11 layer content variants, media/text/shape/3D/camera/light properties, masks, mattes, transitions, project metadata, motion blur, environment and editor view. Raw JSONValue remains the lossless backing store.
-- [ ] Finish dedicated nested models for text animator tracks, vector paths, fill/stroke styles, 3D materials, depth-of-field and lighting; wire typed accessors into canonical app editing.
+- [x] Add typed accessors for all 11 layer content variants, text/property animators, media/equalizer/cutout metadata, shape fill/stroke/path/trim, 3D materials/text, camera depth-of-field, light properties, masks, mattes, transitions, metadata, motion blur, environment and editor view. Raw JSONValue remains the lossless backing store.
+- [ ] Finish typed vector coordinate tuples, gradient endpoints, cutout frame/stroke internals and effect-specific parameter schemas; wire typed accessors into canonical app editing.
 - [x] Add recursive unknown-field preservation tests across nested groups, transforms, animation tracks, effects and root metadata.
 - [x] Add typed discriminator and content-accessor coverage for all 11 Android layer types, plus expression-only animations, loop modes and easing tests.
 - [x] Add source-compatible core duplicate/split operations and tests for nested IDs, parent/matte references, keyframe time offsets, transitions and media in-points.
