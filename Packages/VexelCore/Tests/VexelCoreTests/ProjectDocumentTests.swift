@@ -7,8 +7,8 @@ final class ProjectDocumentTests: XCTestCase {
         project.fields["compatibility"] = .object(["source": .string("android-reference")])
         project.fields["layers"] = .array([
             .object([
-                "id": .string("missing-text"),
-                "type": .string("text"),
+                "id": .string("missing-audio"),
+                "type": .string("audio"),
                 "name": .string("Missing payload"),
                 "start": .number(0),
                 "duration": .number(4),
@@ -25,8 +25,8 @@ final class ProjectDocumentTests: XCTestCase {
         ])
 
         let issues = project.validate()
-        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].text" })
-        XCTAssertFalse(issues.contains { $0.severity == .error && $0.path == "layers[0].text" })
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].audio" })
+        XCTAssertFalse(issues.contains { $0.severity == .error && $0.path == "layers[0].audio" })
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].effects" })
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].masks" })
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[1].light.castShadows" })
@@ -712,7 +712,7 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(invalidAnimated.validate(effectCatalog: catalog).contains {
             $0.severity == .error && $0.path == "layers[0].effects[0].samples.keyframes[0].value"
         })
-        XCTAssertTrue(invalidStatic.validate(effectCatalog: catalog).contains {
+        XCTAssertFalse(invalidStatic.validate(effectCatalog: catalog).contains {
             $0.severity == .warning && $0.path == "layers[0].effects[0].type"
         })
     }
