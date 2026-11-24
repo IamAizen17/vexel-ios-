@@ -69,6 +69,9 @@ struct VexelTimelinePanel: View {
     let fps: Int
     let onMarkerEdit: (VexelMarker) -> Void
     let onNotice: (String) -> Void
+    let onTrackTimingCommit: (UUID, Double, Double) -> Void
+    let onTrackVisibilityChange: (UUID, Bool) -> Void
+    let onTrackLockChange: (UUID, Bool) -> Void
     let onEditBegan: () -> Void
     let onEditEnded: () -> Void
 
@@ -160,8 +163,11 @@ struct VexelTimelinePanel: View {
                                             onNotice("Selected \(name).")
                                         },
                                         onMarkerEdit: onMarkerEdit,
-                                         onEditBegan: onEditBegan,
-                                         onEditEnded: onEditEnded
+                                        onTrackTimingCommit: onTrackTimingCommit,
+                                        onTrackVisibilityChange: onTrackVisibilityChange,
+                                        onTrackLockChange: onTrackLockChange,
+                                        onEditBegan: onEditBegan,
+                                        onEditEnded: onEditEnded
                                     )
                                 }
                             }
@@ -285,6 +291,9 @@ private struct VexelTimelineTrackRow: View {
     @Binding var selectedTrackID: UUID?
     let onSelect: (String) -> Void
     let onMarkerEdit: (VexelMarker) -> Void
+    let onTrackTimingCommit: (UUID, Double, Double) -> Void
+    let onTrackVisibilityChange: (UUID, Bool) -> Void
+    let onTrackLockChange: (UUID, Bool) -> Void
     let onEditBegan: () -> Void
     let onEditEnded: () -> Void
 
@@ -332,8 +341,11 @@ private struct VexelTimelineTrackRow: View {
                         selectedTrackID: $selectedTrackID,
                         onSelect: onSelect,
                         onMarkerEdit: onMarkerEdit,
-                                         onEditBegan: onEditBegan,
-                                         onEditEnded: onEditEnded
+                        onTrackTimingCommit: onTrackTimingCommit,
+                        onTrackVisibilityChange: onTrackVisibilityChange,
+                        onTrackLockChange: onTrackLockChange,
+                        onEditBegan: onEditBegan,
+                        onEditEnded: onEditEnded
                     )
                 }
             }
@@ -368,7 +380,7 @@ private struct VexelTimelineTrackRow: View {
 
             Button {
                 onEditBegan()
-                track.visible.toggle()
+                onTrackVisibilityChange(track.id, !track.visible)
                 onEditEnded()
             } label: {
                 Image(systemName: track.visible ? "eye" : "eye.slash")
@@ -377,7 +389,7 @@ private struct VexelTimelineTrackRow: View {
             .buttonStyle(.plain)
             Button {
                 onEditBegan()
-                track.locked.toggle()
+                onTrackLockChange(track.id, !track.locked)
                 onEditEnded()
             } label: {
                 Image(systemName: track.locked ? "lock.fill" : "lock.open")
@@ -418,7 +430,10 @@ private struct VexelTimelineTrackRow: View {
                 track.start = absolute.clamped(to: 0...(max(0, containerDuration - track.duration)))
             }
              .onEnded { _ in
-                if moveOrigin != nil { onEditEnded() }
+                if moveOrigin != nil {
+                    onTrackTimingCommit(track.id, track.start, track.duration)
+                    onEditEnded()
+                }
                 moveOrigin = nil
             }
     }
@@ -439,7 +454,10 @@ private struct VexelTimelineTrackRow: View {
                 track.duration = origin.duration - (newStart - origin.start)
             }
              .onEnded { _ in
-                if trimOrigin != nil { onEditEnded() }
+                if trimOrigin != nil {
+                    onTrackTimingCommit(track.id, track.start, track.duration)
+                    onEditEnded()
+                }
                 trimOrigin = nil
             }
     }
@@ -457,7 +475,10 @@ private struct VexelTimelineTrackRow: View {
                 track.duration = max(1 / Double(max(fps, 1)), min(containerDuration - origin.start, proposed))
             }
             .onEnded { _ in
-                if trimOrigin != nil { onEditEnded() }
+                if trimOrigin != nil {
+                    onTrackTimingCommit(track.id, track.start, track.duration)
+                    onEditEnded()
+                }
                 trimOrigin = nil
             }
     }
