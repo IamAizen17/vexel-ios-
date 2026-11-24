@@ -629,6 +629,7 @@ final class ProjectDocumentTests: XCTestCase {
         var project = ProjectDocument.starter()
         project.fields["layers"] = .array([.object([
             "id": .string("shape"), "type": .string("shape"),
+            "shape": .object(["kind": .string("rectangle")]),
             "effects": .array([
                 .object(["type": .string("brightness"), "amount": .number(1.5), "enabled": .string("yes"),
                     "mode": .string("invalid"), "center": .array([.number(0)]),
