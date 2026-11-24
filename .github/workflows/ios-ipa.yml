@@ -2,11 +2,6 @@ name: Build Vexel IPA
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/modular-engine-architecture
-    paths:
-      - .github/workflows/ios-ipa.yml
 
 permissions:
   contents: read
