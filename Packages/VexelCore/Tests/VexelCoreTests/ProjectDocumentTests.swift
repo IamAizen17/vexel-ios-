@@ -540,6 +540,62 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(warnings.contains { $0.path == "layers[0].transform.position.keyframes" })
     }
 
+    func testValidatesSourceLayerContentAndMediaSemantics() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object(["id": .string("missing-shape"), "type": .string("shape")]),
+            .object([
+                "id": .string("video-1"), "type": .string("video"),
+                "video": .object([
+                    "asset": .string("missing-video"),
+                    "speed": .number(0),
+                    "sourceStart": .number(-1),
+                    "eq": .array([.object([
+                        "frequency": .number(10), "gain": .number(30), "q": .number(20)
+                    ])])
+                ])
+            ]),
+            .object([
+                "id": .string("object-3d"), "type": .string("object3d"),
+                "object3d": .object([
+                    "primitive": .string("cube"),
+                    "text": .object([
+                        "fontSize": .number(2), "depth": .number(4),
+                        "bevel": .number(3), "lineHeight": .number(0)
+                    ])
+                ])
+            ])
+        ])
+
+        let issues = project.validate()
+        let errors = Set(issues.filter { $0.severity == .error }.map(\.path))
+        XCTAssertTrue(errors.contains("layers[0]"))
+        XCTAssertTrue(errors.contains("layers[1].video.speed"))
+        XCTAssertTrue(errors.contains("layers[1].video.sourceStart"))
+        XCTAssertTrue(errors.contains("layers[1].video.eq[0]"))
+        XCTAssertTrue(errors.contains("layers[2].object3d.text.fontSize"))
+        XCTAssertTrue(errors.contains("layers[2].object3d.text.bevel"))
+        XCTAssertTrue(errors.contains("layers[2].object3d.text.lineHeight"))
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[2].object3d.text" })
+    }
+
+    func testWarnsForUnsupportedSourceSemantics() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("ambient"), "type": .string("light"),
+                "light": .object(["kind": .string("ambient"), "castShadows": .bool(true)])
+            ]),
+            .object([
+                "id": .string("expression-layer"), "type": .string("null"),
+                "expression": .string("time * 2")
+            ])
+        ])
+        let warnings = project.validate().filter { $0.severity == .warning }
+        XCTAssertTrue(warnings.contains { $0.path == "layers[0].light.castShadows" })
+        XCTAssertTrue(warnings.contains { $0.path == "layers[1].expression" })
+    }
+
     func testWarnsWhenSourceSceneLimitsAreExceeded() {
         var project = ProjectDocument.starter()
         project.fields["layers"] = .array([

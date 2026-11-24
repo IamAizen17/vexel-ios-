@@ -503,6 +503,15 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             let type = layer["type"]?.stringValue ?? "unknown"
             let children = layer["layers"]?.arrayValue ?? []
 
+            let contentKeyByType = [
+                "text": "text", "shape": "shape", "image": "image", "video": "video",
+                "audio": "audio", "object3d": "object3d", "model3d": "model3d",
+                "camera": "camera", "light": "light"
+            ]
+            if let contentKey = contentKeyByType[type], layer[contentKey]?.objectValue == nil {
+                issues.append(ProjectIssue(severity: .error, path: location, message: "A '\(type)' layer requires a '\(contentKey)' content object."))
+            }
+
             if !children.isEmpty && type != "group" {
                 issues.append(ProjectIssue(severity: .error, path: "\(location).layers", message: "Only group layers may contain child layers."))
             }
@@ -695,6 +704,79 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                         issues.append(ProjectIssue(severity: .error, path: "\(animatorPath).stagger", message: "Text animator stagger must be non-negative."))
                     }
                 }
+            }
+
+            for mediaKey in ["video", "audio"] {
+                guard let media = layer[mediaKey]?.objectValue else { continue }
+                let speed = media["speed"]?.numberValue ?? 1
+                let sourceStart = media["sourceStart"]?.numberValue ?? 0
+                if speed <= 0 {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).speed", message: "Media playback speed must be greater than zero."))
+                }
+                if sourceStart < 0 {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).sourceStart", message: "Media source start must be non-negative."))
+                }
+                if let bands = media["eq"]?.arrayValue {
+                    if bands.count > 8 {
+                        issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).eq", message: "At most eight equalizer bands are supported."))
+                    }
+                    for (bandIndex, bandValue) in bands.enumerated() {
+                        guard let band = bandValue.objectValue else { continue }
+                        let frequency = band["frequency"]?.numberValue ?? 0
+                        let gain = band["gain"]?.numberValue ?? 0
+                        let q = band["q"]?.numberValue ?? 0
+                        if !(20...20_000).contains(frequency) || !(-24...24).contains(gain) || !(0.1...10).contains(q) {
+                            issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).eq[\(bandIndex)]", message: "Equalizer frequency, gain, and Q are outside supported ranges."))
+                        }
+                    }
+                }
+            }
+
+            if let object3DText = layer["object3d"]?.objectValue?["text"]?.objectValue {
+                let primitive = layer["object3d"]?.objectValue?["primitive"]?.stringValue
+                if primitive != "text" {
+                    issues.append(ProjectIssue(severity: .warning, path: "\(location).object3d.text", message: "3D text content is only used by the text primitive."))
+                }
+                if let font = object3DText["font"]?.objectValue,
+                   let weight = font["weight"]?.numberValue,
+                   !(100...900).contains(weight) {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.font.weight", message: "Font weight must be between 100 and 900."))
+                }
+                for (key, range) in [("fontSize", 4.0...2000.0), ("depth", 1.0...2000.0)] {
+                    if let value = object3DText[key]?.numberValue, !range.contains(value) {
+                        issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.\(key)", message: "3D text \(key) is outside its supported range."))
+                    }
+                }
+                if let depth = object3DText["depth"]?.numberValue,
+                   let bevel = object3DText["bevel"]?.numberValue, bevel < 0 || bevel > depth / 2 {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.bevel", message: "3D text bevel must be between zero and half the depth."))
+                }
+                if let lineHeight = object3DText["lineHeight"]?.numberValue, lineHeight <= 0 {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.lineHeight", message: "3D text line height must be greater than zero."))
+                }
+            }
+
+            if let light = layer["light"]?.objectValue,
+               light["kind"]?.stringValue == "ambient",
+               light["castShadows"]?.boolValue == true {
+                issues.append(ProjectIssue(severity: .warning, path: "\(location).light.castShadows", message: "Ambient lights do not cast shadows."))
+            }
+            if let expression = layer["expression"]?.stringValue, !expression.isEmpty {
+                issues.append(ProjectIssue(severity: .warning, path: "\(location).expression", message: "Expression syntax is preserved but cannot be evaluated or validated by the current iOS engine."))
+            }
+            if let masks = layer["masks"]?.arrayValue, !masks.isEmpty,
+               !["text", "shape", "image", "video", "group"].contains(type) {
+                issues.append(ProjectIssue(severity: .warning, path: "\(location).masks", message: "Masks apply to 2D visual layers only."))
+            }
+            if let effects = layer["effects"]?.arrayValue, !effects.isEmpty,
+               ["audio", "camera", "light", "null"].contains(type) {
+                issues.append(ProjectIssue(severity: .warning, path: "\(location).effects", message: "Effects have no visible result on \(type) layers."))
+            }
+            if layer["null"] != nil && type != "null" {
+                issues.append(ProjectIssue(severity: .warning, path: "\(location).null", message: "Null content is only used by null layers."))
+            }
+            if layer["video"]?.objectValue?["alphaPacked"]?.boolValue == true && type != "video" {
+                issues.append(ProjectIssue(severity: .warning, path: location, message: "Packed-alpha video settings only apply to video layers."))
             }
 
             validateKeyframeOrdering(.object(layer), path: location, issues: &issues)

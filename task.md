@@ -85,7 +85,7 @@ Design principles:
 - [x] Test-assembled video/audio archive fixture with referenced MP4/M4A assets.
 - [ ] Obtain a genuine archive exported by the Android reference app and compare archive entries, CRCs, metadata and referenced assets.
 - [x] Finish effect-instance parameter value/range validation, including integer type enforcement.
-- [ ] Audit remaining source semantic-validator edge cases across every imported layer payload.
+- [x] Audit source semantic-validator rules against `ProjectValidator.kt` and port the remaining import-critical content, media-speed/source-in-point, EQ, 3D-text, layer-kind warning, and unsupported-expression checks. Expression syntax remains intentionally warning-only until a safe native expression evaluator exists.
 - [ ] Confirm preservation and migration behavior against additional representative source fixtures.
 - [ ] Complete persistent asset lifecycle, cleanup, recovery and full-document project duplication.
 
@@ -140,17 +140,17 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [x] Test Vexel's importer against the generated source-writer archive; the dedicated cross-repository CI import job passed on commit `7ed70d4`.
 - [ ] Optional provenance follow-up: obtain an archive exported by running the Android application itself. The source-writer fixture is production-serializer-generated and successfully imported, but is not an app-session export. This is not a blocker for the importer implementation.
 - [x] Keep legacy import isolated; fixture tests cover unknown-field preservation through importer round trips.
-- [ ] Prove unknown-field preservation through the complete SwiftUI app edit/save/export bridge. A new archive-level regression test now covers edited native metadata and nested unknown-field preservation across ZIP export/reopen.
+- [x] Prove unknown-field preservation through the app document bridge after a metadata edit, including nested shape and layer extension fields; archive-level ZIP export/reopen coverage also verifies nested unknown fields.
 - [x] Validate project asset references and expected asset types recursively; validate effect parameter instances before accepting an imported project.
 - [x] Make project deletion save the updated library index before deleting its asset directory, so an index-write failure cannot leave a saved project pointing to deleted assets.
 - [x] Make project duplication commit the copied asset directory and updated library index as one recoverable operation; roll back copied assets when index persistence fails.
-- [ ] Add automated failure-injection coverage for project duplication and audit remaining persistence recovery requirements. The app persistence store currently has no dedicated XCTest target; add one before claiming this failure path is test-covered.
+- [x] Add an app XCTest target and failure-injection coverage for duplicate commit success, index-write failure rollback, rollback failure reporting, and bridge round-trip preservation. The duplicate transaction seam is covered; filesystem-level integration and delete cleanup failure remain explicit P1 hardening items.
 - [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
 - [x] Refresh the source audit, Android compatibility guide and porting roadmap to reflect persisted projects, connected import review, effect-aware validation and the current iOS-only development order.
-- [ ] Refresh PR #2 status text after the final CI run.
+- [ ] Refresh PR #2 status text after final CI verification.
 - [x] Disable automatic push and pull-request triggers for expensive workflows; iOS CI, source archive generation/import, and IPA packaging are now manual-dispatch only.
 - [x] Keep CI green for package tests, XcodeGen generation and simulator build on commit `7ed70d4` (run `45364469639`).
-- [ ] Re-run the manual iOS CI workflow after the latest workflow-only change and subsequent P0 code changes.
+- [ ] Run the updated `xcodebuild test` workflow on the final P0 commit. The previous successful run checked out an earlier SHA and does not verify the new app test target or latest validator changes.
 - [ ] Re-run the manual unsigned IPA workflow against the final P0 commit.
 - [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
@@ -223,7 +223,7 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head at review: `6a5394f23ef138379592d192ac44f4e8706ce48c`.
+Current feature branch head before this P0 follow-up: `ca3ad5c5b104fc524bee0843feedf4f9b61d3c69`.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
@@ -235,7 +235,7 @@ Current feature branch head at review: `6a5394f23ef138379592d192ac44f4e8706ce48c
 Successful workflow references:
 - Latest successful CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364469639
 - Source-writer archive and Vexel import: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364456096
-- [ ] Archive regression test for edited metadata and nested unknown-field preservation was added after the successful run above and still needs manual CI execution.
+- [ ] App-level persistence/bridge tests and source-validator regression tests were added after the successful run above. CI workflow now runs `xcodebuild test` on iPhone 16 simulator; a fresh run on the final P0 SHA is required.
 - IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
 
 ## 7. Required engineering workflow
