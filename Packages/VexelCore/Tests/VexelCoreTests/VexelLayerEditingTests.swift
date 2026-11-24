@@ -108,4 +108,45 @@ final class VexelLayerEditingTests: XCTestCase {
         XCTAssertNil(VexelLayerEditing.split(source, at: 2, takenIDs: ids, newID: "second", idFactory: factory))
         XCTAssertNil(VexelLayerEditing.split(source, at: .nan, takenIDs: ids, newID: "second", idFactory: factory))
     }
+
+    func testSplittingGroupShiftsImmediateChildStartsAndRemapsNestedReferences() throws {
+        let source = VexelLayer(
+            id: "group",
+            type: .group,
+            name: "Nested",
+            start: 0,
+            duration: 10,
+            layers: [
+                VexelLayer(id: "child-a", type: .shape, start: 1, duration: 8),
+                VexelLayer(
+                    id: "child-b",
+                    type: .shape,
+                    start: 2,
+                    duration: 6,
+                    parent: "child-a",
+                    matte: .object(["layer": .string("child-a"), "mode": .string("alpha")])
+                )
+            ]
+        )
+        var nextID = 0
+        let split = try XCTUnwrap(VexelLayerEditing.split(
+            source,
+            at: 5,
+            takenIDs: ["group", "child-a", "child-b"],
+            newID: "group-second",
+            idFactory: { _ in
+                nextID += 1
+                return "nested-copy-\\(nextID)"
+            }
+        ))
+
+        XCTAssertEqual(split.first.duration, 5)
+        XCTAssertEqual(split.second.start, 5)
+        XCTAssertEqual(split.second.duration, 5)
+        XCTAssertEqual(split.second.layers.map(\\.start), [-4, -3])
+        XCTAssertEqual(split.second.layers[1].parent, split.second.layers[0].id)
+        XCTAssertEqual(split.second.layers[1].matte?.objectValue?["layer"]?.stringValue, split.second.layers[0].id)
+        XCTAssertEqual(source.layers.map(\\.start), [1, 2])
+    }
+
 }
