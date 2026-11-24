@@ -23,7 +23,7 @@ The Kotlin `KnsProject` model in `Project.kt` serializes these root properties:
 
 Composition fields include integer width and height, **Double** fps, duration in seconds, serialized color background, motion-blur settings, and a lighting environment. Environment.asset references an image asset ID. Motion blur includes enabled, shutterAngle and samples.
 
-Asset fields are id, type, path, optional display name, MIME type, dimensions, duration, hasAudio and SHA-256. Asset paths are project-container-relative and must remain under `assets/`.
+Asset fields are id, type, path, optional name, MIME type, dimensions, duration, hasAudio and SHA-256. Asset paths are project-container-relative and must remain under `assets/`.
 
 ## Layer model
 
