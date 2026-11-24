@@ -530,17 +530,38 @@ struct VexelEditorWorkspace: View {
         return track.sourceID ?? track.id.uuidString
     }
 
-    private func commitEdit(_ mutation: (inout VexelProjectItem) -> Void) {
-        var candidate = project
-        mutation(&candidate)
-        candidate.layerNames = flattenTrackNames(candidate.timelineTracks)
-        candidate.modified = Date()
-        candidate.synchronizeDocument()
-        do {
-            let nativeProject = try VexelNativeProject(document: candidate.makeProjectDocument())
-            performEditingCommand(.replaceSnapshot(nativeProject))
-        } catch {
-            showingNotice = "The edit could not be committed: \(error.localizedDescription)"
+    private func commitEdit(_ mutation: @escaping (inout VexelProjectItem) -> Void) {
+        guard let store = editingStore else {
+            showingNotice = "The editing engine is unavailable. Reopen the project and try again."
+            return
+        }
+        let previousTask = editingCommandTask
+        editingCommandTask = Task { @MainActor in
+            await previousTask?.value
+            var candidate = project
+            mutation(&candidate)
+            candidate.layerNames = flattenTrackNames(candidate.timelineTracks)
+            candidate.modified = Date()
+            candidate.synchronizeDocument()
+
+            do {
+                let nativeProject = try VexelNativeProject(document: candidate.makeProjectDocument())
+                try await store.execute(.replaceSnapshot(nativeProject))
+                let committedSnapshot = await store.snapshot()
+                let document = try committedSnapshot.projectDocument()
+                var updated = VexelProjectItem(document: document)
+                updated.id = candidate.id
+                updated.assetsDirectory = candidate.assetsDirectory
+                updated.modified = candidate.modified
+                updated.layerNames = flattenTrackNames(updated.timelineTracks)
+                project = updated
+                layerNames = updated.layerNames
+                canUndoEdits = await store.canUndo
+                canRedoEdits = await store.canRedo
+                onProjectChange(updated)
+            } catch {
+                showingNotice = "The edit could not be committed: \(error.localizedDescription)"
+            }
         }
     }
 
