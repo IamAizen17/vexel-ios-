@@ -183,11 +183,11 @@ final class NativeProjectSchemaTests: XCTestCase {
             {"id":"text","type":"text","duration":8,"text":{"content":"Title","font":{"family":"sans-serif","weight":700,"asset":"font"},"fontSize":48,"color":"#FFFFFF","align":"center","lineHeight":1.2,"letterSpacing":0,"maxWidth":800,"animators":[],"propertyAnimators":[]}},
             {"id":"shape","type":"shape","duration":8,"shape":{"kind":"star","size":[300,300],"roundness":4,"sides":5,"innerRatio":0.5,"fill":{"enabled":true}}},
             {"id":"image","type":"image","duration":8,"image":{"asset":"img"}},
-            {"id":"video","type":"video","duration":8,"video":{"asset":"video","sourceStart":0.5,"speed":1.25,"volume":1,"muted":false,"fadeIn":0.2,"fadeOut":0.3,"alphaPacked":true,"eq":[],"cutout":{"source":"video","duration":4},"futureMedia":"kept"}},
+            {"id":"video","type":"video","duration":8,"video":{"asset":"video","sourceStart":0.5,"speed":1.25,"volume":1,"muted":false,"fadeIn":0.2,"fadeOut":0.3,"alphaPacked":true,"eq":[{"type":"peak","frequency":1000,"gain":2,"q":1}],"cutout":{"source":"video","duration":4},"futureMedia":"kept"}},
             {"id":"audio","type":"audio","duration":8,"audio":{"asset":"audio","sourceStart":1,"speed":1,"volume":0.8}},
             {"id":"group","type":"group","duration":8,"layers":[]},
-            {"id":"object","type":"object3d","duration":8,"object3d":{"primitive":"cube","size":300,"material":{"metallic":0.5}}},
-            {"id":"model","type":"model3d","duration":8,"model3d":{"asset":"model","size":400}},
+            {"id":"object","type":"object3d","duration":8,"object3d":{"primitive":"cube","size":300,"material":{"metallic":0.5},"text":{"content":"3D","fontSize":200,"depth":60}}},
+            {"id":"model","type":"model3d","duration":8,"model3d":{"asset":"model","size":400,"material":{"roughness":0.4}}},
             {"id":"camera","type":"camera","duration":8,"camera":{"aim":"target","fov":40,"dof":{"enabled":true}}},
             {"id":"light","type":"light","duration":8,"light":{"kind":"directional","intensity":1,"castShadows":true}},
             {"id":"null","type":"null","duration":8,"null":{"threeD":true}}
@@ -207,6 +207,7 @@ final class NativeProjectSchemaTests: XCTestCase {
         guard case .text(let text)? = schema.layers[0].typedContent else { return XCTFail("Expected typed text content.") }
         XCTAssertEqual(text.content, "Title")
         XCTAssertEqual(text.font?.asset, "font")
+        XCTAssertEqual(text.font?.weight, 700)
         guard case .shape(let shape)? = schema.layers[1].typedContent else { return XCTFail("Expected typed shape content.") }
         XCTAssertEqual(shape.kind, "star")
         guard case .image(let image)? = schema.layers[2].typedContent else { return XCTFail("Expected typed image content.") }
@@ -214,17 +215,22 @@ final class NativeProjectSchemaTests: XCTestCase {
         guard case .video(let video)? = schema.layers[3].typedContent else { return XCTFail("Expected typed video content.") }
         XCTAssertEqual(video.sourceStart, 0.5)
         XCTAssertEqual(video.speed, 1.25)
-        XCTAssertEqual(video.cutout?.string("source"), "video")
+        XCTAssertEqual(video.cutout?.source, "video")
+        XCTAssertEqual(video.equalizerBands?.first?.frequency, 1000)
         XCTAssertEqual(video.fields.string("futureMedia"), "kept")
         guard case .audio(let audio)? = schema.layers[4].typedContent else { return XCTFail("Expected typed audio content.") }
         XCTAssertEqual(audio.asset, "audio")
         guard case .group? = schema.layers[5].typedContent else { return XCTFail("Expected typed group content.") }
         guard case .object3D(let object)? = schema.layers[6].typedContent else { return XCTFail("Expected typed object3d content.") }
         XCTAssertEqual(object.primitive, "cube")
+        XCTAssertEqual(object.material?.metallic, .constant(.number(0.5)))
+        XCTAssertEqual(object.text?.content, "3D")
         guard case .model3D(let model)? = schema.layers[7].typedContent else { return XCTFail("Expected typed model3d content.") }
         XCTAssertEqual(model.asset, "model")
+        XCTAssertEqual(model.material?.roughness, .constant(.number(0.4)))
         guard case .camera(let camera)? = schema.layers[8].typedContent else { return XCTFail("Expected typed camera content.") }
         XCTAssertEqual(camera.aim, "target")
+        XCTAssertEqual(camera.depthOfField?.enabled, true)
         guard case .light(let light)? = schema.layers[9].typedContent else { return XCTFail("Expected typed light content.") }
         XCTAssertEqual(light.kind, "directional")
         guard case .null(let null)? = schema.layers[10].typedContent else { return XCTFail("Expected typed null content.") }
