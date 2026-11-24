@@ -418,4 +418,23 @@ final class ZIPProjectArchiveTests: XCTestCase {
         }
     }
 
+
+    func testArchiveExportReplacementFailurePreservesExistingDestination() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let destination = directory.appendingPathComponent("existing.vexelproj", isDirectory: true)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        let sentinel = destination.appendingPathComponent("keep.txt")
+        try Data("preserve-export-target".utf8).write(to: sentinel)
+
+        XCTAssertThrowsError(try ZIPProjectArchive().write(
+            ProjectDocument.starter(title: "Replacement failure"),
+            to: destination
+        ))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path))
+        XCTAssertEqual(try Data(contentsOf: sentinel), Data("preserve-export-target".utf8))
+    }
+
 }
