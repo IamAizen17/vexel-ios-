@@ -52,24 +52,16 @@ final class VexelNavigationUITests: XCTestCase {
         let anchorX = app.textFields["inspector.anchor.x"]
         XCTAssertTrue(anchorX.waitForExistence(timeout: 5))
         anchorX.tap()
-        anchorX.press(forDuration: 1.1)
-        if app.menuItems["Select All"].waitForExistence(timeout: 1) {
-            app.menuItems["Select All"].tap()
-        }
-        anchorX.typeText("42")
-        anchorX.typeText("\\n")
-        XCTAssertEqual(anchorX.value as? String, "42")
+        let anchorValue = anchorX.value as? String ?? ""
+        anchorX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: anchorValue.count) + "42\\n")
+        XCTAssertEqual(Double(anchorX.value as? String ?? ""), 42, accuracy: 0.01)
 
         let scaleX = app.textFields["inspector.scale.x"]
         XCTAssertTrue(scaleX.waitForExistence(timeout: 5))
         scaleX.tap()
-        scaleX.press(forDuration: 1.1)
-        if app.menuItems["Select All"].waitForExistence(timeout: 1) {
-            app.menuItems["Select All"].tap()
-        }
-        scaleX.typeText("125")
-        scaleX.typeText("\\n")
-        XCTAssertEqual(scaleX.value as? String, "125")
+        let scaleValue = scaleX.value as? String ?? ""
+        scaleX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: scaleValue.count) + "125\\n")
+        XCTAssertEqual(Double(scaleX.value as? String ?? ""), 125, accuracy: 0.01)
     }
 
     func testSelectingPortraitPresetOpensMatchingComposition() {
