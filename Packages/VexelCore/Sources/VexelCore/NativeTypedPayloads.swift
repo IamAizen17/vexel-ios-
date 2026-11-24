@@ -62,8 +62,12 @@ public struct VexelTextContent: Equatable, Sendable {
     public var letterSpacing: VexelAnimatableValue? { fields.animatable("letterSpacing") }
     public var maxWidth: Double? { fields.number("maxWidth") }
     public var stroke: VexelObjectFields? { fields.object("stroke") }
-    public var animators: [JSONValue]? { fields.array("animators") }
-    public var propertyAnimators: [JSONValue]? { fields.array("propertyAnimators") }
+    public var animators: [VexelTextAnimatorContent]? {
+        fields.array("animators")?.compactMap { $0.objectValue.map { VexelTextAnimatorContent(fields: VexelObjectFields($0)) } }
+    }
+    public var propertyAnimators: [VexelTextPropertyAnimatorContent]? {
+        fields.array("propertyAnimators")?.compactMap { $0.objectValue.map { VexelTextPropertyAnimatorContent(fields: VexelObjectFields($0)) } }
+    }
 }
 
 public struct VexelShapeContent: Equatable, Sendable {
@@ -97,8 +101,10 @@ public struct VexelMediaContent: Equatable, Sendable {
     public var fadeIn: Double? { fields.number("fadeIn") }
     public var fadeOut: Double? { fields.number("fadeOut") }
     public var alphaPacked: Bool? { fields.bool("alphaPacked") }
-    public var equalizerBands: [JSONValue]? { fields.array("eq") }
-    public var cutout: VexelObjectFields? { fields.object("cutout") }
+    public var equalizerBands: [VexelEqualizerBandContent]? {
+        fields.array("eq")?.compactMap { $0.objectValue.map { VexelEqualizerBandContent(fields: VexelObjectFields($0)) } }
+    }
+    public var cutout: VexelCutoutBrushContent? { fields.object("cutout").map { VexelCutoutBrushContent(fields: $0) } }
 }
 
 
@@ -188,7 +194,7 @@ public struct VexelObject3DContent: Equatable, Sendable {
     public var primitive: String? { fields.string("primitive") }
     public var size: VexelAnimatableValue? { fields.animatable("size") }
     public var material: VexelMaterialContent? { fields.object("material").map { VexelMaterialContent(fields: $0) } }
-    public var text: VexelObjectFields? { fields.object("text") }
+    public var text: VexelText3DContent? { fields.object("text").map { VexelText3DContent(fields: $0) } }
 }
 
 public struct VexelModel3DContent: Equatable, Sendable {
@@ -196,7 +202,7 @@ public struct VexelModel3DContent: Equatable, Sendable {
     public init(fields: VexelObjectFields) { self.fields = fields }
     public var asset: String? { fields.string("asset") }
     public var size: VexelAnimatableValue? { fields.animatable("size") }
-    public var material: VexelObjectFields? { fields.object("material") }
+    public var material: VexelMaterialContent? { fields.object("material").map { VexelMaterialContent(fields: $0) } }
 }
 
 public struct VexelCameraContent: Equatable, Sendable {
