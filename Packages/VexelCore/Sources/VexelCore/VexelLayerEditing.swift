@@ -101,7 +101,7 @@ public enum VexelLayerEditing {
                 shifted.unknownFields = frame.unknownFields.mapValues { shift($0, by: delta) }
                 return shifted
             }
-            copy.loop = track.loop.map { shift($0, by: delta) }
+            copy.loop = track.loop
             copy.unknownFields = track.unknownFields.mapValues { shift($0, by: delta) }
             return .animated(copy)
         }
