@@ -214,8 +214,43 @@ public struct VexelComposition: Codable, Equatable, Sendable {
     }
 }
 
-public enum VexelAssetType: String, Codable, CaseIterable, Sendable {
+public enum VexelAssetType: Codable, Equatable, CaseIterable, Sendable {
     case image, video, audio, model, font
+    case unknown(String)
+
+    public static let allCases: [VexelAssetType] = [.image, .video, .audio, .model, .font]
+
+    public var rawValue: String {
+        switch self {
+        case .image: "image"
+        case .video: "video"
+        case .audio: "audio"
+        case .model: "model"
+        case .font: "font"
+        case .unknown(let value): value
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "image": self = .image
+        case "video": self = .video
+        case "audio": self = .audio
+        case "model": self = .model
+        case "font": self = .font
+        default: self = .unknown(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.init(rawValue: try container.decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct VexelAsset: Codable, Equatable, Sendable {
@@ -288,8 +323,39 @@ public struct VexelMarkerData: Codable, Equatable, Sendable {
     }
 }
 
-public enum VexelBlendMode: String, Codable, Sendable {
+public enum VexelBlendMode: Codable, Equatable, Sendable {
     case normal, add, multiply, screen
+    case unknown(String)
+
+    public var rawValue: String {
+        switch self {
+        case .normal: "normal"
+        case .add: "add"
+        case .multiply: "multiply"
+        case .screen: "screen"
+        case .unknown(let value): value
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "normal": self = .normal
+        case "add": self = .add
+        case "multiply": self = .multiply
+        case "screen": self = .screen
+        default: self = .unknown(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.init(rawValue: try container.decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct VexelLayer: Codable, Equatable, Sendable {
