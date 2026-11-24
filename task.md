@@ -229,11 +229,12 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head after the P1 integration verification and manual-only workflow restoration: `c9f952b9368f229889d94a1d4321047c877d602e`.
+Current feature branch head after P1 integration and IPA verification: `97dc769d618131c3e56697063300e76c6481ba46` (workflow-only restoration after successful IPA build on `ad6d03ea7dd17cc43d7b2aa533eb0349ca29597a`).
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
 - [x] IPA artifact: `Vexel-unsigned-IPA`; includes `Vexel-unsigned.ipa` and SHA-256 checksum. Artifact is available from the workflow run.
+- [x] Latest unsigned IPA build run `45376506274` passed on `ad6d03ea7dd17cc43d7b2aa533eb0349ca29597a`: Release iOS archive, unsigned IPA packaging, ZIP integrity validation, SHA-256 generation and artifact upload all succeeded. Artifact `Vexel-unsigned-IPA` (artifact ID `14912120754`, 1,070,471 bytes). Current branch head differs only by restoring manual-only workflow triggers.
 - [ ] Signed installation on a physical iPhone/iPad has not been verified in this record.
 - [x] P1 integration CI run `45375103109` passed on code commit `b07238756de580dfbe5f5d982dc767a36e0ca45d`: all Swift package suites passed, including 58 VexelCore tests and 3 scene-evaluator tests; XcodeGen project generation succeeded; app persistence/bridge XCTest (4 tests) passed; iPhone 16 simulator test/build completed with `** TEST SUCCEEDED **`. The branch's current `c9f952b` commit only restores manual-only CI triggers.
 - [ ] Runtime interaction, rendering, media, audio and export behavior have not been validated on a physical device.
@@ -243,7 +244,8 @@ Successful workflow references:
 - Latest successful CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364469639
 - Source-writer archive and Vexel import: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364456096
 - [x] Final P0 regression run `45370528079` passed on `2a80cc2ed58d5d3533c017375e07e0d3aa629265`: archive/import (32 tests, 1 skipped), core (54), renderer (3), shader compiler (5), and app persistence/bridge XCTest (4), all with zero failures. XcodeGen project generation and iPhone simulator app test/build step also passed (`** TEST SUCCEEDED **`). The branch's current `c0b95f9` commit only restores manual-only CI triggers and does not change tested source code.
-- IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
+- Latest IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45376506274
+- Previous IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
 
 ## 7. Required engineering workflow
 
