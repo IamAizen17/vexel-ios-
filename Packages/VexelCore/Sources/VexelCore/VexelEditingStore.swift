@@ -237,7 +237,7 @@ public actor VexelEditingStore {
             guard let target = findLayer(id, in: project.layers) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
-            guard is3D == is3D(target.type) else {
+            guard is3D == is3DLayer(target.type) else {
                 throw VexelEditingStoreError.invalidOperation("The selected transform space does not match the layer type.")
             }
             guard updateLayer(id, in: &project.layers, { layer in
@@ -271,7 +271,7 @@ public actor VexelEditingStore {
             guard containerID(of: id, in: project.layers) == containerID(of: parentID, in: project.layers) else {
                 throw VexelEditingStoreError.invalidOperation("Parent and child must be siblings in the same group.")
             }
-            guard is3D(layer.type) == is3D(parent.type),
+            guard is3DLayer(layer.type) == is3DLayer(parent.type),
                   ![VexelLayerType.audio, .camera, .light].contains(parent.type) else {
                 throw VexelEditingStoreError.invalidOperation("Parent and child layer types are incompatible.")
             }
@@ -408,7 +408,7 @@ public actor VexelEditingStore {
         return false
     }
 
-    private static func is3D(_ type: VexelLayerType) -> Bool {
+    private static func is3DLayer(_ type: VexelLayerType) -> Bool {
         [.object3D, .model3D, .camera, .light].contains(type)
     }
 }
