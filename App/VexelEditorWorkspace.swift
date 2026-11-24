@@ -95,6 +95,36 @@ struct VexelEditorWorkspace: View {
         return tabs
     }
 
+    private var selectedPosition: [Double] {
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              let native = try? VexelNativeProject(document: project.makeProjectDocument()) else {
+            return [0, 0]
+        }
+        func findLayer(_ layers: [VexelLayer]) -> VexelLayer? {
+            for layer in layers {
+                if layer.id == sourceID { return layer }
+                if let nested = findLayer(layer.layers) { return nested }
+            }
+            return nil
+        }
+        guard let layer = findLayer(native.layers) else { return [0, 0] }
+        let transform = track.kind == .rendered3D ? layer.transform3D : layer.transform
+        let property = transform?.properties["position"]
+        let value: JSONValue?
+        switch property {
+        case .some(.constant(let constant)):
+            value = constant
+        case .some(.animated(let animation)):
+            value = animation.value ?? animation.keyframes.first?.value
+        case .none:
+            value = nil
+        }
+        guard let components = value?.arrayValue else { return [0, 0] }
+        let numbers = components.compactMap(\.numberValue)
+        return numbers.count >= 2 ? numbers : [0, 0]
+    }
+
     private var isWide: Bool { horizontalSizeClass == .regular }
 
     var body: some View {
@@ -162,7 +192,22 @@ struct VexelEditorWorkspace: View {
                 layerKind: selectedTimelineTrack?.kind,
                 onAddEffect: { showProperties = false; selectedTool = .effects },
                 effectIDs: selectedTimelineTrack?.effects ?? [],
-                onRemoveEffect: { removeEffect($0) }
+                onRemoveEffect: { removeEffect($0) },
+                position: selectedPosition,
+                onPositionCommit: { x, y in
+                    guard let track = selectedTimelineTrack,
+                          let sourceID = track.sourceID ?? selectedTrackID?.uuidString else { return }
+                    let is3D = track.kind == .rendered3D
+                    let vector: [JSONValue] = is3D
+                        ? [.number(x), .number(y), .number(selectedPosition.count > 2 ? selectedPosition[2] : 0)]
+                        : [.number(x), .number(y)]
+                    performEditingCommand(.setTransformValue(
+                        id: sourceID,
+                        property: "position",
+                        value: .constant(.array(vector)),
+                        is3D: is3D
+                    ))
+                }
             )
                 .presentationDetents([.medium, .large])
         }

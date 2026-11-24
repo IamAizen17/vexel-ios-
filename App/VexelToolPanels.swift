@@ -567,6 +567,8 @@ struct VexelPropertiesPanel: View {
     let onAddEffect: () -> Void
     let effectIDs: [String]
     let onRemoveEffect: (String) -> Void
+    let position: [Double]
+    let onPositionCommit: (Double, Double) -> Void
 
     @State private var positionX = 0.0
     @State private var positionY = 0.0
@@ -623,38 +625,17 @@ struct VexelPropertiesPanel: View {
                 switch tab {
                 case "Transform":
                     propertyGroup("POSITION") {
-                        valueField("X", value: $positionX, unit: "px")
-                        valueField("Y", value: $positionY, unit: "px")
-                    }
-                    propertyGroup("ANCHOR") {
-                        valueField("X", value: $anchorX, unit: "px")
-                        valueField("Y", value: $anchorY, unit: "px")
-                    }
-                    propertyGroup("SCALE") {
-                        valueField("X", value: $scaleX, unit: "%")
-                        valueField("Y", value: $scaleY, unit: "%")
-                    }
-                    propertyGroup("ROTATION") { valueField("Z", value: $rotation, unit: "°") }
-                    propertyGroup("OPACITY") { valueField("Alpha", value: $opacity, unit: "%") }
-                    propertyGroup("LAYER SETTINGS") {
-                        Toggle("Visible", isOn: $visible).tint(VexelPalette.accent)
-                        Toggle("Locked", isOn: $locked).tint(VexelPalette.accent)
-                        valueField("Start", value: $startTime, unit: "s")
-                        valueField("Duration", value: $layerDuration, unit: "s")
-                        Picker("Blend mode", selection: $blendMode) {
-                            ForEach(["Normal", "Add", "Multiply", "Screen"], id: \.self) { Text($0).tag($0) }
-                        }.tint(VexelPalette.accent)
-                        Toggle("Motion blur", isOn: $motionBlur).tint(VexelPalette.accent)
-                    }
-                    propertyGroup("KEYFRAMES") {
-                        HStack {
-                            VexelActionButton(title: "Add keyframe", systemImage: "diamond.fill") {}
-                                .disabled(true)
-                            VexelActionButton(title: "Edit curve", systemImage: "point.topleft.down.to.point.bottomright.curvepath", action: onCurve)
+                        valueField("X", value: $positionX, unit: "px") {
+                            onPositionCommit(positionX, positionY)
                         }
-                        Text("Keyframe commands and parenting are pending the editing engine.")
+                        valueField("Y", value: $positionY, unit: "px") {
+                            onPositionCommit(positionX, positionY)
+                        }
+                        Text("Position is committed to the native project when you submit either value.")
                             .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
+                    Text("Anchor, scale, rotation and opacity controls are not exposed until their typed property mappings are complete.")
+                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
 
                 case "Text":
                     propertyGroup("TEXT CONTENT") {
@@ -768,7 +749,15 @@ struct VexelPropertiesPanel: View {
             }
             .padding(.bottom, 12)
         }
-        .disabled(tab != "Effects")
+        .onAppear {
+            positionX = position.first ?? 0
+            positionY = position.dropFirst().first ?? 0
+        }
+        .onChange(of: position) { values in
+            positionX = values.first ?? 0
+            positionY = values.dropFirst().first ?? 0
+        }
+        .disabled(!["Transform", "Effects"].contains(tab))
     }
 
     private func propertyGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -778,7 +767,12 @@ struct VexelPropertiesPanel: View {
         }
     }
 
-    private func valueField(_ title: String, value: Binding<Double>, unit: String) -> some View {
+    private func valueField(
+        _ title: String,
+        value: Binding<Double>,
+        unit: String,
+        onCommit: (() -> Void)? = nil
+    ) -> some View {
         HStack {
             Text(title).font(.system(size: 10, weight: .medium)).foregroundStyle(VexelPalette.soft)
             Spacer()
@@ -786,6 +780,7 @@ struct VexelPropertiesPanel: View {
                 .multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation)
                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.text)
                 .frame(width: 64).padding(6).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 6))
+                .onSubmit { onCommit?() }
             Text(unit).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary).frame(width: 24, alignment: .leading)
         }
     }
