@@ -106,7 +106,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 ### P1: Canonical editing model and command engine
 
-- Replace view-local mutations and workspace-owned undo stacks with an actor-owned canonical project store.
+- [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.\n- [ ] Route all SwiftUI workspace and timeline mutations through `VexelEditingStore`; remove view-local mutations and workspace-owned undo stacks.
 - Implement typed commands with validation, deterministic state transitions, undo/redo, and command coalescing.
 - Port timeline reorder, move, trim, split, duplicate, group/ungroup, parenting, multi-selection, snapping, and ripple edits.
 - Implement typed property descriptors and set-value/auto-keyframe behavior.
@@ -166,7 +166,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - Previous successful workflow: run 45282736871, commit 02b83e5f40b29de404b4df91b57b033fd51a0597.
 - That run predates the current project persistence, document bridge, and ZIP archive integration. It is historical evidence only.
-- Latest project/archive changes were inspected through GitHub file contents; no local Swift compiler or test execution was available during this update.
+- Latest schema, migration, import-review, and editing-store changes were inspected through GitHub file contents. Tests were added for typed vectors/cutout payloads/effect schemas, native migrations, and actor command history/validation; none of these latest tests have been executed.
 - No fresh package build, test run, Xcode project generation, iOS archive, IPA packaging, simulator test, or physical-device test has been performed for the current branch state.
 - The earlier macOS workflow attempts were not provisioned by GitHub-hosted runners (runner_id 0 and no execution steps). This is an infrastructure execution gap, not a compiler result. The repository is public; standard public GitHub-hosted runners are expected to be available without the private-repository minute quota, but the manual smoke workflow must confirm provisioning.
 - Use source-level review and non-macOS static/package checks where available until Actions usage is restored. A successful fresh macOS build and real iPhone/iPad validation remain required.
