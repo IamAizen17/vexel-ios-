@@ -155,9 +155,9 @@ struct VexelEditorWorkspace: View {
         .sheet(item: $editingMarker) { marker in
             VexelMarkerSheet(marker: marker) { updated in
                 if let index = project.markers.firstIndex(where: { $0.id == updated.id }) {
-                    commitEdit { project.markers[index] = updated }
+                    commitEdit { candidate in candidate.markers[index] = updated }
                 } else {
-                    commitEdit { project.markers.append(updated) }
+                    commitEdit { candidate in candidate.markers.append(updated) }
                 }
             }
             .presentationDetents([.medium, .large])
@@ -332,10 +332,7 @@ struct VexelEditorWorkspace: View {
             selectedTrackID: $selectedTrackID,
             duration: project.duration,
             fps: project.fps,
-            onMarkerEdit: {
-                editingMarker = $0
-                resetEditingStoreFromWorkspace()
-            },
+            onMarkerEdit: { editingMarker = $0 },
             onNotice: { showingNotice = $0 },
             onTrackTimingCommit: { trackID, start, duration in
                 guard let sourceID = sourceLayerID(for: trackID) else {
@@ -686,8 +683,8 @@ struct VexelEditorWorkspace: View {
         }
         let rate = Double(max(project.fps, 1))
         let frameTime = (currentTime * rate).rounded() / rate
-        commitEdit {
-            let found = updateTrack(id: selectedTrackID, in: &project.timelineTracks) { track in
+        commitEdit { candidate in
+            let found = updateTrack(id: selectedTrackID, in: &candidate.timelineTracks) { track in
                 guard frameTime >= track.start, frameTime <= track.start + track.duration else { return }
                 let localTime = frameTime - track.start
                 if !track.keyframes.contains(where: { abs($0 - localTime) < 0.0001 }) {
@@ -807,8 +804,8 @@ struct VexelEditorWorkspace: View {
                 }
             }
             let track = makeImportedTrack(asset, start: currentTime, duration: duration)
-            commitEdit {
-                project.timelineTracks.append(track)
+            commitEdit { candidate in
+                candidate.timelineTracks.append(track)
                 selectedTrackID = track.id
             }
             showingNotice = "Imported \(asset.name) into the project and added it to the timeline."
