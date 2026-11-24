@@ -425,7 +425,8 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
 
     private static func is3DLayer(type: String, fields: [String: JSONValue]) -> Bool {
         if type == "null" {
-            return fields["null"]?.objectValue?["threeD"]?.boolValue ?? false
+            guard case .bool(let is3D)? = fields["null"]?.objectValue?["threeD"] else { return false }
+            return is3D
         }
         return ["object3d", "model3d", "camera", "light"].contains(type)
     }
