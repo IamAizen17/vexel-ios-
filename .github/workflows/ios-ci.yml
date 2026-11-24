@@ -10,6 +10,8 @@ on:
       - project.yml
       - App/VexelNavigation.swift
       - AppUITests/**
+      - Packages/VexelCore/Sources/VexelCore/**
+      - Packages/VexelCore/Tests/**
 
 permissions:
   contents: read

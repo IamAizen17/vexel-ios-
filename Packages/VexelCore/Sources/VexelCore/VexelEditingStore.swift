@@ -395,11 +395,11 @@ public actor VexelEditingStore {
                 let current = transform.properties[property]
                 var animation: VexelAnimationTrack
                 switch current {
-                case .animated(let existing):
+                case .some(.animated(let existing)):
                     animation = existing
-                case .constant(let value):
+                case .some(.constant(let value)):
                     animation = VexelAnimationTrack(value: value)
-                case nil:
+                case .none:
                     animation = VexelAnimationTrack()
                 }
                 if let index = animation.keyframes.firstIndex(where: { abs($0.time - keyframe.time) < 0.000001 }) {
@@ -442,7 +442,7 @@ public actor VexelEditingStore {
             guard !marker.id.isEmpty, marker.id.count <= 256,
                   marker.time.isFinite, marker.time >= 0,
                   marker.time <= project.composition.duration,
-                  marker.name?.count ?? 0 <= 256 else {
+                  (marker.name?.count ?? 0) <= 256 else {
                 throw VexelEditingStoreError.invalidOperation("Marker identity, name, or time is outside supported bounds.")
             }
             if let index = project.markers.firstIndex(where: { $0.id == marker.id }) {
