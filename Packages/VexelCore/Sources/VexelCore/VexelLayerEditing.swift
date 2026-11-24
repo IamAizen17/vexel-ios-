@@ -9,7 +9,7 @@ public enum VexelLayerEditing {
         newID: String,
         idFactory: (VexelLayerType) -> String
     ) -> VexelLayer {
-        let copied = reassignIDs(layer, takenIDs: takenIDs.union([newID]), rootID: newID, idFactory: idFactory)
+        let copied = reassignIDs(layer, takenIDs: takenIDs, rootID: newID, idFactory: idFactory)
         return copied.withName(layer.name.map { $0.isEmpty ? "" : $0 + " copy" })
     }
 
@@ -118,8 +118,9 @@ public enum VexelLayerEditing {
                         guard var fields = frame.objectValue else { return shift(frame, by: delta) }
                         if let time = fields["time"]?.numberValue { fields["time"] = .number(time + delta) }
                         if let value = fields["value"] { fields["value"] = shift(value, by: delta) }
-                        for (field, nested) in fields where field != "time" && field != "value" {
-                            fields[field] = shift(nested, by: delta)
+                        fields = fields.mapValues { shift($0, by: delta) }
+                        if let time = frame.objectValue?["time"]?.numberValue {
+                            fields["time"] = .number(time + delta)
                         }
                         return .object(fields)
                     })
@@ -151,9 +152,16 @@ public enum VexelLayerEditing {
         var mapping: [String: String] = [:]
 
         func assign(_ current: VexelLayer, forcedID: String?) {
-            var identifier = forcedID ?? idFactory(current.type)
-            while used.contains(identifier) {
-                identifier = idFactory(current.type)
+            let identifier: String
+            if let forcedID {
+                precondition(!used.contains(forcedID), "The requested root ID must be unique.")
+                identifier = forcedID
+            } else {
+                var candidate = idFactory(current.type)
+                while used.contains(candidate) {
+                    candidate = idFactory(current.type)
+                }
+                identifier = candidate
             }
             used.insert(identifier)
             mapping[current.id] = identifier
