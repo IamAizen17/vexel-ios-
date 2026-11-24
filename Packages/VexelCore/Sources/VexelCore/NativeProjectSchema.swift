@@ -19,7 +19,7 @@ public enum VexelLayerType: String, Codable, CaseIterable, Sendable {
         case .model3D: "model3d"
         case .camera: "camera"
         case .light: "light"
-        case .null: nil
+        case .null: "null"
         }
     }
 }
@@ -363,27 +363,86 @@ public enum VexelAnimatableValue: Codable, Equatable, Sendable {
     }
 }
 
+public enum VexelLoopMode: String, Codable, Sendable {
+    case none
+    case cycle
+    case pingpong
+}
+
 public struct VexelAnimationTrack: Codable, Equatable, Sendable {
     public var keyframes: [VexelKeyframe]
-    public var loop: JSONValue?
+    public var loop: VexelLoopMode?
     public var expression: String?
+    public var expressionEnabled: Bool?
     public var unknownFields: [String: JSONValue]
-    public init(keyframes: [VexelKeyframe], loop: JSONValue? = nil, expression: String? = nil, unknownFields: [String: JSONValue] = [:]) {
-        self.keyframes = keyframes; self.loop = loop; self.expression = expression; self.unknownFields = unknownFields
+    public init(keyframes: [VexelKeyframe], loop: VexelLoopMode? = nil, expression: String? = nil,
+                expressionEnabled: Bool? = nil, unknownFields: [String: JSONValue] = [:]) {
+        self.keyframes = keyframes; self.loop = loop; self.expression = expression
+        self.expressionEnabled = expressionEnabled; self.unknownFields = unknownFields
     }
-    private enum Keys: String, CaseIterable { case keyframes, loop, expression }
+    private enum Keys: String, CaseIterable { case keyframes, loop, expression, expressionEnabled }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicCodingKey.self)
         keyframes = try c.decode([VexelKeyframe].self, forKey: .init("keyframes"))
         loop = try c.decodeIfPresent(JSONValue.self, forKey: .init("loop"))
         expression = try c.decodeIfPresent(String.self, forKey: .init("expression"))
+        expressionEnabled = try c.decodeIfPresent(Bool.self, forKey: .init("expressionEnabled"))
         unknownFields = try VexelNativeProject.decodeExtra(c, known: Set(Keys.allCases.map(\.rawValue)))
     }
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: DynamicCodingKey.self)
         try c.encode(keyframes, forKey: .init("keyframes")); try c.encodeIfPresent(loop, forKey: .init("loop"))
         try c.encodeIfPresent(expression, forKey: .init("expression"))
+        try c.encodeIfPresent(expressionEnabled, forKey: .init("expressionEnabled"))
         for (key, value) in unknownFields where !Keys.allCases.map(\.rawValue).contains(key) { try c.encode(value, forKey: .init(key)) }
+    }
+}
+
+public enum VexelEasing: Codable, Equatable, Sendable {
+    case preset(String)
+    case cubicBezier(x1: Double, y1: Double, x2: Double, y2: Double)
+    case cyclic(offset: Double, cycles: Double, phase: Double)
+    case unknown(JSONValue)
+
+    public init(from decoder: Decoder) throws {
+        let value = try JSONValue(from: decoder)
+        switch value {
+        case .string(let preset):
+            self = .preset(preset)
+        case .object(let object):
+            if let points = object["cubicBezier"]?.arrayValue, points.count == 4,
+               let x1 = points[0].numberValue, let y1 = points[1].numberValue,
+               let x2 = points[2].numberValue, let y2 = points[3].numberValue {
+                self = .cubicBezier(x1: x1, y1: y1, x2: x2, y2: y2)
+            } else if let cyclic = object["cyclic"]?.objectValue {
+                self = .cyclic(
+                    offset: cyclic["offset"]?.numberValue ?? 0,
+                    cycles: cyclic["cycles"]?.numberValue ?? 3.5,
+                    phase: cyclic["phase"]?.numberValue ?? 0
+                )
+            } else {
+                self = .unknown(value)
+            }
+        default:
+            self = .unknown(value)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        let value: JSONValue
+        switch self {
+        case .preset(let preset):
+            value = .string(preset)
+        case .cubicBezier(let x1, let y1, let x2, let y2):
+            value = .object(["cubicBezier": .array([.number(x1), .number(y1), .number(x2), .number(y2)])])
+        case .cyclic(let offset, let cycles, let phase):
+            value = .object(["cyclic": .object([
+                "offset": .number(offset), "cycles": .number(cycles), "phase": .number(phase)
+            ])])
+        case .unknown(let raw):
+            value = raw
+        }
+        try value.encode(to: encoder)
     }
 }
 
