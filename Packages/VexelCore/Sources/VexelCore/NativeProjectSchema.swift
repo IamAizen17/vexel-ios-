@@ -1,11 +1,59 @@
 import Foundation
 
-public enum VexelLayerType: String, Codable, CaseIterable, Sendable {
+public enum VexelLayerType: Codable, Equatable, CaseIterable, Sendable {
     case text, shape, image, video, audio, group
-    case object3D = "object3d"
-    case model3D = "model3d"
-    case camera, light
-    case null
+    case object3D
+    case model3D
+    case camera, light, null
+    case unknown(String)
+
+    public static let allCases: [VexelLayerType] = [
+        .text, .shape, .image, .video, .audio, .group, .object3D, .model3D, .camera, .light, .null
+    ]
+
+    public var rawValue: String {
+        switch self {
+        case .text: "text"
+        case .shape: "shape"
+        case .image: "image"
+        case .video: "video"
+        case .audio: "audio"
+        case .group: "group"
+        case .object3D: "object3d"
+        case .model3D: "model3d"
+        case .camera: "camera"
+        case .light: "light"
+        case .null: "null"
+        case .unknown(let value): value
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "text": self = .text
+        case "shape": self = .shape
+        case "image": self = .image
+        case "video": self = .video
+        case "audio": self = .audio
+        case "group": self = .group
+        case "object3d": self = .object3D
+        case "model3d": self = .model3D
+        case "camera": self = .camera
+        case "light": self = .light
+        case "null": self = .null
+        default: self = .unknown(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.init(rawValue: try container.decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 
     public var contentKey: String? {
         switch self {
@@ -20,6 +68,7 @@ public enum VexelLayerType: String, Codable, CaseIterable, Sendable {
         case .camera: "camera"
         case .light: "light"
         case .null: "null"
+        case .unknown(let value): value
         }
     }
 }
