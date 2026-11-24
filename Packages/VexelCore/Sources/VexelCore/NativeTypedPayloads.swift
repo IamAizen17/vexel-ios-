@@ -140,10 +140,10 @@ public struct VexelShapeContent: Equatable, Sendable {
     public var roundness: VexelAnimatableValue? { fields.animatable("roundness") }
     public var sides: VexelAnimatableValue? { fields.animatable("sides") }
     public var innerRatio: VexelAnimatableValue? { fields.animatable("innerRatio") }
-    public var path: VexelObjectFields? { fields.object("path") }
-    public var fill: VexelObjectFields? { fields.object("fill") }
-    public var stroke: VexelObjectFields? { fields.object("stroke") }
-    public var trim: VexelObjectFields? { fields.object("trim") }
+    public var path: VexelPathContent? { fields.object("path").map { VexelPathContent(fields: $0) } }
+    public var fill: VexelFillContent? { fields.object("fill").map { VexelFillContent(fields: $0) } }
+    public var stroke: VexelStrokeContent? { fields.object("stroke").map { VexelStrokeContent(fields: $0) } }
+    public var trim: VexelTrimContent? { fields.object("trim").map { VexelTrimContent(fields: $0) } }
 }
 
 public struct VexelImageContent: Equatable, Sendable {
