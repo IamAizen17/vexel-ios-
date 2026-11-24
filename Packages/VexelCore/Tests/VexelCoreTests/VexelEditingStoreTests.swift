@@ -74,6 +74,25 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(layers[2].name, "Clip copy")
     }
 
+    func testEffectCommandsPreserveParametersAndUndo() async throws {
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 4)
+        let store = try makeStore(layers: [layer])
+        let glow = VexelEffect(type: "glow", parameters: ["radius": .number(12)])
+        let blur = VexelEffect(type: "blur", parameters: ["amount": .number(4)])
+
+        try await store.execute(.addEffect(layerID: "shape", effect: glow))
+        try await store.execute(.addEffect(layerID: "shape", effect: blur))
+        try await store.execute(.removeEffect(layerID: "shape", type: "blur"))
+
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].effects, [glow])
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].effects, [glow, blur])
+    }
+
     func testNestedInsertionAndParentCycleProtection() async throws {
         let group = VexelLayer(
             id: "group",
