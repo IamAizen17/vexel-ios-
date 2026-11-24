@@ -1,4 +1,5 @@
 import Foundation
+import VexelCore
 
 
 public struct VexelUnsupportedFeature: Equatable, Sendable {
