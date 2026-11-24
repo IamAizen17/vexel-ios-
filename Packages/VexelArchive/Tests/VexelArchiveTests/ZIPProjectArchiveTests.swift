@@ -92,6 +92,32 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertFalse(paths.contains("project.json"))
     }
 
+
+    func testSourceAndroidV12KotlinFixtureMigratesToNativeVexel() throws {
+        let fixtureURL = try XCTUnwrap(Bundle.module.url(
+            forResource: "android-v12-kotlin-reference",
+            withExtension: "json",
+            subdirectory: "Fixtures"
+        ))
+        let data = try Data(contentsOf: fixtureURL)
+        let imported = try VexelProjectImporter.importDocument(from: data)
+
+        XCTAssertEqual(imported.fields["format"]?.stringValue, ProjectDocument.format)
+        XCTAssertEqual(imported.fields["formatVersion"]?.numberValue, Double(ProjectDocument.currentVersion))
+        XCTAssertEqual(imported.fields["compatibility"]?.objectValue?["sourceVersion"]?.numberValue, 12)
+        XCTAssertEqual(imported.title, "Everything")
+        XCTAssertEqual(imported.fields["assets"]?.arrayValue?.count, 5)
+        XCTAssertEqual(imported.fields["layers"]?.arrayValue?.count, 9)
+        XCTAssertEqual(imported.fields["composition"]?.objectValue?["fps"]?.numberValue, 30)
+        XCTAssertEqual(imported.fields["editorView"]?.objectValue?["mode"]?.stringValue, "editor")
+
+        let layers = imported.fields["layers"]?.arrayValue ?? []
+        let star = try XCTUnwrap(layers.first { $0.objectValue?["id"]?.stringValue == "star" }?.objectValue)
+        XCTAssertEqual(star["effects"]?.arrayValue?.count, 7)
+        XCTAssertNotNil(star["transform"]?.objectValue?["position"]?.objectValue?["keyframes"])
+        XCTAssertNotNil(star["transitionIn"])
+    }
+
     func testImporterRejectsUnknownExternalFormat() throws {
         let fields: [String: JSONValue] = [
             "format": .string("unrelated-project"),
