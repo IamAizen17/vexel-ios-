@@ -147,14 +147,16 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [x] Add an app XCTest target and failure-injection coverage for duplicate commit success, index-write failure rollback, rollback failure reporting, and bridge round-trip preservation. The duplicate transaction seam is covered; filesystem-level integration and delete cleanup failure remain explicit P1 hardening items.
 - [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
 - [x] Refresh the source audit, Android compatibility guide and porting roadmap to reflect persisted projects, connected import review, effect-aware validation and the current iOS-only development order.
-- [ ] Refresh PR #2 status text after final CI verification.
+- [x] Refresh PR #2 status text after final CI verification.
 - [x] Disable automatic push and pull-request triggers for expensive workflows; iOS CI, source archive generation/import, and IPA packaging are now manual-dispatch only.
 - [x] Keep CI green for package tests, XcodeGen generation and simulator build on commit `7ed70d4` (run `45364469639`).
-- [ ] Run the updated `xcodebuild test` workflow on the final P0 commit. The latest run `45369537649` reached the core tests and exposed test fixtures that omit required layer payloads; those fixtures are being corrected to match the native schema. The final revision still needs a passing run.
-- [ ] Re-run the manual unsigned IPA workflow against the final P0 commit.
-- [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
+- [x] Run the updated `xcodebuild test` workflow after the final P0 code changes. Run `45370528079` passed on code commit `2a80cc2`; the only subsequent commit (`c0b95f9`) restored manual-only workflow triggers. Package suites, app persistence XCTest target (4 tests), XcodeGen generation, simulator app tests and simulator build all passed.
+- [ ] Optional: re-run unsigned IPA packaging on the current branch head. This is a packaging artifact check, not a blocker for P0 code integrity; the prior unsigned IPA run `45356750586` predates the final P0 code.
+- [x] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
 ### P1: Canonical project/editing state and complete editing interaction
+
+P1 is now active. The first implementation slice is to eliminate the workspace's duplicate undo/redo authority and make store snapshots the persistence source; the current UI still rebuilds the store from its projection and has direct mutation paths that must be migrated incrementally.
 
 **P1.1 Canonical editing authority**
 - [ ] Make the typed native project the authoritative editable project state.
@@ -223,7 +225,7 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head before this P0 follow-up: `ca3ad5c5b104fc524bee0843feedf4f9b61d3c69`.
+Current feature branch head after P0 verification: `c0b95f92f831a4f8f244ea07963b3f96ca9ace25` (workflow-only manual-trigger restoration after successful code verification at `2a80cc2ed58d5d3533c017375e07e0d3aa629265`).
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
@@ -235,7 +237,7 @@ Current feature branch head before this P0 follow-up: `ca3ad5c5b104fc524bee0843f
 Successful workflow references:
 - Latest successful CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364469639
 - Source-writer archive and Vexel import: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364456096
-- [ ] App-level persistence/bridge tests and source-validator regression tests were added after the successful run above. CI workflow now runs `xcodebuild test` on iPhone 16 simulator; a fresh run on the final P0 SHA is required.
+- [x] Final P0 regression run `45370528079` passed on `2a80cc2ed58d5d3533c017375e07e0d3aa629265`: archive/import (32 tests, 1 skipped), core (54), renderer (3), shader compiler (5), and app persistence/bridge XCTest (4), all with zero failures. XcodeGen project generation and iPhone simulator app test/build step also passed (`** TEST SUCCEEDED **`). The branch's current `c0b95f9` commit only restores manual-only CI triggers and does not change tested source code.
 - IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
 
 ## 7. Required engineering workflow
