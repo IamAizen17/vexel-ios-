@@ -381,7 +381,7 @@ public struct VexelAnimationTrack: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicCodingKey.self)
         keyframes = try c.decode([VexelKeyframe].self, forKey: .init("keyframes"))
-        loop = try c.decodeIfPresent(JSONValue.self, forKey: .init("loop"))
+        loop = try c.decodeIfPresent(VexelLoopMode.self, forKey: .init("loop"))
         expression = try c.decodeIfPresent(String.self, forKey: .init("expression"))
         expressionEnabled = try c.decodeIfPresent(Bool.self, forKey: .init("expressionEnabled"))
         unknownFields = try VexelNativeProject.decodeExtra(c, known: Set(Keys.allCases.map(\.rawValue)))
@@ -446,16 +446,16 @@ public enum VexelEasing: Codable, Equatable, Sendable {
 public struct VexelKeyframe: Codable, Equatable, Sendable {
     public var time: Double
     public var value: JSONValue
-    public var easing: JSONValue?
+    public var easing: VexelEasing?
     public var unknownFields: [String: JSONValue]
-    public init(time: Double, value: JSONValue, easing: JSONValue? = nil, unknownFields: [String: JSONValue] = [:]) {
+    public init(time: Double, value: JSONValue, easing: VexelEasing? = nil, unknownFields: [String: JSONValue] = [:]) {
         self.time = time; self.value = value; self.easing = easing; self.unknownFields = unknownFields
     }
     private enum Keys: String, CaseIterable { case time, value, easing }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicCodingKey.self)
         time = try c.decode(Double.self, forKey: .init("time")); value = try c.decode(JSONValue.self, forKey: .init("value"))
-        easing = try c.decodeIfPresent(JSONValue.self, forKey: .init("easing"))
+        easing = try c.decodeIfPresent(VexelEasing.self, forKey: .init("easing"))
         unknownFields = try VexelNativeProject.decodeExtra(c, known: Set(Keys.allCases.map(\.rawValue)))
     }
     public func encode(to encoder: Encoder) throws {
