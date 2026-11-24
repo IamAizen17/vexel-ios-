@@ -336,8 +336,35 @@ struct VexelEditorWorkspace: View {
             selectedTrackID: $selectedTrackID,
             duration: project.duration,
             fps: project.fps,
-            onMarkerEdit: { editingMarker = $0 },
+            onMarkerEdit: {
+                editingMarker = $0
+                resetEditingStoreFromWorkspace()
+            },
             onNotice: { showingNotice = $0 },
+            onTrackTimingCommit: { trackID, start, duration in
+                guard let sourceID = sourceLayerID(for: trackID) else {
+                    showingNotice = "The edited timeline layer could not be resolved."
+                    return
+                }
+                performEditingCommand(
+                    .setLayerTiming(id: sourceID, start: start, duration: duration),
+                    registerUndo: false
+                )
+            },
+            onTrackVisibilityChange: { trackID, visible in
+                guard let sourceID = sourceLayerID(for: trackID) else { return }
+                performEditingCommand(
+                    .setLayerVisibility(id: sourceID, visible: visible),
+                    registerUndo: false
+                )
+            },
+            onTrackLockChange: { trackID, locked in
+                guard let sourceID = sourceLayerID(for: trackID) else { return }
+                performEditingCommand(
+                    .setLayerLock(id: sourceID, locked: locked),
+                    registerUndo: false
+                )
+            },
             onEditBegan: {
                 audioPlayback.stop()
                 isTimelineGestureActive = true
@@ -351,7 +378,6 @@ struct VexelEditorWorkspace: View {
                 layerNames = project.layerNames
                 project.modified = Date()
                 project.synchronizeDocument()
-                resetEditingStoreFromWorkspace()
                 onProjectChange(project)
                 if isPlaying {
                     do { try audioPlayback.play(project: project, from: currentTime) }
@@ -463,7 +489,11 @@ struct VexelEditorWorkspace: View {
         }
     }
 
-    private func performEditingCommand(_ command: VexelEditingCommand, selecting sourceID: String? = nil) {
+    private func performEditingCommand(
+        _ command: VexelEditingCommand,
+        selecting sourceID: String? = nil,
+        registerUndo: Bool = true
+    ) {
         guard let store = editingStore else {
             showingNotice = "The editing engine is unavailable. Reopen the project and try again."
             return
@@ -480,9 +510,11 @@ struct VexelEditorWorkspace: View {
                 updated.assetsDirectory = project.assetsDirectory
                 updated.modified = Date()
                 updated.layerNames = flattenTrackNames(updated.timelineTracks)
-                undoStack.append(project)
-                if undoStack.count > 100 { undoStack.removeFirst() }
-                redoStack.removeAll()
+                if registerUndo {
+                    undoStack.append(project)
+                    if undoStack.count > 100 { undoStack.removeFirst() }
+                    redoStack.removeAll()
+                }
                 project = updated
                 layerNames = updated.layerNames
                 if let sourceID {
@@ -491,8 +523,21 @@ struct VexelEditorWorkspace: View {
                 onProjectChange(updated)
             } catch {
                 showingNotice = error.localizedDescription
+                if !registerUndo { resetEditingStoreFromWorkspace() }
             }
         }
+    }
+
+    private func sourceLayerID(for trackID: UUID) -> String? {
+        func find(_ tracks: [VexelTimelineTrack]) -> VexelTimelineTrack? {
+            for track in tracks {
+                if track.id == trackID { return track }
+                if let nested = find(track.children) { return nested }
+            }
+            return nil
+        }
+        guard let track = find(project.timelineTracks) else { return nil }
+        return track.sourceID ?? track.id.uuidString
     }
 
     private func commitEdit(_ mutation: () -> Void) {
