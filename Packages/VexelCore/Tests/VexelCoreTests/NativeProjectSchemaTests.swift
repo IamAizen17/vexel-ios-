@@ -145,4 +145,91 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(roundTrip, schema)
     }
 
+
+    func testTypedPayloadAccessorsCoverAllAndroidLayerContentAndAdvancedFields() throws {
+        let source = """
+        {
+          "format": "vexelproj", "formatVersion": 1,
+          "meta": {"title": "Payload matrix", "author": "Vexel"},
+          "composition": {
+            "width": 1080, "height": 1920, "fps": 30, "duration": 8,
+            "motionBlur": {"enabled": true, "shutterAngle": 180, "samples": 8},
+            "environment": {"asset": "hdr", "intensity": 1.5, "rotation": 30}
+          },
+          "editorView": {"mode": "editor", "target": [0, 0, 0], "yaw": 20, "pitch": 10, "distance": 2500, "fov": 40},
+          "assets": [
+            {"id": "img", "type": "image", "path": "assets/image.png"},
+            {"id": "video", "type": "video", "path": "assets/video.mp4"},
+            {"id": "audio", "type": "audio", "path": "assets/audio.m4a"},
+            {"id": "model", "type": "model", "path": "assets/model.glb"},
+            {"id": "font", "type": "font", "path": "assets/font.ttf"},
+            {"id": "hdr", "type": "image", "path": "assets/hdr.png"}
+          ],
+          "layers": [
+            {"id":"text","type":"text","duration":8,"text":{"content":"Title","font":{"family":"sans-serif","weight":700,"asset":"font"},"fontSize":48,"color":"#FFFFFF","align":"center","lineHeight":1.2,"letterSpacing":0,"maxWidth":800,"animators":[],"propertyAnimators":[]}},
+            {"id":"shape","type":"shape","duration":8,"shape":{"kind":"star","size":[300,300],"roundness":4,"sides":5,"innerRatio":0.5,"fill":{"enabled":true}}},
+            {"id":"image","type":"image","duration":8,"image":{"asset":"img"}},
+            {"id":"video","type":"video","duration":8,"video":{"asset":"video","sourceStart":0.5,"speed":1.25,"volume":1,"muted":false,"fadeIn":0.2,"fadeOut":0.3,"alphaPacked":true,"eq":[],"cutout":{"source":"video","duration":4},"futureMedia":"kept"}},
+            {"id":"audio","type":"audio","duration":8,"audio":{"asset":"audio","sourceStart":1,"speed":1,"volume":0.8}},
+            {"id":"group","type":"group","duration":8,"layers":[]},
+            {"id":"object","type":"object3d","duration":8,"object3d":{"primitive":"cube","size":300,"material":{"metallic":0.5}}},
+            {"id":"model","type":"model3d","duration":8,"model3d":{"asset":"model","size":400}},
+            {"id":"camera","type":"camera","duration":8,"camera":{"aim":"target","fov":40,"dof":{"enabled":true}}},
+            {"id":"light","type":"light","duration":8,"light":{"kind":"directional","intensity":1,"castShadows":true}},
+            {"id":"null","type":"null","duration":8,"null":{"threeD":true}}
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let schema = try JSONDecoder().decode(VexelNativeProject.self, from: source)
+        XCTAssertEqual(schema.typedMetadata.title, "Payload matrix")
+        XCTAssertEqual(schema.typedMetadata.author, "Vexel")
+        XCTAssertEqual(schema.composition.typedMotionBlur?.samples, 8)
+        XCTAssertEqual(schema.composition.typedEnvironment?.asset, "hdr")
+        XCTAssertEqual(schema.typedEditorView?.mode, .editor)
+        XCTAssertEqual(schema.layers.count, 11)
+        XCTAssertTrue(schema.layers.allSatisfy { $0.typedContent != nil })
+
+        guard case .text(let text)? = schema.layers[0].typedContent else { return XCTFail("Expected typed text content.") }
+        XCTAssertEqual(text.content, "Title")
+        XCTAssertEqual(text.font?.asset, "font")
+        guard case .shape(let shape)? = schema.layers[1].typedContent else { return XCTFail("Expected typed shape content.") }
+        XCTAssertEqual(shape.kind, "star")
+        guard case .image(let image)? = schema.layers[2].typedContent else { return XCTFail("Expected typed image content.") }
+        XCTAssertEqual(image.asset, "img")
+        guard case .video(let video)? = schema.layers[3].typedContent else { return XCTFail("Expected typed video content.") }
+        XCTAssertEqual(video.sourceStart, 0.5)
+        XCTAssertEqual(video.speed, 1.25)
+        XCTAssertEqual(video.cutout?.string("source"), "video")
+        XCTAssertEqual(video.fields.string("futureMedia"), "kept")
+        guard case .audio(let audio)? = schema.layers[4].typedContent else { return XCTFail("Expected typed audio content.") }
+        XCTAssertEqual(audio.asset, "audio")
+        guard case .group? = schema.layers[5].typedContent else { return XCTFail("Expected typed group content.") }
+        guard case .object3D(let object)? = schema.layers[6].typedContent else { return XCTFail("Expected typed object3d content.") }
+        XCTAssertEqual(object.primitive, "cube")
+        guard case .model3D(let model)? = schema.layers[7].typedContent else { return XCTFail("Expected typed model3d content.") }
+        XCTAssertEqual(model.asset, "model")
+        guard case .camera(let camera)? = schema.layers[8].typedContent else { return XCTFail("Expected typed camera content.") }
+        XCTAssertEqual(camera.aim, "target")
+        guard case .light(let light)? = schema.layers[9].typedContent else { return XCTFail("Expected typed light content.") }
+        XCTAssertEqual(light.kind, "directional")
+        guard case .null(let null)? = schema.layers[10].typedContent else { return XCTFail("Expected typed null content.") }
+        XCTAssertEqual(null.is3D, true)
+
+        var maskedLayer = schema.layers[1]
+        maskedLayer.masks = [.object(["shape": .string("ellipse"), "mode": .string("subtract"), "enabled": .bool(true)])]
+        maskedLayer.matte = .object(["layer": .string("image"), "mode": .string("alpha")])
+        maskedLayer.transitionIn = .object(["type": .string("fade"), "duration": .number(0.5)])
+        XCTAssertEqual(maskedLayer.typedMasks.first?.shape, "ellipse")
+        XCTAssertEqual(maskedLayer.typedMatte?.layerID, "image")
+        XCTAssertEqual(maskedLayer.typedTransitionIn?.type, "fade")
+
+        var updatedVideo = schema.layers[3]
+        guard case .video(var updatedPayload)? = updatedVideo.typedContent else { return XCTFail("Expected typed video payload.") }
+        updatedPayload.fields["sourceStart"] = .number(1.25)
+        updatedVideo.typedContent = .video(updatedPayload)
+        XCTAssertEqual(updatedVideo.content?.objectValue?["sourceStart"]?.numberValue, 1.25)
+        XCTAssertEqual(updatedVideo.content?.objectValue?["futureMedia"]?.stringValue, "kept")
+    }
+
 }
