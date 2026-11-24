@@ -51,16 +51,21 @@ These are initial workspace operations. They are not yet backed by a complete ca
 
 ### Project data, persistence, and archive groundwork
 
-- `VexelProjectItem` and timeline tracks are Codable.
-- Project metadata and workspace model state are persisted as an index under Application Support.
-- A project/document bridge converts between the interim editor model and a generic JSON-backed `ProjectDocument`.
-- The bridge attempts to preserve unknown root fields and existing top-level layer fields.
-- `ProjectDocument` validates only native Vexel format v1. `VexelProjectImporter` is isolated in VexelArchive and converts supported Android reference documents into native Vexel format before validation.
-- `VexelArchive` uses ZIPFoundation and writes native ZIP archives containing `vexel.json` and referenced `assets/` files. The old Android `project.json` entry is import-only.
-- Archive import is connected to the project file importer; archive export is connected to the project-card share flow.
-- Archive code includes entry-count and uncompressed-size limits, relative-path checks, duplicate-entry rejection, symlink rejection, and missing-asset checks.
+- Native Vexel project extension `.vexelproj`, archive entry `vexel.json`, and native format identifier `vexelproj` v1.
+- Registered Apple document type identifier: `com.ragestudios.vexel.project`. App bundle identifier remains `com.iamAizen17.vexel`.
+- `VexelProjectItem` and timeline tracks are Codable; project metadata and workspace state are persisted under Application Support.
+- `ProjectDocument` is a generic JSON-backed native envelope. It preserves unknown JSON values, but it is not yet the complete typed native schema.
+- `VexelProjectImporter` is the isolated Android compatibility boundary. It migrates the legacy v1-v12 envelope to native Vexel.
+- Android source audit is documented in `docs/ANDROID_V12_COMPATIBILITY.md`, based on Kotlin `Project.kt`, `Layer.kt`, `Content.kt`, `Animatable.kt`, `Easing.kt`, `Serializers.kt`, `KnsprojJson.kt`, `KnsprojArchive.kt`, and `ProjectValidator.kt`.
+- Added the Android repository's Kotlin-generated `tools/tests/fixtures/full-kotlin.json` as `android-v12-kotlin-reference.json`; importer tests assert root migration and representative nested animation/effect/transition data.
+- The editor bridge now maps non-UUID source layer IDs deterministically to UUID v5 identities. Existing UUID-shaped source IDs remain unchanged; the original source ID is retained for serialization.
+- The bridge retains fractional Android Double FPS while the current editor UI exposes integer FPS, unless the user changes the rounded FPS value.
+- Recursive unknown layer fields are retained through the JSON document bridge, including group descendants, but the editor only understands a subset of the source layer/content/animation model.
+- Audio layers retain the `audio` discriminator even if the payload is absent; the bridge supplies an empty audio object for the interim model.
+- Archive code writes native `vexel.json` and referenced assets, and rejects traversal, duplicate paths, symlinks, unsupported entries, excessive entry counts, oversized entries and high compression ratios.
+- Import uses a staging directory and attempts to restore a previous destination if promotion fails. Full archive and project-store transaction guarantees still need failure-injection tests.
 
-Important compatibility qualification: Vexel compatibility import is not yet verified against real Android source projects. The bridge currently assumes several layer field names and shapes, does not decode keyframe/property animation data, and does not have real Android project fixtures. Do not claim round-trip compatibility with arbitrary Android reference projects until the source schema and fixture tests prove it.
+P0 remains incomplete. Outstanding work includes the full typed Swift schema, exact type-specific content and animation mapping, explicit unsupported-feature reporting, genuine Android-generated ZIP fixtures with their real assets, comprehensive v12 semantic validation, stronger atomic destination replacement, archive resource-budget tests, and import rollback tests. Do not claim complete Android round-trip compatibility until those checks pass.
 
 ### Engine and package foundations
 
