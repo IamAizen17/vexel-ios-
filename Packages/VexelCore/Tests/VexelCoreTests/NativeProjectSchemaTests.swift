@@ -210,6 +210,7 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(text.font?.weight, 700)
         guard case .shape(let shape)? = schema.layers[1].typedContent else { return XCTFail("Expected typed shape content.") }
         XCTAssertEqual(shape.kind, "star")
+        XCTAssertEqual(shape.fill?.enabled, true)
         guard case .image(let image)? = schema.layers[2].typedContent else { return XCTFail("Expected typed image content.") }
         XCTAssertEqual(image.asset, "img")
         guard case .video(let video)? = schema.layers[3].typedContent else { return XCTFail("Expected typed video content.") }
