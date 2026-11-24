@@ -25,6 +25,7 @@ final class ProjectDocumentTests: XCTestCase {
 
         let issues = project.validate()
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].text" })
+        XCTAssertFalse(issues.contains { $0.severity == .error && $0.path == "layers[0].text" })
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].effects" })
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].masks" })
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[1].light.castShadows" })
