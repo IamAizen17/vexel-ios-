@@ -402,8 +402,10 @@ public struct VexelAnimationTrack: Codable, Equatable, Sendable {
         if !hasKeyframes && expression != nil && value == nil {
             throw DecodingError.dataCorruptedError(forKey: .init("value"), in: c, debugDescription: "Expression-only animation requires a static value.")
         }
-        for index in 1..<keyframes.count where keyframes[index].time < keyframes[index - 1].time {
-            throw DecodingError.dataCorruptedError(forKey: keyframesKey, in: c, debugDescription: "Keyframes must be sorted by time.")
+        if keyframes.count > 1 {
+            for index in 1..<keyframes.count where keyframes[index].time < keyframes[index - 1].time {
+                throw DecodingError.dataCorruptedError(forKey: keyframesKey, in: c, debugDescription: "Keyframes must be sorted by time.")
+            }
         }
         unknownFields = try VexelNativeProject.decodeExtra(c, known: Set(Keys.allCases.map(\.rawValue)))
     }
