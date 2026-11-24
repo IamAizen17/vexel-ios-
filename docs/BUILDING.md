@@ -5,17 +5,16 @@ Vexel targets iPhone and iPad, with iOS 16.0 as the deployment baseline. The app
 
 ## Build from GitHub without a Mac
 
-The workflow at `.github/workflows/ios-ipa.yml` is manual-only (`workflow_dispatch`) and runs on a GitHub-hosted macOS runner. Pushes and pull requests do not start it automatically. Open **Actions → Vexel Validation → Run workflow** to start validation. The optional `build_ipa` input defaults to `false`; enable it only when you also want an unsigned IPA build.
+The workflow at `.github/workflows/ios-ipa.yml` is manual-only (`workflow_dispatch`) and runs on a GitHub-hosted macOS runner. Pushes and pull requests do not start it automatically.
 
-The workflow:
-1. Builds and tests every Swift package under `Packages/`.
-2. Installs XcodeGen and generates `Vexel.xcodeproj`.
-3. Archives the app for generic physical iOS devices with code signing disabled.
-4. Packages the archived app as `Vexel-unsigned.ipa`.
-5. Uploads the IPA as the `Vexel-unsigned-IPA` workflow artifact.
+To run package validation:
+1. Open **Actions → Vexel Validation → Run workflow**.
+2. Leave `build_ipa` disabled.
+3. Start the workflow. The test job builds and tests every Swift package under `Packages/`.
 
-To retrieve it on iPhone, open the successful workflow run in GitHub, open Artifacts, and download
-`Vexel-unsigned-IPA`. The downloaded artifact is a ZIP containing the IPA.
+To also build an unsigned IPA, enable `build_ipa` before starting the workflow. This optional job runs only after package validation succeeds. It generates `Vexel.xcodeproj`, archives for generic physical iOS devices with code signing disabled, packages `Vexel-unsigned.ipa`, and uploads it as the `Vexel-unsigned-IPA` artifact.
+
+To retrieve the IPA on iPhone, open the successful workflow run in GitHub, open Artifacts, and download `Vexel-unsigned-IPA`. The downloaded artifact is a ZIP containing the IPA.
 
 ## Important: unsigned versus installable
 
