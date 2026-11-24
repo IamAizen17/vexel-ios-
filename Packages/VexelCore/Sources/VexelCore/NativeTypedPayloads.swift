@@ -302,7 +302,7 @@ public extension VexelLayer {
                  (.model3D, .model3D), (.camera, .camera), (.light, .light), (.null, .null):
                 content = newValue.fields.map { .object($0.values) }
             default:
-                content = nil
+                break
             }
         }
     }
