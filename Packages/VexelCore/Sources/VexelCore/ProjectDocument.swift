@@ -260,6 +260,56 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         var issues = validate()
         let definitions = Dictionary(uniqueKeysWithValues: effectCatalog.effects.map { ($0.id, $0) })
 
+        func validateParameterValue(_ value: JSONValue, definition: VexelEffectParameterDefinition, path: String) {
+            let validType: Bool
+            switch definition.type.rawValue {
+            case "number":
+                validType = value.numberValue?.isFinite == true
+            case "integer":
+                if let number = value.numberValue {
+                    validType = number.isFinite && number.rounded(.towardZero) == number
+                } else { validType = false }
+            case "boolean":
+                if case .bool = value { validType = true } else { validType = false }
+            case "color":
+                if case .string = value { validType = true } else { validType = false }
+            case "choice":
+                validType = value.stringValue.map { definition.choices?.contains($0) == true } ?? false
+            case "point":
+                if let coordinates = value.arrayValue, coordinates.count == 2 {
+                    validType = coordinates.allSatisfy { $0.numberValue?.isFinite == true }
+                } else { validType = false }
+            case "stops":
+                if let stops = value.arrayValue, !stops.isEmpty {
+                    validType = stops.allSatisfy { stop in
+                        guard let fields = stop.objectValue,
+                              let offset = fields["offset"]?.numberValue,
+                              offset.isFinite, (0...1).contains(offset),
+                              fields["color"]?.stringValue != nil else { return false }
+                        return true
+                    }
+                } else { validType = false }
+            default:
+                issues.append(ProjectIssue(severity: .warning, path: path,
+                    message: "Parameter type '\\(definition.type.rawValue)' is not understood by this validator. Its value will be preserved."))
+                return
+            }
+
+            guard validType else {
+                issues.append(ProjectIssue(severity: .error, path: path,
+                    message: "Value does not match the declared '\\(definition.type.rawValue)' parameter type."))
+                return
+            }
+            if let number = value.numberValue {
+                if let minimum = definition.minimum, number < minimum {
+                    issues.append(ProjectIssue(severity: .error, path: path, message: "Value is below the minimum of \\(minimum)."))
+                }
+                if let maximum = definition.maximum, number > maximum {
+                    issues.append(ProjectIssue(severity: .error, path: path, message: "Value exceeds the maximum of \\(maximum)."))
+                }
+            }
+        }
+
         func validateEffects(_ values: [JSONValue], path: String) {
             for (index, value) in values.enumerated() {
                 let location = "\\(path)[\\(index)]"
@@ -280,52 +330,27 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                         continue
                     }
 
-                    let validType: Bool
-                    switch parameter.type.rawValue {
-                    case "number":
-                        validType = rawValue.numberValue?.isFinite == true
-                    case "integer":
-                        if let number = rawValue.numberValue {
-                            validType = number.isFinite && number.rounded(.towardZero) == number
-                        } else { validType = false }
-                    case "boolean":
-                        if case .bool = rawValue { validType = true } else { validType = false }
-                    case "color":
-                        if case .string = rawValue { validType = true } else { validType = false }
-                    case "choice":
-                        validType = rawValue.stringValue.map { parameter.choices?.contains($0) == true } ?? false
-                    case "point":
-                        if let values = rawValue.arrayValue, values.count == 2 {
-                            validType = values.allSatisfy { $0.numberValue?.isFinite == true }
-                        } else { validType = false }
-                    case "stops":
-                        if let stops = rawValue.arrayValue, !stops.isEmpty {
-                            validType = stops.allSatisfy { stop in
-                                guard let fields = stop.objectValue,
-                                      let offset = fields["offset"]?.numberValue,
-                                      offset.isFinite, (0...1).contains(offset),
-                                      fields["color"]?.stringValue != nil else { return false }
-                                return true
-                            }
-                        } else { validType = false }
-                    default:
-                        issues.append(ProjectIssue(severity: .warning, path: parameterPath,
-                            message: "Parameter type '\\(parameter.type.rawValue)' is not understood by this validator. Its value will be preserved."))
-                        continue
-                    }
-
-                    guard validType else {
-                        issues.append(ProjectIssue(severity: .error, path: parameterPath,
-                            message: "Value does not match the declared '\\(parameter.type.rawValue)' parameter type."))
-                        continue
-                    }
-                    if let number = rawValue.numberValue {
-                        if let minimum = parameter.minimum, number < minimum {
-                            issues.append(ProjectIssue(severity: .error, path: parameterPath, message: "Value is below the minimum of \\(minimum)."))
+                    if let object = rawValue.objectValue,
+                       object["keyframes"]?.arrayValue != nil || object["expression"]?.stringValue != nil {
+                        guard let data = try? JSONEncoder().encode(rawValue),
+                              let track = try? JSONDecoder().decode(VexelAnimationTrack.self, from: data) else {
+                            issues.append(ProjectIssue(severity: .error, path: parameterPath,
+                                message: "Animated parameter data is malformed."))
+                            continue
                         }
-                        if let maximum = parameter.maximum, number > maximum {
-                            issues.append(ProjectIssue(severity: .error, path: parameterPath, message: "Value exceeds the maximum of \\(maximum)."))
+                        if let baseValue = track.value {
+                            validateParameterValue(baseValue, definition: parameter, path: "\\(parameterPath).value")
                         }
+                        for (keyframeIndex, keyframe) in track.keyframes.enumerated() {
+                            validateParameterValue(keyframe.value, definition: parameter,
+                                path: "\\(parameterPath).keyframes[\\(keyframeIndex)].value")
+                        }
+                        if track.expression != nil, track.expressionEnabled != false {
+                            issues.append(ProjectIssue(severity: .warning, path: "\\(parameterPath).expression",
+                                message: "Expression syntax cannot yet be validated by the iOS core. The expression is preserved but not evaluated by the current scene engine."))
+                        }
+                    } else {
+                        validateParameterValue(rawValue, definition: parameter, path: parameterPath)
                     }
                 }
             }

@@ -386,6 +386,35 @@ final class ProjectDocumentTests: XCTestCase {
         ])
         XCTAssertEqual(project.validate().first?.path, "format")
     }
+    func testAnimatedNumericEffectParametersValidateBaseAndEveryKeyframe() {
+        let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [
+            VexelEffectDefinition(id: "exposure", category: "color", englishName: "Exposure",
+                target: "any", needsBackdrop: false, parameters: [
+                    VexelEffectParameterDefinition(name: "amount", type: .number, minimum: -1, maximum: 1)
+                ])
+        ])
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([.object([
+            "id": .string("shape"), "type": .string("shape"),
+            "effects": .array([.object([
+                "type": .string("exposure"),
+                "amount": .object([
+                    "value": .number(0.25),
+                    "keyframes": .array([
+                        .object(["time": .number(0), "value": .number(0)]),
+                        .object(["time": .number(1), "value": .number(1.5)])
+                    ])
+                ])
+            ])])
+        ])])
+
+        let issues = project.validate(effectCatalog: catalog)
+        XCTAssertTrue(issues.contains {
+            $0.severity == .error && $0.path == "layers[0].effects[0].amount.keyframes[1].value"
+        })
+        XCTAssertFalse(issues.contains { $0.path == "layers[0].effects[0].amount" && $0.severity == .error })
+    }
+
 }
     func testEffectInstanceParametersAreValidatedAgainstCanonicalDefinitions() {
         let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [
