@@ -189,6 +189,15 @@ public enum VexelProjectImporter {
             fields = fields.mapValues(migrateV11CutoutKey)
         }
         fields["formatVersion"] = .number(Double(maximumAndroidCompatibilityVersion))
+        if fields["assets"] == nil { fields["assets"] = .array([]) }
+        if fields["markers"] == nil { fields["markers"] = .array([]) }
+        if fields["layers"] == nil { fields["layers"] = .array([]) }
+        if var composition = fields["composition"]?.objectValue {
+            if composition["background"] == nil {
+                composition["background"] = .string("#0D0F12")
+            }
+            fields["composition"] = .object(composition)
+        }
         return fields
     }
 
