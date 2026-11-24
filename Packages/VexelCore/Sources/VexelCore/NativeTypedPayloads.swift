@@ -594,7 +594,7 @@ public struct VexelCutoutStrokeContent: Equatable, Sendable {
         switch raw {
         case "add": return .add
         case "remove": return .remove
-        default: return .unknown
+        default: return .unknown(raw)
         }
     }
 
