@@ -50,6 +50,7 @@ public struct ZIPProjectArchive: Sendable {
 
         var seen = Set<String>()
         var total: UInt64 = 0
+        var actualTotal: UInt64 = 0
         var project: ProjectDocument?
         var entryCount = 0
 
@@ -90,7 +91,15 @@ public struct ZIPProjectArchive: Sendable {
                         throw ZIPProjectArchiveError.projectDocumentTooLarge
                     }
                     var data = Data()
-                    _ = try archive.extract(entry, consumer: { chunk in data.append(chunk) })
+                    let remaining = Self.maximumUncompressedBytes - actualTotal
+                    let extracted = try Self.extract(
+                        entry,
+                        from: archive,
+                        maximumBytes: min(Self.maximumProjectBytes, remaining)
+                    ) { chunk in
+                        data.append(chunk)
+                    }
+                    actualTotal += extracted
                     project = try VexelProjectImporter.importDocument(from: data)
                     continue
                 }
@@ -104,8 +113,26 @@ public struct ZIPProjectArchive: Sendable {
                 let root = staging.standardizedFileURL.path + "/"
                 let standardized = target.standardizedFileURL.path
                 guard standardized.hasPrefix(root) else { throw ZIPProjectArchiveError.unsafePath(path) }
-                try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
-                _ = try archive.extract(entry, to: target)
+                try manager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                guard manager.createFile(atPath: target.path, contents: nil) else {
+                    throw ZIPProjectArchiveError.invalidArchive
+                }
+                do {
+                    let handle = try FileHandle(forWritingTo: target)
+                    defer { try? handle.close() }
+                    let remaining = Self.maximumUncompressedBytes - actualTotal
+                    let extracted = try Self.extract(
+                        entry,
+                        from: archive,
+                        maximumBytes: min(Self.maximumEntryUncompressedBytes, remaining)
+                    ) { chunk in
+                        try handle.write(contentsOf: chunk)
+                    }
+                    actualTotal += extracted
+                } catch {
+                    try? manager.removeItem(at: target)
+                    throw error
+                }
             }
 
             guard let project else { throw ZIPProjectArchiveError.missingProjectDocument }
@@ -191,6 +218,27 @@ public struct ZIPProjectArchive: Sendable {
         } else {
             try manager.moveItem(at: partialURL, to: archiveURL)
         }
+    }
+
+    private static func extract(
+        _ entry: Entry,
+        from archive: Archive,
+        maximumBytes: UInt64,
+        consume: (Data) throws -> Void
+    ) throws -> UInt64 {
+        var extractedBytes: UInt64 = 0
+        _ = try archive.extract(entry) { chunk in
+            let (next, overflow) = extractedBytes.addingReportingOverflow(UInt64(chunk.count))
+            guard !overflow, next <= maximumBytes else {
+                throw ZIPProjectArchiveError.archiveTooLarge
+            }
+            try consume(chunk)
+            extractedBytes = next
+        }
+        guard extractedBytes == entry.uncompressedSize else {
+            throw ZIPProjectArchiveError.invalidArchive
+        }
+        return extractedBytes
     }
 
     private static func normalizedPath(_ raw: String, isDirectory: Bool = false) throws -> String {
