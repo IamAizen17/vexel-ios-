@@ -54,7 +54,7 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Native Vexel project extension `.vexelproj`, archive entry `vexel.json`, and native format identifier `vexelproj` v1.
 - Registered Apple document type identifier: `com.ragestudios.vexel.project`. App bundle identifier remains `com.iamAizen17.vexel`.
 - `VexelProjectItem` and timeline tracks are Codable; project metadata and workspace state are persisted under Application Support.
-- `ProjectDocument` is a generic JSON-backed native envelope. It preserves unknown JSON values, but it is not yet the complete typed native schema.
+- `ProjectDocument` remains the generic JSON-backed native envelope. An additive `VexelNativeProject` typed schema now models the root, composition, assets, markers, all Android layer discriminators, transforms, animation tracks, keyframes, easing, loop modes, effects and recursive groups. The app bridge has not yet migrated to this typed schema.
 - `VexelProjectImporter` is the isolated Android compatibility boundary. It migrates the legacy v1-v12 envelope to native Vexel.
 - Android source audit is documented in `docs/ANDROID_V12_COMPATIBILITY.md`, based on Kotlin `Project.kt`, `Layer.kt`, `Content.kt`, `Animatable.kt`, `Easing.kt`, `Serializers.kt`, `KnsprojJson.kt`, `KnsprojArchive.kt`, and `ProjectValidator.kt`.
 - Added the Android repository's Kotlin-generated `tools/tests/fixtures/full-kotlin.json` as `android-v12-kotlin-reference.json`; importer tests assert root migration and representative nested animation/effect/transition data.
@@ -62,8 +62,10 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - The bridge retains fractional Android Double FPS while the current editor UI exposes integer FPS, unless the user changes the rounded FPS value.
 - Recursive unknown layer fields are retained through the JSON document bridge, including group descendants, but the editor only understands a subset of the source layer/content/animation model.
 - Audio layers retain the `audio` discriminator even if the payload is absent; the bridge supplies an empty audio object for the interim model.
-- Archive code writes native `vexel.json` and referenced assets, and rejects traversal, duplicate paths, symlinks, unsupported entries, excessive entry counts, oversized entries and high compression ratios.
-- Import uses a staging directory and attempts to restore a previous destination if promotion fails. Full archive and project-store transaction guarantees still need failure-injection tests.
+- Archive code writes native `vexel.json` and referenced assets, and rejects traversal, duplicate paths, symlinks, unsupported entries, excessive entry counts, oversized entries and high compression ratios. Extraction now enforces byte budgets against actual decompressed chunks, not only ZIP metadata.
+- Import uses a staging directory and restores an existing destination after a failed promotion. Failure-injection tests cover promotion rollback and invalid-import isolation.
+- Archive imports expose a structured unsupported-feature report. The current UI does not yet present that report as an import review screen.
+- A source-repository Android video/audio sample archive fixture includes the exact referenced MP4/M4A assets. It follows the Android writer's ZIP layout but was assembled for tests, not exported by the Android app.
 
 P0 remains incomplete. Outstanding work includes the full typed Swift schema, exact type-specific content and animation mapping, explicit unsupported-feature reporting, genuine Android-generated ZIP fixtures with their real assets, comprehensive v12 semantic validation, stronger atomic destination replacement, archive resource-budget tests, and import rollback tests. Do not claim complete Android round-trip compatibility until those checks pass.
 
@@ -84,18 +86,21 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 ### P0: Stabilize Vexel-native persistence and Android compatibility import
 
-- Audit the actual Kotlin data classes, serializers, sample projects, and migration code for external Android format v12. Replace guessed field mappings with source-verified mappings.
-- Add real Android reference project fixtures and test import, export, and round-trip preservation.
-- Define explicit typed Swift models for composition, assets, layer variants, transforms, effects, masks, mattes, transitions, markers, keyframes, easing, expressions, and editor state.
-- Preserve unknown fields recursively, including nested group layers. The current bridge only indexes existing top-level layer objects for preservation.
-- Correct the current audio-layer bridge behavior: the serializer currently changes an audio layer's discriminator to `null` when its audio payload is absent.
-- Preserve source IDs when duplicating/splitting layers without creating duplicate IDs. Define how source IDs map to native UUIDs.
-- Validate all numeric values for finiteness and bounds before converting them to integer or rendering types.
-- Add schema-version migrations and explicit unsupported-feature handling.
-- Verify asset path semantics against Android-generated archives and validate every referenced asset on import.
-- Harden ZIP handling: reject all unsupported special entry types, use overflow-checked size accumulation, enforce practical per-file and compression-ratio limits, and make destination replacement failure-safe.
-- Make archive import transactional so a failed import does not leave partial asset directories or project records.
-- Keep project creation, editing, persistence, and export entirely native to Vexel. Retain Android compatibility only in the isolated `VexelProjectImporter` and verify it with real fixtures.
+- [x] Audit the Android v12 models, serializers, archive writer and migration registry against source.
+- [x] Add the Kotlin-generated v12 JSON fixture and an Android repository video/audio sample archive with its real referenced media payloads. The archive is assembled for tests, not exported by the Android app.
+- [ ] Complete typed models for every type-specific content payload, masks, mattes, transitions, environment/lighting and editor state. The current typed schema retains unmodelled nested data as JSONValue.
+- [x] Add recursive unknown-field preservation tests across nested groups, transforms, animation tracks, effects and root metadata.
+- [x] Add typed discriminator coverage for all 11 Android layer types and typed loop/easing tests.
+- [x] Add source-compatible core duplicate/split operations and tests for nested IDs, parent/matte references, keyframe time offsets, transitions and media in-points.
+- [x] Add an import compatibility report for preserved-but-unimplemented features.
+- [ ] Connect the typed schema and compatibility report to the app's persistence bridge and import review UI.
+- [ ] Obtain a direct Android-app-exported `.knsproj` archive and compare its archive entries, CRCs, metadata and referenced assets.
+- [ ] Complete v12 semantic validation, including all nested asset references and numeric bounds.
+- [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
+- [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
+- [ ] Test destination rollback failure and archive export replacement failure paths.
+- [ ] Add native Vexel schema migrations and migration tests.
+- Keep project creation, editing, persistence and export native to Vexel. Android compatibility remains isolated in `VexelProjectImporter`.
 
 ### P1: Canonical editing model and command engine
 
@@ -138,9 +143,9 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge is provisional. It guesses parts of the imported Android layer schema, omits keyframe/property animation decoding, and does not preserve unknown nested-layer fields reliably.
-- `VexelProjectImporter` converts the external format/version envelope and the archive reader performs structural validation. This does not establish full Android source schema v12 semantic compatibility.
-- Archive read/write code exists and is connected to UI flows, but must receive security hardening and real Android fixture tests before being treated as production-ready.
+- The project/document bridge is provisional. It still maps only a subset of the typed native schema into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI.
+`VexelProjectImporter` converts the external format/version envelope and the archive reader performs structural validation. The source video/audio archive fixture is a test-assembled archive based on Android repository examples, not a direct Android app export. This does not establish full Android source schema v12 semantic compatibility.
+- Archive read/write code is connected to UI flows and now has actual-byte-budget and rollback tests. It still requires a direct Android-app-exported fixture and fresh test execution before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
 - Undo/redo covers current workspace snapshot operations only. Timeline gesture coalescing and all source editing commands are not represented.
 - Playback advances the playhead; it does not render animated scene frames or play audio.
