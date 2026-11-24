@@ -14,7 +14,10 @@ public struct VexelObjectFields: Equatable, Sendable {
 
     public func string(_ key: String) -> String? { values[key]?.stringValue }
     public func number(_ key: String) -> Double? { values[key]?.numberValue }
-    public func bool(_ key: String) -> Bool? { values[key]?.boolValue }
+    public func bool(_ key: String) -> Bool? {
+        guard case .bool(let value) = values[key] else { return nil }
+        return value
+    }
     public func object(_ key: String) -> VexelObjectFields? {
         values[key]?.objectValue.map(VexelObjectFields.init)
     }
@@ -203,6 +206,70 @@ public struct VexelTransition: Equatable, Sendable {
         return try? JSONDecoder().decode(VexelEasing.self, from: data)
     }
     public var distance: Double? { fields.number("distance") }
+}
+
+
+public struct VexelProjectMetadata: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var title: String? { fields.string("title") }
+    public var description: String? { fields.string("description") }
+    public var author: String? { fields.string("author") }
+    public var createdAt: String? { fields.string("createdAt") }
+    public var modifiedAt: String? { fields.string("modifiedAt") }
+}
+
+public struct VexelMotionBlurSettings: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var shutterAngle: Double? { fields.number("shutterAngle") }
+    public var samples: Int? { fields.number("samples").map(Int.init) }
+}
+
+public struct VexelEnvironmentSettings: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var asset: String? { fields.string("asset") }
+    public var intensity: Double? { fields.number("intensity") }
+    public var rotation: Double? { fields.number("rotation") }
+}
+
+public enum VexelEditorViewMode: String, Sendable {
+    case camera, editor, inside
+}
+
+public struct VexelEditorView: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var mode: VexelEditorViewMode? { fields.string("mode").flatMap(VexelEditorViewMode.init(rawValue:)) }
+    public var target: JSONValue? { fields["target"] }
+    public var yaw: Double? { fields.number("yaw") }
+    public var pitch: Double? { fields.number("pitch") }
+    public var distance: Double? { fields.number("distance") }
+    public var fieldOfView: Double? { fields.number("fov") }
+}
+
+public extension VexelNativeProject {
+    var typedMetadata: VexelProjectMetadata {
+        VexelProjectMetadata(fields: VexelObjectFields(meta))
+    }
+
+    var typedEditorView: VexelEditorView? {
+        editorView?.objectValue.map { VexelEditorView(fields: VexelObjectFields($0)) }
+    }
+}
+
+public extension VexelComposition {
+    var backgroundColor: String? { background?.stringValue }
+
+    var typedMotionBlur: VexelMotionBlurSettings? {
+        motionBlur?.objectValue.map { VexelMotionBlurSettings(fields: VexelObjectFields($0)) }
+    }
+
+    var typedEnvironment: VexelEnvironmentSettings? {
+        environment?.objectValue.map { VexelEnvironmentSettings(fields: VexelObjectFields($0)) }
+    }
 }
 
 public extension VexelLayer {
