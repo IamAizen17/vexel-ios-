@@ -52,6 +52,9 @@ struct VexelEditorWorkspace: View {
     @State private var isPlaying = false
     @State private var currentTime = 0.0
     @State private var showRename = false
+    @State private var renameDraft = ""
+    @State private var timelineDraftTracks: [VexelTimelineTrack] = []
+    @State private var timelineDraftMarkers: [VexelMarker] = []
     @State private var canUndoEdits = false
     @State private var canRedoEdits = false
     @State private var editingStore: VexelEditingStore?
@@ -134,7 +137,22 @@ struct VexelEditorWorkspace: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showExport) { VexelExportSheet(project: project) .presentationDetents([.medium, .large]) }
-        .sheet(isPresented: $showCompositionSettings) { CompositionSettingsSheet(project: $project, onSavedVersions: { showSavedVersions = true }) .presentationDetents([.medium, .large]) }
+        .sheet(isPresented: $showCompositionSettings) {
+            CompositionSettingsSheet(
+                project: project,
+                onSavedVersions: { showSavedVersions = true },
+                onSave: { draft in
+                    commitEdit { candidate in
+                        candidate.title = draft.title
+                        candidate.width = draft.width
+                        candidate.height = draft.height
+                        candidate.fps = draft.fps
+                        candidate.duration = draft.duration
+                    }
+                }
+            )
+            .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showSavedVersions) { VexelSavedVersionsSheet().presentationDetents([.medium, .large]) }
         .sheet(isPresented: $showGraph) { VexelGraphEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showCurve) { VexelCurveEditor() .presentationDetents([.large]) }
@@ -177,36 +195,27 @@ struct VexelEditorWorkspace: View {
             }
         }
         .alert("Rename composition", isPresented: $showRename) {
-            TextField("Name", text: $project.title)
+            TextField("Name", text: $renameDraft)
             Button("Cancel", role: .cancel) {}
-            Button("Save") { onProjectChange(project) }
+            Button("Save") { performEditingCommand(.renameProject(renameDraft)) }
         }
         .alert("Editor", isPresented: Binding(get: { showingNotice != nil }, set: { if !$0 { showingNotice = nil } })) {
             Button("OK", role: .cancel) { showingNotice = nil }
         } message: { Text(showingNotice ?? "") }
         .onAppear {
             layerNames = flattenTrackNames(project.timelineTracks)
-            project.layerNames = layerNames
+            timelineDraftTracks = project.timelineTracks
+            timelineDraftMarkers = project.markers
             if selectedTrackID == nil { selectedTrackID = project.timelineTracks.first?.id }
-            project.synchronizeDocument()
             resetEditingStoreFromWorkspace()
-            onProjectChange(project)
         }
         .onChange(of: selectedTrackID) { _ in selectedTab = "Transform" }
-        .onChange(of: project.timelineTracks) { tracks in
-            layerNames = flattenTrackNames(tracks)
-            project.layerNames = layerNames
-            guard !isTimelineGestureActive else { return }
-            project.modified = Date()
-            project.synchronizeDocument()
-            onProjectChange(project)
-        }
+        .onChange(of: showRename) { showing in if showing { renameDraft = project.title } }
         .onChange(of: project) { updated in
             guard !isTimelineGestureActive else { return }
-            var snapshot = updated
-            snapshot.layerNames = flattenTrackNames(snapshot.timelineTracks)
-            snapshot.synchronizeDocument()
-            onProjectChange(snapshot)
+            timelineDraftTracks = updated.timelineTracks
+            timelineDraftMarkers = updated.markers
+            layerNames = flattenTrackNames(updated.timelineTracks)
         }
         .task(id: isPlaying) {
             guard isPlaying else {
@@ -326,9 +335,9 @@ struct VexelEditorWorkspace: View {
 
     private var timelinePanel: some View {
         VexelTimelinePanel(
-            tracks: $project.timelineTracks,
+            tracks: $timelineDraftTracks,
             currentTime: $currentTime,
-            markers: $project.markers,
+            markers: $timelineDraftMarkers,
             selectedTrackID: $selectedTrackID,
             duration: project.duration,
             fps: project.fps,
@@ -361,11 +370,10 @@ struct VexelEditorWorkspace: View {
             },
             onEditEnded: {
                 isTimelineGestureActive = false
-                project.layerNames = flattenTrackNames(project.timelineTracks)
-                layerNames = project.layerNames
-                project.modified = Date()
-                project.synchronizeDocument()
-                commitEdit { _ in }
+                commitEdit { candidate in
+                    candidate.timelineTracks = timelineDraftTracks
+                    candidate.markers = timelineDraftMarkers
+                }
                 if isPlaying {
                     do { try audioPlayback.play(project: project, from: currentTime) }
                     catch { showingNotice = "Audio playback failed: \(error.localizedDescription)" }
@@ -973,16 +981,24 @@ private struct MediaPicker: View {
             }
             .padding(18).background(VexelPalette.background)
             .navigationTitle(audioOnly ? "Add audio" : "Add media")
-            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { onSave(project); dismiss() } } }
             .onChange(of: selection) { item in if let item { onSelect(item); dismiss() } }
         }
             }
 }
 
 private struct CompositionSettingsSheet: View {
-    @Binding var project: VexelProjectItem
+    @State private var project: VexelProjectItem
     let onSavedVersions: () -> Void
+    let onSave: (VexelProjectItem) -> Void
     @Environment(\.dismiss) private var dismiss
+
+    init(project: VexelProjectItem, onSavedVersions: @escaping () -> Void, onSave: @escaping (VexelProjectItem) -> Void) {
+        _project = State(initialValue: project)
+        self.onSavedVersions = onSavedVersions
+        self.onSave = onSave
+    }
+
     var body: some View {
         NavigationStack {
             Form {
