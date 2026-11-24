@@ -13,6 +13,8 @@ public enum VexelEditingCommand: Sendable {
     case renameLayer(id: String, name: String)
     case setLayerVisibility(id: String, visible: Bool)
     case setLayerLock(id: String, locked: Bool)
+    case addEffect(layerID: String, effect: VexelEffect)
+    case removeEffect(layerID: String, type: String)
     case setLayerTiming(id: String, start: Double, duration: Double)
     case setTransformValue(id: String, property: String, value: VexelAnimatableValue, is3D: Bool)
     case setParent(id: String, parentID: String?)
@@ -318,6 +320,22 @@ public actor VexelEditingStore {
         case .setLayerLock(let id, let locked):
             guard updateLayer(id, in: &project.layers, { $0.locked = locked }) else {
                 throw VexelEditingStoreError.layerNotFound(id)
+            }
+
+        case .addEffect(let layerID, let effect):
+            guard updateLayer(layerID, in: &project.layers, { layer in
+                if !layer.effects.contains(where: { $0.type == effect.type }) {
+                    layer.effects.append(effect)
+                }
+            }) else {
+                throw VexelEditingStoreError.layerNotFound(layerID)
+            }
+
+        case .removeEffect(let layerID, let type):
+            guard updateLayer(layerID, in: &project.layers, { layer in
+                layer.effects.removeAll { $0.type == type }
+            }) else {
+                throw VexelEditingStoreError.layerNotFound(layerID)
             }
 
         case .setLayerTiming(let id, let start, let duration):
