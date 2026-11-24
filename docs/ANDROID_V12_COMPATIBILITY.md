@@ -85,8 +85,8 @@ The iOS importer currently implements the nontrivial v1, v6 and v11 transformati
 
 - The editor UI exposes integer FPS although the source model supports fractional Double FPS. The bridge retains the original fractional value unless the user changes the rounded UI FPS.
 - Arbitrary source string IDs are mapped deterministically to UUID v5 values for editor identity. The original source ID remains in the document bridge. The core duplicate/split operations generate fresh IDs for copied layers and descendants.
-- The typed schema is an additive model layer. The app's current persistence bridge still uses the generic `ProjectDocument` envelope and the interim UI track model.
-- Type-specific payloads, masks, mattes, transitions, lighting/environment, 3D content and advanced text animation are not yet fully represented by dedicated Swift property models. Their JSON is preserved.
+- The typed schema is an additive model layer. The app's current persistence bridge still uses the generic `ProjectDocument` envelope and the interim UI track model; typed accessors are not yet the canonical editing representation.
+- Some nested substructures inside text animators, vector paths, fill/stroke styles, 3D materials, camera depth-of-field and lighting remain JSON-backed. Their original values are preserved.
 - The compatibility report is available to import callers; a user-facing import review screen is not yet connected.
 - The archive fixture has real source-repository media payloads and exercises extraction, but it was assembled for tests rather than exported by the Android app itself.
 
