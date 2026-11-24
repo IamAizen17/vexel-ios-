@@ -507,6 +507,53 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 issues.append(ProjectIssue(severity: .error, path: "\(location).layers", message: "Only group layers may contain child layers."))
             }
 
+            let requiredPayloads: [String: String] = [
+                "text": "text", "shape": "shape", "image": "image", "video": "video",
+                "audio": "audio", "object3d": "object3d", "model3d": "model3d",
+                "camera": "camera", "light": "light"
+            ]
+            if let payload = requiredPayloads[type], layer[payload]?.objectValue == nil {
+                issues.append(ProjectIssue(
+                    severity: .error,
+                    path: "\(location).\(payload)",
+                    message: "A '\(type)' layer requires its matching '\(payload)' payload."
+                ))
+            }
+
+            if let masks = layer["masks"]?.arrayValue, !masks.isEmpty,
+               !["text", "shape", "image", "video", "group"].contains(type) {
+                issues.append(ProjectIssue(
+                    severity: .warning,
+                    path: "\(location).masks",
+                    message: "Masks apply only to 2D visual layers in the source engine."
+                ))
+            }
+            if let effects = layer["effects"]?.arrayValue, !effects.isEmpty,
+               !["text", "shape", "image", "video", "group"].contains(type) {
+                issues.append(ProjectIssue(
+                    severity: .warning,
+                    path: "\(location).effects",
+                    message: "Effects have no visible result on this layer type in the source engine."
+                ))
+            }
+
+            if let nullObject = layer["null"]?.objectValue, type != "null" {
+                issues.append(ProjectIssue(
+                    severity: .warning,
+                    path: "\(location).null",
+                    message: "The null payload is only used by null layers."
+                ))
+                _ = nullObject
+            }
+            if let video = layer["video"]?.objectValue,
+               case .bool(true)? = video["alphaPacked"], type != "video" {
+                issues.append(ProjectIssue(
+                    severity: .warning,
+                    path: location,
+                    message: "Packed-alpha video settings only apply to video layers."
+                ))
+            }
+
             if let parentID = layer["parent"]?.stringValue {
                 if parentID == id {
                     issues.append(ProjectIssue(severity: .error, path: "\(location).parent", message: "A layer cannot parent itself."))
@@ -597,10 +644,57 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 }
             }
 
-            if let light = layer["light"]?.objectValue,
-               let softness = light["shadowSoftness"]?.numberValue,
-               !(0...8).contains(softness) {
-                issues.append(ProjectIssue(severity: .error, path: "\(location).light.shadowSoftness", message: "Shadow softness must be between 0 and 8."))
+            if let light = layer["light"]?.objectValue {
+                if let softness = light["shadowSoftness"]?.numberValue, !(0...8).contains(softness) {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).light.shadowSoftness", message: "Shadow softness must be between 0 and 8."))
+                }
+                if case .bool(true)? = light["castShadows"],
+                   light["kind"]?.stringValue == "ambient" {
+                    issues.append(ProjectIssue(
+                        severity: .warning,
+                        path: "\(location).light.castShadows",
+                        message: "Ambient lights do not cast shadows in the source engine."
+                    ))
+                }
+            }
+
+            if let object3D = layer["object3d"]?.objectValue,
+               let text = object3D["text"]?.objectValue {
+                if object3D["primitive"]?.stringValue != "text" {
+                    issues.append(ProjectIssue(
+                        severity: .warning,
+                        path: "\(location).object3d.text",
+                        message: "3D text settings are used only when the primitive is text."
+                    ))
+                }
+                if let fontSize = text["fontSize"]?.numberValue, !(4...2000).contains(fontSize) {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.fontSize", message: "3D text font size must be between 4 and 2000."))
+                }
+                if let depth = text["depth"]?.numberValue, !(1...2000).contains(depth) {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.depth", message: "3D text depth must be between 1 and 2000."))
+                }
+                if let bevel = text["bevel"]?.numberValue,
+                   let depth = text["depth"]?.numberValue,
+                   bevel < 0 || bevel > depth / 2 {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.bevel", message: "3D text bevel must be between zero and half the depth."))
+                }
+                if let lineHeight = text["lineHeight"]?.numberValue, !(lineHeight > 0) {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).object3d.text.lineHeight", message: "3D text line height must be greater than zero."))
+                }
+            }
+
+            if let text = layer["text"]?.objectValue,
+               let animators = text["animators"]?.arrayValue {
+                for (animatorIndex, animatorValue) in animators.enumerated() {
+                    guard let animator = animatorValue.objectValue else { continue }
+                    let animatorPath = "\(location).text.animators[\(animatorIndex)]"
+                    if let unitDuration = animator["unitDuration"]?.numberValue, !(unitDuration > 0) {
+                        issues.append(ProjectIssue(severity: .error, path: "\(animatorPath).unitDuration", message: "Text animator unit duration must be greater than zero."))
+                    }
+                    if let stagger = animator["stagger"]?.numberValue, stagger < 0 {
+                        issues.append(ProjectIssue(severity: .error, path: "\(animatorPath).stagger", message: "Text animator stagger must be non-negative."))
+                    }
+                }
             }
 
             validateKeyframeOrdering(.object(layer), path: location, issues: &issues)

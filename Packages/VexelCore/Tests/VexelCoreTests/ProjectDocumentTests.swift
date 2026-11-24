@@ -2,6 +2,74 @@ import XCTest
 @testable import VexelCore
 
 final class ProjectDocumentTests: XCTestCase {
+    func testSourceValidatorParityForMissingPayloadAndIgnoredLayerFeatures() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("missing-text"),
+                "type": .string("text"),
+                "name": .string("Missing payload"),
+                "start": .number(0),
+                "duration": .number(4),
+                "effects": .array([.object(["type": .string("blur")])]),
+                "masks": .array([.object(["id": .string("mask-1")])])
+            ]),
+            .object([
+                "id": .string("ambient"),
+                "type": .string("light"),
+                "start": .number(0),
+                "duration": .number(4),
+                "light": .object(["kind": .string("ambient"), "castShadows": .bool(true)])
+            ])
+        ])
+
+        let issues = project.validate()
+        XCTAssertTrue(issues.contains { $0.severity == .error && $0.path == "layers[0].text" })
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].effects" })
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].masks" })
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[1].light.castShadows" })
+    }
+
+    func testSourceValidatorParityFor3DTextRangesAndTextAnimatorTiming() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("text3d"),
+                "type": .string("object3d"),
+                "start": .number(0),
+                "duration": .number(4),
+                "object3d": .object([
+                    "primitive": .string("text"),
+                    "text": .object([
+                        "fontSize": .number(3000),
+                        "depth": .number(2),
+                        "bevel": .number(2),
+                        "lineHeight": .number(0)
+                    ])
+                ])
+            ]),
+            .object([
+                "id": .string("text"),
+                "type": .string("text"),
+                "start": .number(0),
+                "duration": .number(4),
+                "text": .object([
+                    "content": .string("A"),
+                    "animators": .array([
+                        .object(["unitDuration": .number(0), "stagger": .number(-1)])
+                    ])
+                ])
+            ])
+        ])
+
+        let errors = Set(project.validate().filter { $0.severity == .error }.map(\.path))
+        XCTAssertTrue(errors.contains("layers[0].object3d.text.fontSize"))
+        XCTAssertTrue(errors.contains("layers[0].object3d.text.bevel"))
+        XCTAssertTrue(errors.contains("layers[0].object3d.text.lineHeight"))
+        XCTAssertTrue(errors.contains("layers[1].text.animators[0].unitDuration"))
+        XCTAssertTrue(errors.contains("layers[1].text.animators[0].stagger"))
+    }
+
     func testStableSourceIdentifierMappingIsDeterministicAndPreservesUUIDs() {
         let sourceID = "android-layer-α-42"
         let first = VexelStableIdentifier.uuid(forSourceID: sourceID)
