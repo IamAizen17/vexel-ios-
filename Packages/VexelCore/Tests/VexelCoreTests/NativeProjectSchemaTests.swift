@@ -102,11 +102,14 @@ final class NativeProjectSchemaTests: XCTestCase {
         let data = """
         {"format":"vexelproj","formatVersion":1,
          "composition":{"width":1080,"height":1920,"fps":30,"duration":5},
-         "layers":[{"id":"future","type":"futureLayer","payload":{"keep":true}}]}
+         "assets":[{"id":"futureAsset","type":"lut","path":"assets/future.lut"}],
+         "layers":[{"id":"future","type":"futureLayer","blendMode":"futureBlend","futureLayer":{"keep":true}}]}
         """.data(using: .utf8)!
         let schema = try JSONDecoder().decode(VexelNativeProject.self, from: data)
         XCTAssertEqual(schema.layers.first?.type, .unknown("futureLayer"))
-        XCTAssertEqual(schema.layers.first?.content?.objectValue?["payload"]?.objectValue?["keep"], .bool(true))
+        XCTAssertEqual(schema.layers.first?.content?.objectValue?["keep"], .bool(true))
+        XCTAssertEqual(schema.layers.first?.blendMode, .unknown("futureBlend"))
+        XCTAssertEqual(schema.assets.first?.type, .unknown("lut"))
         XCTAssertNil(schema.layers.first?.typedContent)
     }
 
