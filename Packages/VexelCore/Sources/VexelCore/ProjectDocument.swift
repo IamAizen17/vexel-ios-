@@ -315,7 +315,11 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             case "number":
                 validType = value.numberValue?.isFinite == true
             case "integer":
-                validType = value.numberValue?.isFinite == true
+                if let number = value.numberValue {
+                    validType = number.isFinite && number.rounded(.towardZero) == number
+                } else {
+                    validType = false
+                }
             case "boolean":
                 if case .bool = value { validType = true } else { validType = false }
             case "color":

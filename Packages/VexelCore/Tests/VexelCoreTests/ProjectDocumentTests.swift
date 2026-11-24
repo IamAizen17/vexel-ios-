@@ -517,30 +517,50 @@ final class ProjectDocumentTests: XCTestCase {
         ])])
         XCTAssertTrue(project.validate(effectCatalog: catalog).isEmpty)
     }
-    func testIntegerEffectParametersRemainAnimatableAndTargetWarningsAreReported() {
+    func testIntegerEffectParametersRequireWholeNumbersAndRemainAnimatable() {
         let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [
             VexelEffectDefinition(id: "depthMap", category: "utility", englishName: "Depth Map",
                 target: "layer_3d", needsBackdrop: false, parameters: [
                     VexelEffectParameterDefinition(name: "samples", type: .integer, minimum: 1, maximum: 16)
                 ])
         ])
-        var project = ProjectDocument.starter()
-        project.fields["layers"] = .array([.object([
-            "id": .string("shape"), "type": .string("shape"),
-            "effects": .array([.object([
-                "type": .string("depthMap"),
-                "samples": .object([
-                    "keyframes": .array([
-                        .object(["time": .number(0), "value": .number(2.5)]),
-                        .object(["time": .number(1), "value": .number(4)])
-                    ])
-                ])
+        func project(value: JSONValue) -> ProjectDocument {
+            var document = ProjectDocument.starter()
+            document.fields["layers"] = .array([.object([
+                "id": .string("shape"), "type": .string("shape"),
+                "effects": .array([.object([
+                    "type": .string("depthMap"),
+                    "samples": value
+                ])])
             ])])
-        ])])
+            return document
+        }
 
-        let issues = project.validate(effectCatalog: catalog)
-        XCTAssertFalse(issues.contains { $0.severity == .error })
-        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].effects[0].type" })
+        let valid = project(value: .object([
+            "keyframes": .array([
+                .object(["time": .number(0), "value": .number(2)]),
+                .object(["time": .number(1), "value": .number(4)])
+            ])
+        ]))
+        XCTAssertFalse(valid.validate(effectCatalog: catalog).contains { $0.severity == .error })
+
+        let invalidStatic = project(value: .number(2.5))
+        XCTAssertTrue(invalidStatic.validate(effectCatalog: catalog).contains {
+            $0.severity == .error && $0.path == "layers[0].effects[0].samples"
+        })
+
+        let invalidAnimated = project(value: .object([
+            "keyframes": .array([
+                .object(["time": .number(0), "value": .number(2.5)]),
+                .object(["time": .number(1), "value": .number(4)])
+            ])
+        ]))
+        XCTAssertTrue(invalidAnimated.validate(effectCatalog: catalog).contains {
+            $0.severity == .error && $0.path == "layers[0].effects[0].samples.keyframes[0].value"
+        })
+        XCTAssertTrue(invalidStatic.validate(effectCatalog: catalog).contains {
+            $0.severity == .warning && $0.path == "layers[0].effects[0].type"
+        })
     }
 
 }
