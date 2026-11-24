@@ -247,18 +247,15 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         }
         if let editorView = fields["editorView"] {
             if let view = editorView.objectValue {
-                if let modeValue = view["mode"] {
-                    guard let mode = modeValue.stringValue, ["camera", "editor", "inside"].contains(mode) else {
-                        issues.append(ProjectIssue(severity: .error, path: "editorView.mode", message: "Editor view mode must be camera, editor, or inside."))
-                        continueEditorViewValidation: do {}
-                    }
+                if let modeValue = view["mode"],
+                   modeValue.stringValue.map({ ["camera", "editor", "inside"].contains($0) }) != true {
+                    issues.append(ProjectIssue(severity: .error, path: "editorView.mode", message: "Editor view mode must be camera, editor, or inside."))
                 }
-                if let targetValue = view["target"] {
-                    guard let target = targetValue.arrayValue, target.count == 3,
-                          target.allSatisfy({ $0.numberValue?.isFinite == true }) else {
-                        issues.append(ProjectIssue(severity: .error, path: "editorView.target", message: "Editor view target must contain three finite coordinates."))
-                        continueEditorViewValidation: do {}
-                    }
+                if let targetValue = view["target"],
+                   targetValue.arrayValue.map({ values in
+                       values.count == 3 && values.allSatisfy { $0.numberValue?.isFinite == true }
+                   }) != true {
+                    issues.append(ProjectIssue(severity: .error, path: "editorView.target", message: "Editor view target must contain three finite coordinates."))
                 }
                 if let distance = view["distance"]?.numberValue, !(50...200_000).contains(distance) {
                     issues.append(ProjectIssue(severity: .error, path: "editorView.distance", message: "Editor view distance must be between 50 and 200000."))
