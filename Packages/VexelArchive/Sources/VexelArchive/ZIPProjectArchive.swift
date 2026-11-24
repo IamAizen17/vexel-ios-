@@ -44,7 +44,7 @@ public struct ZIPProjectArchive: Sendable {
     }
 
     init(
-        maximumExtractedBytes: UInt64 = Self.maximumUncompressedBytes,
+        maximumExtractedBytes: UInt64,
         moveItemAction: @escaping @Sendable (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) }
     ) {
         self.maximumExtractedBytes = min(maximumExtractedBytes, Self.maximumUncompressedBytes)
