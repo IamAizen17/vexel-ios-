@@ -5,10 +5,16 @@ import VexelCore
 public struct ProjectArchivePayload: Sendable {
     public let project: ProjectDocument
     public let extractedAssetsDirectory: URL?
+    public let compatibilityReport: [VexelUnsupportedFeature]
 
-    public init(project: ProjectDocument, extractedAssetsDirectory: URL?) {
+    public init(
+        project: ProjectDocument,
+        extractedAssetsDirectory: URL?,
+        compatibilityReport: [VexelUnsupportedFeature] = []
+    ) {
         self.project = project
         self.extractedAssetsDirectory = extractedAssetsDirectory
+        self.compatibilityReport = compatibilityReport
     }
 }
 
@@ -135,7 +141,7 @@ public struct ZIPProjectArchive: Sendable {
                 do {
                     let handle = try FileHandle(forWritingTo: target)
                     defer { try? handle.close() }
-                    let remaining = Self.maximumUncompressedBytes - actualTotal
+                    let remaining = maximumExtractedBytes - actualTotal
                     let extracted = try Self.extract(
                         entry,
                         from: archive,
