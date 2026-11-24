@@ -340,7 +340,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
                     "keyframes": .array([])
                 ])])
             ]),
-            .object(["id": .string("future-layer"), "type": .string("future-layer"), "duration": .number(1)])
+            .object(["id": .string("future-layer"), "type": .string("future-layer"), "blendMode": .string("futureBlend"), "duration": .number(1)])
         ])
         fields["assets"] = .array([
             .object(["id": .string("unused"), "type": .string("video"), "path": .string("assets/video.mov")])
@@ -356,6 +356,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "effect:gaussianBlur" })
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "expression" })
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "unknown-layer:future-layer" })
+        XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "blend-mode:futureBlend" })
     }
 
 
