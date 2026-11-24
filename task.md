@@ -47,7 +47,7 @@ This file is the implementation handoff and active engineering backlog. “Imple
 - Undo and redo using in-memory workspace snapshots.
 - Advance the playhead during playback and stop or loop at composition duration.
 
-These are initial workspace operations. They are not yet backed by a complete canonical editing engine. Several operations have known semantic gaps, including keyframe data containing timestamps rather than animated property values, incomplete nested-track selection/editing, and split/group behavior that needs source-compatible semantics.
+These are initial workspace operations. They are not yet backed by a complete canonical editing engine. Source-compatible duplicate/split helpers and core tests now exist in VexelCore, but the SwiftUI workspace operations are not yet routed through those helpers. Keyframe data in the workspace still uses timestamps rather than editable animated property values, and nested-track selection/editing remains incomplete.
 
 ### Project data, persistence, and archive groundwork
 
@@ -67,7 +67,7 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Archive imports expose a structured unsupported-feature report. The current UI does not yet present that report as an import review screen.
 - A source-repository Android video/audio sample archive fixture includes the exact referenced MP4/M4A assets. It follows the Android writer's ZIP layout but was assembled for tests, not exported by the Android app.
 
-P0 remains incomplete. Outstanding work includes the full typed Swift schema, exact type-specific content and animation mapping, explicit unsupported-feature reporting, genuine Android-generated ZIP fixtures with their real assets, comprehensive v12 semantic validation, stronger atomic destination replacement, archive resource-budget tests, and import rollback tests. Do not claim complete Android round-trip compatibility until those checks pass.
+P0 remains incomplete. Outstanding work includes completing dedicated Swift models for every type-specific content payload and advanced structure, wiring the typed schema into app persistence/editing, connecting compatibility reports to import UI, obtaining a direct Android-app-exported archive, comprehensive v12 semantic validation and asset-reference coverage, native schema migrations, destination rollback-failure tests, and fresh execution of the expanded test suite. Do not claim complete Android round-trip compatibility until those checks pass.
 
 ### Engine and package foundations
 
