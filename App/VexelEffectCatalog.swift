@@ -68,6 +68,8 @@ enum VexelEffectCatalog {
         return value
     }()
 
+    static var validationCatalog: VexelCore.VexelEffectCatalog { registry }
+
     static let categories: [String] = registry.categories.map(\.englishName)
     static let all: [VexelEffectItem] = registry.effects.map { source in
         let definition = VexelEffectDefinition(

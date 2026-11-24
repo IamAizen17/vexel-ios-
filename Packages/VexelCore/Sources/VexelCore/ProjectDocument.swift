@@ -256,6 +256,93 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         return issues
     }
 
+    public func validate(effectCatalog: VexelEffectCatalog) -> [ProjectIssue] {
+        var issues = validate()
+        let definitions = Dictionary(uniqueKeysWithValues: effectCatalog.effects.map { ($0.id, $0) })
+
+        func validateEffects(_ values: [JSONValue], path: String) {
+            for (index, value) in values.enumerated() {
+                let location = "\\(path)[\\(index)]"
+                guard let effect = value.objectValue,
+                      let effectID = effect["type"]?.stringValue else { continue }
+                guard let definition = definitions[effectID] else {
+                    issues.append(ProjectIssue(severity: .warning, path: "\\(location).type",
+                        message: "Effect '\\(effectID)' is not in the installed catalogue. Its data will be preserved but cannot be validated or rendered."))
+                    continue
+                }
+
+                let parameters = Dictionary(uniqueKeysWithValues: definition.parameters.map { ($0.name, $0) })
+                for (name, rawValue) in effect where name != "type" && name != "enabled" {
+                    let parameterPath = "\\(location).\\(name)"
+                    guard let parameter = parameters[name] else {
+                        issues.append(ProjectIssue(severity: .warning, path: parameterPath,
+                            message: "Parameter is not defined by effect '\\(effectID)'. Its value will be preserved."))
+                        continue
+                    }
+
+                    let validType: Bool
+                    switch parameter.type.rawValue {
+                    case "number":
+                        validType = rawValue.numberValue?.isFinite == true
+                    case "integer":
+                        if let number = rawValue.numberValue {
+                            validType = number.isFinite && number.rounded(.towardZero) == number
+                        } else { validType = false }
+                    case "boolean":
+                        if case .bool = rawValue { validType = true } else { validType = false }
+                    case "color":
+                        if case .string = rawValue { validType = true } else { validType = false }
+                    case "choice":
+                        validType = rawValue.stringValue.map { parameter.choices?.contains($0) == true } ?? false
+                    case "point":
+                        if let values = rawValue.arrayValue, values.count == 2 {
+                            validType = values.allSatisfy { $0.numberValue?.isFinite == true }
+                        } else { validType = false }
+                    case "stops":
+                        if let stops = rawValue.arrayValue, !stops.isEmpty {
+                            validType = stops.allSatisfy { stop in
+                                guard let fields = stop.objectValue,
+                                      let offset = fields["offset"]?.numberValue,
+                                      offset.isFinite, (0...1).contains(offset),
+                                      fields["color"]?.stringValue != nil else { return false }
+                                return true
+                            }
+                        } else { validType = false }
+                    default:
+                        issues.append(ProjectIssue(severity: .warning, path: parameterPath,
+                            message: "Parameter type '\\(parameter.type.rawValue)' is not understood by this validator. Its value will be preserved."))
+                        continue
+                    }
+
+                    guard validType else {
+                        issues.append(ProjectIssue(severity: .error, path: parameterPath,
+                            message: "Value does not match the declared '\\(parameter.type.rawValue)' parameter type."))
+                        continue
+                    }
+                    if let number = rawValue.numberValue {
+                        if let minimum = parameter.minimum, number < minimum {
+                            issues.append(ProjectIssue(severity: .error, path: parameterPath, message: "Value is below the minimum of \\(minimum)."))
+                        }
+                        if let maximum = parameter.maximum, number > maximum {
+                            issues.append(ProjectIssue(severity: .error, path: parameterPath, message: "Value exceeds the maximum of \\(maximum)."))
+                        }
+                    }
+                }
+            }
+        }
+
+        func inspect(_ layers: [JSONValue], path: String) {
+            for (index, value) in layers.enumerated() {
+                guard let layer = value.objectValue else { continue }
+                let location = "\\(path)[\\(index)]"
+                validateEffects(layer["effects"]?.arrayValue ?? [], path: "\\(location).effects")
+                inspect(layer["layers"]?.arrayValue ?? [], path: "\\(location).layers")
+            }
+        }
+        inspect(fields["layers"]?.arrayValue ?? [], path: "layers")
+        return issues
+    }
+
     public func encoded(prettyPrinted: Bool = true) throws -> Data {
         let encoder = JSONEncoder()
         if prettyPrinted {

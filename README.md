@@ -15,7 +15,8 @@ rendering, and AVFoundation media pipeline.
 - `Packages/VexelAudio/`: realtime and offline audio contracts.
 - `Packages/VexelExport/`: shared preview/export orchestration contracts.
 - `Packages/VexelPlugins/`: plugin package and capability contracts.
-- `.github/workflows/ios-ipa.yml`: manually triggered Swift package validation and optional unsigned IPA packaging.
+- `.github/workflows/ios-ci.yml`: push/PR validation, Swift package tests, and iOS Simulator build.
+- `.github/workflows/ios-ipa.yml`: manually triggered unsigned IPA archive and artifact upload.
 - `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
 ## Build without owning a Mac

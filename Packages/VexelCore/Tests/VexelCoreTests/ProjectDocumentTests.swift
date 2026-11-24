@@ -387,3 +387,57 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertEqual(project.validate().first?.path, "format")
     }
 }
+    func testEffectInstanceParametersAreValidatedAgainstCanonicalDefinitions() {
+        let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [
+            VexelEffectDefinition(id: "brightness", category: "color", englishName: "Brightness", target: "any",
+                needsBackdrop: false, parameters: [
+                    VexelEffectParameterDefinition(name: "amount", type: .number, minimum: 0, maximum: 1),
+                    VexelEffectParameterDefinition(name: "enabled", type: .boolean),
+                    VexelEffectParameterDefinition(name: "mode", type: .choice, choices: ["soft", "hard"]),
+                    VexelEffectParameterDefinition(name: "center", type: .point),
+                    VexelEffectParameterDefinition(name: "stops", type: .stops)
+                ])
+        ])
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([.object([
+            "id": .string("shape"), "type": .string("shape"),
+            "effects": .array([
+                .object(["type": .string("brightness"), "amount": .number(1.5), "enabled": .string("yes"),
+                    "mode": .string("invalid"), "center": .array([.number(0)]),
+                    "stops": .array([.object(["offset": .number(2), "color": .string("#FFFFFF")])]),
+                    "futureParameter": .number(1)]),
+                .object(["type": .string("futureEffect"), "opaque": .bool(true)])
+            ])
+        ])])
+
+        let issues = project.validate(effectCatalog: catalog)
+        XCTAssertEqual(Set(issues.filter { $0.severity == .error }.map(\\.path)), Set([
+            "layers[0].effects[0].amount", "layers[0].effects[0].enabled",
+            "layers[0].effects[0].mode", "layers[0].effects[0].center", "layers[0].effects[0].stops"
+        ]))
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].effects[0].futureParameter" })
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].effects[1].type" })
+    }
+
+    func testValidEffectInstanceParametersPassCanonicalValidation() {
+        let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [
+            VexelEffectDefinition(id: "gradientMap", category: "color", englishName: "Gradient Map",
+                target: "any", needsBackdrop: false, parameters: [
+                    VexelEffectParameterDefinition(name: "amount", type: .number, minimum: 0, maximum: 1),
+                    VexelEffectParameterDefinition(name: "stops", type: .stops)
+                ])
+        ])
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([.object([
+            "id": .string("shape"), "type": .string("shape"),
+            "effects": .array([.object([
+                "type": .string("gradientMap"), "amount": .number(0.75),
+                "stops": .array([
+                    .object(["offset": .number(0), "color": .string("#000000")]),
+                    .object(["offset": .number(1), "color": .string("#FFFFFF")])
+                ])
+            ])])
+        ])])
+        XCTAssertTrue(project.validate(effectCatalog: catalog).isEmpty)
+    }
+

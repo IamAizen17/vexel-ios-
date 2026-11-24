@@ -114,7 +114,7 @@ extension VexelProjectItem {
         let document = try ProjectDocument(data: data)
         let nativeProject = try VexelNativeProject(document: document)
         let normalized = try nativeProject.projectDocument()
-        let errors = normalized.validate().filter { $0.severity == .error }
+        let errors = normalized.validate(effectCatalog: VexelEffectCatalog.validationCatalog).filter { $0.severity == .error }
         guard errors.isEmpty else {
             throw DecodingError.dataCorrupted(.init(
                 codingPath: [],
