@@ -503,15 +503,6 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             let type = layer["type"]?.stringValue ?? "unknown"
             let children = layer["layers"]?.arrayValue ?? []
 
-            let contentKeyByType = [
-                "text": "text", "shape": "shape", "image": "image", "video": "video",
-                "audio": "audio", "object3d": "object3d", "model3d": "model3d",
-                "camera": "camera", "light": "light"
-            ]
-            if let contentKey = contentKeyByType[type], layer[contentKey]?.objectValue == nil {
-                issues.append(ProjectIssue(severity: .error, path: location, message: "A '\(type)' layer requires a '\(contentKey)' content object."))
-            }
-
             if !children.isEmpty && type != "group" {
                 issues.append(ProjectIssue(severity: .error, path: "\(location).layers", message: "Only group layers may contain child layers."))
             }
@@ -522,10 +513,13 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 "camera": "camera", "light": "light"
             ]
             if let payload = requiredPayloads[type], layer[payload]?.objectValue == nil {
+                let isLegacyImport = fields["compatibility"]?.objectValue?["source"]?.stringValue == "android-reference"
                 issues.append(ProjectIssue(
-                    severity: .warning,
+                    severity: isLegacyImport ? .warning : .error,
                     path: "\(location).\(payload)",
-                    message: "The source validator requires a matching '\(payload)' payload; this imported layer is retained without one."
+                    message: isLegacyImport
+                        ? "The source layer is missing its '\(payload)' payload. Its raw data is preserved, but this layer cannot be edited or rendered safely."
+                        : "A '\(type)' layer requires its matching '\(payload)' payload."
                 ))
             }
 

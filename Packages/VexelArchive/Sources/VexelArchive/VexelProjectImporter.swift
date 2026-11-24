@@ -102,6 +102,14 @@ public enum VexelProjectImporter {
                         reason: "The layer discriminator is not recognized by this importer. Its raw JSON is retained, but editing or rendering support is unavailable."
                     ))
                 }
+                if let contentKey = VexelLayerType(rawValue: type).contentKey,
+                   layer[contentKey]?.objectValue == nil {
+                    result.append(VexelUnsupportedFeature(
+                        path: "\(location).\(contentKey)",
+                        feature: "incomplete-layer-payload",
+                        reason: "The source layer has no matching content payload. Its discriminator and raw fields are preserved, but the current editor cannot safely edit or render it."
+                    ))
+                }
                 if ["video", "audio", "object3d", "model3d", "camera", "light", "null"].contains(type) {
                     result.append(VexelUnsupportedFeature(
                         path: "\(location).type",

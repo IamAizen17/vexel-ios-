@@ -182,6 +182,9 @@ final class VexelProjectImporterTests: XCTestCase {
         let audio = try XCTUnwrap(layers.first { $0.objectValue?["id"]?.stringValue == "audio-without-payload" }?.objectValue)
         XCTAssertEqual(audio["type"]?.stringValue, "audio")
         XCTAssertNil(audio["audio"])
+        XCTAssertTrue(VexelProjectImporter.compatibilityReport(for: imported).contains {
+            $0.feature == "incomplete-layer-payload" && $0.path.hasSuffix(".audio")
+        })
     }
 
     private func androidFixture(_ name: String) throws -> Data {

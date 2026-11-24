@@ -570,7 +570,7 @@ final class ProjectDocumentTests: XCTestCase {
 
         let issues = project.validate()
         let errors = Set(issues.filter { $0.severity == .error }.map(\.path))
-        XCTAssertTrue(errors.contains("layers[0]"))
+        XCTAssertTrue(errors.contains("layers[0].shape"))
         XCTAssertTrue(errors.contains("layers[1].video.speed"))
         XCTAssertTrue(errors.contains("layers[1].video.sourceStart"))
         XCTAssertTrue(errors.contains("layers[1].video.eq[0]"))
