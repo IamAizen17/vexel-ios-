@@ -1,6 +1,7 @@
 import Foundation
 import XCTest
 import VexelCore
+import ZIPFoundation
 @testable import VexelArchive
 
 final class ZIPProjectArchiveTests: XCTestCase {
@@ -85,7 +86,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         let reopened = try ZIPProjectArchive().read(from: vexelArchiveURL)
         XCTAssertEqual(reopened.project, imported.project)
         let nativeArchive = try XCTUnwrap(Archive(url: vexelArchiveURL, accessMode: .read))
-        let paths = Set(nativeArchive.map(\\.path))
+        let paths = Set(nativeArchive.map(\.path))
         XCTAssertTrue(paths.contains("vexel.json"))
         XCTAssertTrue(paths.contains("assets/clip.mp4"))
         XCTAssertTrue(paths.contains("assets/music.m4a"))
@@ -159,7 +160,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         let archiveURL = directory.appendingPathComponent("native.vexelproj")
         try ZIPProjectArchive().write(ProjectDocument.starter(), to: archiveURL)
         let archive = try XCTUnwrap(Archive(url: archiveURL, accessMode: .read))
-        let paths = Set(archive.map(\\.path))
+        let paths = Set(archive.map(\.path))
         XCTAssertTrue(paths.contains("vexel.json"))
         XCTAssertFalse(paths.contains("project.json"))
     }
@@ -414,7 +415,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
             }
             let backup = URL(fileURLWithPath: backupPath)
             XCTAssertTrue(FileManager.default.fileExists(atPath: backup.appendingPathComponent("existing.txt").path))
-            XCTAssertEqual(try Data(contentsOf: backup.appendingPathComponent("existing.txt")), Data("recoverable".utf8))
+            XCTAssertEqual(try? Data(contentsOf: backup.appendingPathComponent("existing.txt")), Data("recoverable".utf8))
         }
     }
 
