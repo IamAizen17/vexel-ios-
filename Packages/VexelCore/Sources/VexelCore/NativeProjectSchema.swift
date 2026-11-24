@@ -252,9 +252,9 @@ public struct VexelLayer: Codable, Equatable, Sendable {
     public var visible: Bool?
     public var locked: Bool?
     public var parent: String?
-    public var label: JSONValue?
-    public var blendMode: String?
-    public var motionBlur: JSONValue?
+    public var label: String?
+    public var blendMode: VexelBlendMode?
+    public var motionBlur: Bool?
     public var transform: VexelTransform?
     public var transform3D: VexelTransform?
     public var effects: [VexelEffect]
@@ -272,8 +272,8 @@ public struct VexelLayer: Codable, Equatable, Sendable {
     ]
 
     public init(id: String, type: VexelLayerType, name: String? = nil, start: Double? = nil, duration: Double? = nil,
-                visible: Bool? = nil, locked: Bool? = nil, parent: String? = nil, label: JSONValue? = nil,
-                blendMode: String? = nil, motionBlur: JSONValue? = nil, transform: VexelTransform? = nil,
+                visible: Bool? = nil, locked: Bool? = nil, parent: String? = nil, label: String? = nil,
+                blendMode: VexelBlendMode? = nil, motionBlur: Bool? = nil, transform: VexelTransform? = nil,
                 transform3D: VexelTransform? = nil, effects: [VexelEffect] = [], masks: [JSONValue] = [],
                 matte: JSONValue? = nil, transitionIn: JSONValue? = nil, transitionOut: JSONValue? = nil,
                 content: JSONValue? = nil, layers: [VexelLayer] = [], unknownFields: [String: JSONValue] = [:]) {
@@ -290,8 +290,8 @@ public struct VexelLayer: Codable, Equatable, Sendable {
         name = try c.decodeIfPresent(String.self, forKey: .init("name"))
         start = try c.decodeIfPresent(Double.self, forKey: .init("start")); duration = try c.decodeIfPresent(Double.self, forKey: .init("duration"))
         visible = try c.decodeIfPresent(Bool.self, forKey: .init("visible")); locked = try c.decodeIfPresent(Bool.self, forKey: .init("locked"))
-        parent = try c.decodeIfPresent(String.self, forKey: .init("parent")); label = try c.decodeIfPresent(JSONValue.self, forKey: .init("label"))
-        blendMode = try c.decodeIfPresent(String.self, forKey: .init("blendMode")); motionBlur = try c.decodeIfPresent(JSONValue.self, forKey: .init("motionBlur"))
+        parent = try c.decodeIfPresent(String.self, forKey: .init("parent")); label = try c.decodeIfPresent(String.self, forKey: .init("label"))
+        blendMode = try c.decodeIfPresent(VexelBlendMode.self, forKey: .init("blendMode")); motionBlur = try c.decodeIfPresent(Bool.self, forKey: .init("motionBlur"))
         transform = try c.decodeIfPresent(VexelTransform.self, forKey: .init("transform"))
         transform3D = try c.decodeIfPresent(VexelTransform.self, forKey: .init("transform3d"))
         effects = try c.decodeIfPresent([VexelEffect].self, forKey: .init("effects")) ?? []
