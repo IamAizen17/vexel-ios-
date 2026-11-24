@@ -164,9 +164,12 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Keep composition-settings and timeline edits in local drafts; commit changes through the store.
 - [x] Route project rename, composition settings, timeline edits, marker edits, media registration, visibility/lock, duplicate/delete/split/group and effect operations through store commits.
 - [x] Serialize store snapshots back to the project library after successful commands.
-- [x] Add command tests for invalid-operation atomicity, undo/redo, coalescing, nested operations, grouping, effect parameters and snapshot replacement.
-- [ ] Replace generic snapshot-replacement commits with dedicated typed commands for marker and keyframe mutations.
-- [ ] Connect transform/property inspector controls to typed store commands and verify every remaining edit surface.
+- [x] Add command tests for invalid-operation atomicity, undo/redo, coalescing, nested operations, grouping, effect parameters, snapshot replacement, typed markers and keyframes.
+- [x] Add typed marker upsert/removal commands and typed transform keyframe add/update/removal commands, preserving animation metadata and unknown marker fields.
+- [x] Route marker saves and playhead position-keyframe creation through typed store commands; add store regression tests for undo/redo, sorting, metadata preservation and invalid keyframe times.
+- [x] Connect position X/Y fields in both compact and wide inspectors to native transform commands.
+- [ ] Connect anchor, scale, rotation, opacity, text and other property controls to typed descriptors and commands; keep unimplemented controls disabled or clearly marked.
+- [ ] Replace remaining generic snapshot-replacement commits with dedicated typed commands and verify all edit surfaces.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
@@ -181,7 +184,8 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Establish a deterministic `FrameScene` contract from a native project document and composition time.
 - [x] Implement baseline keyframe interpolation, easing presets, cycle/ping-pong sampling and nested group timing/transforms.
 - [x] Add deterministic scene-evaluation regression tests for interpolation, loop modes and nested groups.
-- [ ] Implement typed property animation and constrained expressions.
+- [x] Add typed keyframe insertion/removal on native transform properties, preserving existing animation track metadata.
+- [ ] Implement reusable typed property descriptors, keyframe sampling/editing for all supported properties, and constrained expressions.
 - [ ] Complete nested compositions, 2D/3D transforms, camera/light state, masks, mattes, transitions and evaluated effect parameters.
 - [ ] Add golden coverage for representative source projects and broader time samples.
 
@@ -229,7 +233,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head after P1 integration and IPA verification: `97dc769d618131c3e56697063300e76c6481ba46` (workflow-only restoration after successful IPA build on `ad6d03ea7dd17cc43d7b2aa533eb0349ca29597a`).
+Current feature branch code head before this task-status update: `f2a98fa4f3f2cb3693e6d88973c5f59976d94faa`. Latest targeted P1 CI run `45379222761` is pending for typed marker/keyframe commands and inspector position wiring.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
