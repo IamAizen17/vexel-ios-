@@ -67,7 +67,7 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Archive imports expose a structured unsupported-feature report. The current UI does not yet present that report as an import review screen.
 - A source-repository Android video/audio sample archive fixture includes the exact referenced MP4/M4A assets. It follows the Android writer's ZIP layout but was assembled for tests, not exported by the Android app.
 
-P0 remains incomplete. Outstanding work includes completing dedicated Swift models for every type-specific content payload and advanced structure, wiring the typed schema into app persistence/editing, connecting compatibility reports to import UI, obtaining a direct Android-app-exported archive, comprehensive v12 semantic validation and asset-reference coverage, native schema migrations, destination rollback-failure tests, and fresh execution of the expanded test suite. Do not claim complete Android round-trip compatibility until those checks pass.
+P0 remains incomplete. Outstanding work includes completing dedicated Swift models for every type-specific content payload and advanced structure, wiring the typed schema into app persistence/editing, connecting compatibility reports to import UI, obtaining a direct Android-app-exported archive, comprehensive v12 semantic validation and asset-reference coverage, native schema migrations, archive export replacement-failure tests, and fresh execution of the expanded test suite. Do not claim complete Android round-trip compatibility until those checks pass.
 
 ### Engine and package foundations
 
@@ -99,7 +99,8 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - [ ] Complete v12 semantic validation, including all nested asset references and numeric bounds.
 - [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
 - [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
-- [ ] Test destination rollback failure and archive export replacement failure paths.
+- [x] Test destination rollback failure and verify the retained backup path is recoverable.
+- [ ] Add failure-injection coverage for archive export destination replacement.
 - [ ] Add native Vexel schema migrations and migration tests.
 - Keep project creation, editing, persistence and export native to Vexel. Android compatibility remains isolated in `VexelProjectImporter`.
 
