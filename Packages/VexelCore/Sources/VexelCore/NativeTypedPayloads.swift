@@ -557,17 +557,17 @@ public struct VexelVector3: Codable, Equatable, Sendable {
     }
 }
 
-public enum VexelRotoMode: String, Codable, Sendable {
+public enum VexelRotoMode: Equatable, Sendable, Codable {
     case add
     case remove
-    case unknown
+    case unknown(String)
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         switch try container.decode(String.self) {
         case "add": self = .add
         case "remove": self = .remove
-        default: self = .unknown
+        default: self = .unknown(try container.decode(String.self))
         }
     }
 
@@ -576,7 +576,7 @@ public enum VexelRotoMode: String, Codable, Sendable {
         switch self {
         case .add: try container.encode("add")
         case .remove: try container.encode("remove")
-        case .unknown: try container.encode("unknown")
+        case .unknown(let raw): try container.encode(raw)
         }
     }
 }
