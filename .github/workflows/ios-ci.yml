@@ -1,9 +1,6 @@
 name: iOS Continuous Integration
 
 on:
-  pull_request:
-    branches:
-      - feat/port-reference-ui
   workflow_dispatch:
 
 permissions:

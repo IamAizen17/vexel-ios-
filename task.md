@@ -137,8 +137,8 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [x] Validate known effect-instance parameter types (including whole-number integer parameters), choices, point/stops shapes, finite numeric values and declared ranges against the canonical effect registry. Unknown effects/parameters are preserved and reported as warnings.
 - [ ] Audit remaining source semantic-validator edge cases across every imported layer payload.
 - [x] Generate a `.knsproj` archive using the reference repository's production Kotlin `KnsprojArchive.write()` implementation and verify the ZIP contents.
-- [ ] Test Vexel's importer against the generated source-writer archive; the dedicated cross-repository CI import job is queued.
-- [ ] Obtain an archive exported by running the Android application itself. The source-writer fixture is production-serializer-generated but is not an app-session export.
+- [x] Test Vexel's importer against the generated source-writer archive; the dedicated cross-repository CI import job passed on commit `7ed70d4`.
+- [ ] Optional provenance follow-up: obtain an archive exported by running the Android application itself. The source-writer fixture is production-serializer-generated and successfully imported, but is not an app-session export. This is not a blocker for the importer implementation.
 - [x] Keep legacy import isolated; fixture tests cover unknown-field preservation through importer round trips.
 - [ ] Prove unknown-field preservation through full app edit/save/export round trips.
 - [x] Validate project asset references and expected asset types recursively; validate effect parameter instances before accepting an imported project.
@@ -148,7 +148,10 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
 - [x] Refresh the source audit, Android compatibility guide and porting roadmap to reflect persisted projects, connected import review, effect-aware validation and the current iOS-only development order.
 - [ ] Refresh PR #2 status text after the final CI run.
-- [ ] Keep CI green for package tests, XcodeGen generation, simulator build and unsigned IPA archive.
+- [x] Disable automatic push and pull-request triggers for expensive workflows; iOS CI, source archive generation/import, and IPA packaging are now manual-dispatch only.
+- [x] Keep CI green for package tests, XcodeGen generation and simulator build on commit `7ed70d4` (run `45364469639`).
+- [ ] Re-run the manual iOS CI workflow after the latest workflow-only change and subsequent P0 code changes.
+- [ ] Re-run the manual unsigned IPA workflow against the final P0 commit.
 - [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
 ### P1: Canonical project/editing state and complete editing interaction
@@ -220,7 +223,7 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head at review: `98b05b8430d360bad86ab6ddfb3309bbbaa417ff`.
+Current feature branch head at review: `0e6f1f505ec3c7162a8488aa21fc696ba4b23b5e`.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
@@ -230,7 +233,8 @@ Current feature branch head at review: `98b05b8430d360bad86ab6ddfb3309bbbaa417ff
 - [ ] Do not reuse historical verification claims for a newer commit without checking its workflow runs.
 
 Successful workflow references:
-- CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45355757013
+- Latest successful CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364469639
+- Source-writer archive and Vexel import: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364456096
 - IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
 
 ## 7. Required engineering workflow
