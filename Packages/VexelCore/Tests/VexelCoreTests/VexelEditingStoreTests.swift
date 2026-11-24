@@ -361,6 +361,79 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
     }
 
+    func testTypedTextPropertyCommandsPreserveNestedFieldsAndAnimationMetadata() async throws {
+        let fontSizeTrack = VexelAnimationTrack(
+            keyframes: [
+                VexelKeyframe(time: 0, value: .number(80)),
+                VexelKeyframe(time: 3, value: .number(120))
+            ],
+            value: .number(96),
+            loop: .cycle,
+            expression: "time",
+            expressionEnabled: false,
+            unknownFields: ["futureAnimationFlag": .bool(true)]
+        )
+        let layer = VexelLayer(
+            id: "title",
+            type: .text,
+            start: 0,
+            duration: 8,
+            content: .object([
+                "content": .string("Original"),
+                "font": .object([
+                    "family": .string("sans-serif"),
+                    "weight": .number(700),
+                    "italic": .bool(false),
+                    "futureFontField": .string("preserve")
+                ]),
+                "fontSize": .object([
+                    "keyframes": .array([
+                        .object(["time": .number(0), "value": .number(80)]),
+                        .object(["time": .number(3), "value": .number(120)])
+                    ]),
+                    "value": .number(96),
+                    "loop": .string("cycle"),
+                    "expression": .string("time"),
+                    "expressionEnabled": .bool(false),
+                    "futureAnimationFlag": .bool(true)
+                ]),
+                "futureTextField": .string("preserve")
+            ])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTextProperty(id: "title", property: .content, value: .string("Updated title")))
+        try await store.execute(.setTextProperty(id: "title", property: .fontFamily, value: .string("serif")))
+        try await store.execute(.setTextProperty(id: "title", property: .fontWeight, value: .number(500)))
+        try await store.execute(.setTextProperty(id: "title", property: .fontItalic, value: .bool(true)))
+        try await store.execute(.setTextProperty(id: "title", property: .fontSize, value: .number(144)))
+        try await store.execute(.setTextProperty(id: "title", property: .lineHeight, value: .number(1.4)))
+        try await store.execute(.setTextProperty(id: "title", property: .letterSpacing, value: .number(0.08)))
+        try await store.execute(.setTextProperty(id: "title", property: .alignment, value: .string("left")))
+
+        let snapshot = await store.snapshot()
+        let fields = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:])
+        let text = VexelTextContent(fields: fields)
+        XCTAssertEqual(text.content, "Updated title")
+        XCTAssertEqual(text.font?.family, "serif")
+        XCTAssertEqual(text.font?.weight, 500)
+        XCTAssertEqual(text.font?.italic, true)
+        XCTAssertEqual(text.lineHeight, 1.4)
+        XCTAssertEqual(text.letterSpacing, .constant(.number(0.08)))
+        XCTAssertEqual(text.align, "left")
+        XCTAssertEqual(fields["futureTextField"], .string("preserve"))
+        XCTAssertEqual(text.font?.fields["futureFontField"], .string("preserve"))
+        guard case .animated(let updatedFontSize)? = text.fontSize else {
+            return XCTFail("Editing font size must preserve its animation track.")
+        }
+        XCTAssertEqual(updatedFontSize.value, .number(144))
+        XCTAssertEqual(updatedFontSize.keyframes.count, 2)
+        XCTAssertEqual(updatedFontSize.loop, .cycle)
+        XCTAssertEqual(updatedFontSize.expression, "time")
+        XCTAssertEqual(updatedFontSize.expressionEnabled, false)
+        XCTAssertEqual(updatedFontSize.unknownFields["futureAnimationFlag"], .bool(true))
+    }
+
     func testTransformInspectorPropertiesPersistAndUndoForTwoDimensionalLayers() async throws {
         let layer = VexelLayer(
             id: "shape",

@@ -1,5 +1,16 @@
 import Foundation
 
+public enum VexelTextProperty: String, Sendable {
+    case content
+    case fontFamily
+    case fontWeight
+    case fontItalic
+    case fontSize
+    case lineHeight
+    case letterSpacing
+    case alignment
+}
+
 public enum VexelEditingCommand: Sendable {
     case renameProject(String)
     case setComposition(width: Int, height: Int, fps: Double, duration: Double)
@@ -17,6 +28,7 @@ public enum VexelEditingCommand: Sendable {
     case removeEffect(layerID: String, type: String)
     case setLayerTiming(id: String, start: Double, duration: Double)
     case setTransformValue(id: String, property: String, value: VexelAnimatableValue, is3D: Bool)
+    case setTextProperty(id: String, property: VexelTextProperty, value: JSONValue)
     case setKeyframe(layerID: String, property: String, keyframe: VexelKeyframe, is3D: Bool)
     case removeKeyframe(layerID: String, property: String, time: Double, is3D: Bool)
     case upsertMarker(VexelMarkerData)
@@ -382,6 +394,70 @@ public actor VexelEditingStore {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
 
+        case .setTextProperty(let id, let property, let value):
+            guard let target = findLayer(id, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(id)
+            }
+            guard target.type == .text else {
+                throw VexelEditingStoreError.invalidOperation("Text properties can only be edited on text layers.")
+            }
+            var text = VexelObjectFields(target.content?.objectValue ?? [:])
+            switch property {
+            case .content:
+                guard let string = value.stringValue, string.count <= 10_000 else {
+                    throw VexelEditingStoreError.invalidOperation("Text content must contain at most 10,000 characters.")
+                }
+                text["content"] = .string(string)
+            case .fontFamily:
+                guard let family = value.stringValue,
+                      !family.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      family.count <= 128 else {
+                    throw VexelEditingStoreError.invalidOperation("Font family must contain 1 to 128 characters.")
+                }
+                var font = text.object("font") ?? VexelObjectFields()
+                font["family"] = .string(family)
+                text["font"] = .object(font.values)
+            case .fontWeight:
+                guard let weight = value.numberValue, weight.isFinite,
+                      (100...900).contains(weight), weight.rounded() == weight else {
+                    throw VexelEditingStoreError.invalidOperation("Font weight must be an integer from 100 to 900.")
+                }
+                var font = text.object("font") ?? VexelObjectFields()
+                font["weight"] = .number(weight)
+                text["font"] = .object(font.values)
+            case .fontItalic:
+                guard case .bool = value else {
+                    throw VexelEditingStoreError.invalidOperation("Font italic must be a boolean.")
+                }
+                var font = text.object("font") ?? VexelObjectFields()
+                font["italic"] = value
+                text["font"] = .object(font.values)
+            case .fontSize:
+                guard let number = value.numberValue, number.isFinite, (1...2048).contains(number) else {
+                    throw VexelEditingStoreError.invalidOperation("Font size must be between 1 and 2,048 pixels.")
+                }
+                Self.setTextAnimatableBase(number, key: "fontSize", fields: &text)
+            case .lineHeight:
+                guard let number = value.numberValue, number.isFinite, (0.1...10).contains(number) else {
+                    throw VexelEditingStoreError.invalidOperation("Line height must be between 0.1 and 10.")
+                }
+                text["lineHeight"] = .number(number)
+            case .letterSpacing:
+                guard let number = value.numberValue, number.isFinite, (-10...10).contains(number) else {
+                    throw VexelEditingStoreError.invalidOperation("Letter spacing must be between -10 and 10 em.")
+                }
+                Self.setTextAnimatableBase(number, key: "letterSpacing", fields: &text)
+            case .alignment:
+                guard let alignment = value.stringValue,
+                      ["left", "center", "right"].contains(alignment) else {
+                    throw VexelEditingStoreError.invalidOperation("Text alignment must be left, center, or right.")
+                }
+                text["align"] = .string(alignment)
+            }
+            guard updateLayer(id, in: &project.layers, { $0.content = .object(text.values) }) else {
+                throw VexelEditingStoreError.layerNotFound(id)
+            }
+
         case .setKeyframe(let layerID, let property, let keyframe, let is3D):
             guard !property.isEmpty, property.count <= 64,
                   keyframe.time.isFinite, keyframe.time >= 0 else {
@@ -505,6 +581,19 @@ public actor VexelEditingStore {
             guard updateLayer(id, in: &project.layers, { $0.parent = parentID }) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
+        }
+    }
+
+    private static func setTextAnimatableBase(
+        _ number: Double,
+        key: String,
+        fields: inout VexelObjectFields
+    ) {
+        if case .animated(var animation)? = fields.animatable(key) {
+            animation.value = .number(number)
+            fields.setAnimatable(.animated(animation), for: key)
+        } else {
+            fields.setAnimatable(.constant(.number(number)), for: key)
         }
     }
 
