@@ -227,14 +227,14 @@ public struct ZIPProjectArchive: Sendable {
         consume: (Data) throws -> Void
     ) throws -> UInt64 {
         var extractedBytes: UInt64 = 0
-        _ = try archive.extract(entry) { chunk in
+        _ = try archive.extract(entry, consumer: { chunk in
             let (next, overflow) = extractedBytes.addingReportingOverflow(UInt64(chunk.count))
             guard !overflow, next <= maximumBytes else {
                 throw ZIPProjectArchiveError.archiveTooLarge
             }
             try consume(chunk)
             extractedBytes = next
-        }
+        })
         guard extractedBytes == entry.uncompressedSize else {
             throw ZIPProjectArchiveError.invalidArchive
         }
