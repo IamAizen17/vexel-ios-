@@ -111,7 +111,8 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.
 - [ ] Route all SwiftUI workspace and timeline mutations through `VexelEditingStore`; remove view-local mutations and workspace-owned undo stacks.
-- [x] Add group/ungroup commands with sibling validation, timing preservation, external-reference checks, and guards against dropping group-level properties.\n- [ ] Expand command coverage for multi-selection, snapping, ripple edits, and marker operations.
+- [x] Add group/ungroup commands with sibling validation, timing preservation, external-reference checks, and guards against dropping group-level properties.
+- [ ] Expand command coverage for multi-selection, snapping, ripple edits, and marker operations.
 - Port timeline reorder, move, trim, split, duplicate, group/ungroup, parenting, multi-selection, snapping, and ripple edits.
 - Implement typed property descriptors and set-value/auto-keyframe behavior.
 - Port animation sampling, keyframe clipboard/navigation, cubic Bézier easing, cyclic easing, loop and ping-pong semantics.
