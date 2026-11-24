@@ -69,7 +69,7 @@ public struct VexelNativeProject: Codable, Equatable, Sendable {
         return try ProjectDocument(data: data)
     }
 
-    private enum CodingKeys: String, CodingKey {
+    fileprivate enum CodingKeys: String, CodingKey {
         case format, formatVersion, generator, meta, composition, assets, markers, editorView, layers
     }
 
@@ -434,7 +434,7 @@ public struct VexelEffect: Codable, Equatable, Sendable {
     }
 }
 
-private struct DynamicCodingKey: CodingKey, Hashable {
+fileprivate struct DynamicCodingKey: CodingKey, Hashable {
     var stringValue: String
     var intValue: Int? { nil }
     init(_ string: String) { stringValue = string }
@@ -442,7 +442,7 @@ private struct DynamicCodingKey: CodingKey, Hashable {
     init?(intValue: Int) { return nil }
 }
 
-private extension VexelNativeProject {
+fileprivate extension VexelNativeProject {
     static func decodeExtra(
         _ container: KeyedDecodingContainer<DynamicCodingKey>,
         known: Set<String>
@@ -455,6 +455,6 @@ private extension VexelNativeProject {
     }
 }
 
-private extension VexelNativeProject.CodingKeys {
+fileprivate extension VexelNativeProject.CodingKeys {
     static var allCases: [Self] { [.format, .formatVersion, .generator, .meta, .composition, .assets, .markers, .editorView, .layers] }
 }
