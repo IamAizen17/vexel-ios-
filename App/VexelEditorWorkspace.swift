@@ -159,6 +159,10 @@ struct VexelEditorWorkspace: View {
                 } else {
                     project.markers.append(updated)
                 }
+                project.modified = Date()
+                project.synchronizeDocument()
+                resetEditingStoreFromWorkspace()
+                onProjectChange(project)
             }
             .presentationDetents([.medium, .large])
         }
@@ -510,6 +514,8 @@ struct VexelEditorWorkspace: View {
         project = previous
         layerNames = previous.layerNames
         selectedTrackID = previous.timelineTracks.first?.id
+        project.synchronizeDocument()
+        resetEditingStoreFromWorkspace()
         onProjectChange(project)
     }
 
@@ -519,6 +525,8 @@ struct VexelEditorWorkspace: View {
         project = next
         layerNames = next.layerNames
         selectedTrackID = next.timelineTracks.first?.id
+        project.synchronizeDocument()
+        resetEditingStoreFromWorkspace()
         onProjectChange(project)
     }
 
