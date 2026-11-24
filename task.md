@@ -174,7 +174,9 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Add typed text content/font commands for content, family, weight, italic, size, line height, letter spacing and alignment; preserve nested unknown fields and animated font-size/letter-spacing metadata.
 - [x] Connect the compact and wide text inspectors to typed text commands; keep unsupported text animator controls disabled.
 - [x] Keep unsupported mask, transition and text animator controls disabled or clearly marked.
-- [ ] Replace the remaining media-import generic snapshot-replacement commits with an atomic typed import command; verify all edit surfaces.
+- [x] Replace generic media-import snapshots with one atomic typed asset-and-layer import command; validate safe relative paths, matching layer types and duplicate IDs/paths, and clean up imported files if the command fails.
+- [x] Remove the workspace's generic project snapshot replacement path; current project edits are routed through typed editing-store commands.
+- [ ] Complete reusable property descriptors/keyframe workflows for all supported properties and broaden edit-surface tests.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
@@ -227,7 +229,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 5. Known limitations (do not misreport)
 
-- The timeline remains a reduced UI projection over the canonical typed native project. Timeline reorder, marker, timing, visibility and lock changes now commit through typed commands; media import still uses a validated snapshot-replacement command.
+- The timeline remains a reduced UI projection over the canonical typed native project. Timeline reorder, marker, timing, visibility and lock changes use typed commands. Media import now uses one atomic typed asset-and-layer command; the workspace no longer replaces the complete project snapshot for edits.
 - The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. Text animators, masks, transitions and several advanced editing surfaces remain unconnected.
 - The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes, nested groups and negative source layer/group starts. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
@@ -240,7 +242,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch code head before this task-status update: `7c4a0167d28a94617756038550fce6c4c313b821`. Latest P1 CI run `45383631921` is validating typed project-settings and timeline-order commands alongside text/transform editing, negative-start scene evaluation, adaptive home/preset UI, app tests and simulator build.
+Current feature branch code head before this task-status update: `2766c22b7b4eb1516ec633bcb9c5ec0640dce24b`. Latest P1 CI run `45384324780` is validating typed project-settings, timeline reorder, atomic media import, text/transform editing, negative-start scene evaluation, adaptive home/preset UI, app tests and simulator build.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
