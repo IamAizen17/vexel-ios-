@@ -146,6 +146,30 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.layers.first?.id, "group")
     }
 
+    func testThreeDimensionalNullLayerCanParentThreeDimensionalLayers() async throws {
+        let parent = VexelLayer(
+            id: "null-3d",
+            type: .null,
+            start: 0,
+            duration: 8,
+            content: .object(["threeD": .bool(true)])
+        )
+        let child = VexelLayer(id: "object", type: .object3D, start: 0, duration: 8)
+        let store = try makeStore(layers: [parent, child])
+
+        try await store.execute(.setParent(id: "object", parentID: "null-3d"))
+        try await store.execute(.setTransformValue(
+            id: "null-3d",
+            property: "position",
+            value: .constant(.array([.number(1), .number(2), .number(3)])),
+            is3D: true
+        ))
+
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[1].parent, "null-3d")
+        XCTAssertNotNil(snapshot.layers[0].transform3D)
+    }
+
     func testGroupCannotMoveIntoItsOwnDescendant() async throws {
         let group = VexelLayer(
             id: "group",
