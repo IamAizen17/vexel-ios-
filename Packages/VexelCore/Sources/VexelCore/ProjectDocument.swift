@@ -25,7 +25,7 @@ public enum ProjectDocumentError: Error, Equatable {
 
 public struct ProjectDocument: Codable, Equatable, Sendable {
     public static let format = "vexelproj"
-    public static let currentVersion = 1
+    public static let currentVersion = 2
 
     public var fields: [String: JSONValue]
 
@@ -39,6 +39,57 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             throw ProjectDocumentError.invalidRoot
         }
         self.fields = fields
+    }
+
+    public func migratedToCurrentVersion() throws -> ProjectDocument {
+        guard fields["format"]?.stringValue == Self.format else {
+            throw ProjectDocumentError.unsupportedFormat(fields["format"]?.stringValue)
+        }
+        guard let rawVersion = fields["formatVersion"]?.numberValue,
+              rawVersion.isFinite,
+              rawVersion.rounded(.towardZero) == rawVersion,
+              rawVersion >= 1,
+              rawVersion <= Double(Int.max) else {
+            throw ProjectDocumentError.unsupportedVersion(nil)
+        }
+        var version = Int(rawVersion)
+        guard version <= Self.currentVersion else {
+            throw ProjectDocumentError.unsupportedVersion(version)
+        }
+
+        var migratedFields = fields
+        while version < Self.currentVersion {
+            switch version {
+            case 1:
+                Self.migrateV1ToV2(&migratedFields)
+            default:
+                throw ProjectDocumentError.unsupportedVersion(version)
+            }
+            version += 1
+            migratedFields["formatVersion"] = .number(Double(version))
+        }
+        return ProjectDocument(fields: migratedFields)
+    }
+
+    private static func migrateV1ToV2(_ fields: inout [String: JSONValue]) {
+        fields["generator"] = fields["generator"] ?? .string("Vexel")
+
+        var metadata = fields["meta"]?.objectValue ?? [:]
+        if metadata["title"]?.stringValue?.isEmpty ?? true {
+            metadata["title"] = .string("Untitled")
+        }
+        fields["meta"] = .object(metadata)
+
+        if fields["assets"] == nil { fields["assets"] = .array([]) }
+        if fields["markers"] == nil { fields["markers"] = .array([]) }
+        if fields["layers"] == nil { fields["layers"] = .array([]) }
+
+        if var composition = fields["composition"]?.objectValue {
+            if composition["background"] == nil {
+                composition["background"] = .string("#0D0F12")
+            }
+            fields["composition"] = .object(composition)
+        }
     }
 
     public var title: String {
