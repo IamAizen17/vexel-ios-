@@ -494,8 +494,7 @@ struct VexelHomeView: View {
                                     .font(.system(size: 8, weight: .black))
                                     .tracking(1.8)
                                     .foregroundStyle(VexelPalette.accent)
-                                Text("Make something
-move.")
+                                Text("Make something\nmove.")
                                     .font(.system(size: 21, weight: .bold, design: .rounded))
                                     .multilineTextAlignment(.leading)
                                     .foregroundStyle(VexelPalette.text)
