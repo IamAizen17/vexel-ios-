@@ -136,6 +136,8 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [ ] Finish effect-instance parameter validation and source semantic-validator audit.
 - [ ] Obtain and test a genuine source-app archive if available; otherwise document the exact compatibility limit.
 - [ ] Keep import compatibility isolated and prove unknown-field preservation through import/edit/save/export round trips.
+- [x] Validate project asset references and expected asset types recursively; validate effect parameter instances before accepting an imported project.
+- [x] Make project deletion save the updated library index before deleting its asset directory, so an index-write failure cannot leave a saved project pointing to deleted assets.
 - [ ] Audit project duplication, asset references, persistence failure handling and recovery requirements.
 - [ ] Update all docs and status records to match actual code and CI results.
 - [ ] Keep CI green for package tests, XcodeGen generation, simulator build and unsigned IPA archive.

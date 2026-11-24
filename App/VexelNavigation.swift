@@ -352,6 +352,7 @@ struct VexelHomeView: View {
                         var imported = VexelProjectItem(document: payload.project)
                         imported.id = projectID
                         imported.assetsDirectory = assetsURL.path
+                        _ = try imported.makeProjectDocument()
                         pendingImport = PendingVexelImport(
                             project: imported,
                             sourceName: url.lastPathComponent,
@@ -418,11 +419,17 @@ struct VexelHomeView: View {
             presenting: deletingProject
         ) { project in
             Button("Delete", role: .destructive) {
+                let updatedProjects = projects.filter { $0.id != project.id }
                 do {
-                    try VexelProjectStore.deleteAssets(for: project)
-                    projects.removeAll { $0.id == project.id }
+                    try VexelProjectStore.save(updatedProjects)
+                    projects = updatedProjects
+                    do {
+                        try VexelProjectStore.deleteAssets(for: project)
+                    } catch {
+                        notice = "Project was deleted, but its assets could not be removed: \(error.localizedDescription)"
+                    }
                 } catch {
-                    notice = "Could not remove project assets: \(error.localizedDescription)"
+                    notice = "Could not delete project because the project library could not be saved: \(error.localizedDescription)"
                 }
                 deletingProject = nil
             }
