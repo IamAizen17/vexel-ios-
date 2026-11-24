@@ -74,12 +74,10 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(typed.layers.first?.layers.first?.transform?.properties["position"], .animated(
             VexelAnimationTrack(
                 keyframes: [
-                    VexelKeyframe(time: 0, value: .array([.number(0), .number(0)]), easing: .string("easeInOut")),
-                    VexelKeyframe(time: 2, value: .array([.number(100), .number(50)]), easing: .object([
-                        "cubicBezier": .array([.number(0.2), .number(0.1), .number(0.8), .number(0.9)])
-                    ]))
+                    VexelKeyframe(time: 0, value: .array([.number(0), .number(0)]), easing: .preset("easeInOut")),
+                    VexelKeyframe(time: 2, value: .array([.number(100), .number(50)]), easing: .cubicBezier(x1: 0.2, y1: 0.1, x2: 0.8, y2: 0.9))
                 ],
-                loop: .string("cycle"),
+                loop: .cycle,
                 expression: "time * 2",
                 unknownFields: ["futureAnimation": .object(["kept": .number(1)])]
             )
