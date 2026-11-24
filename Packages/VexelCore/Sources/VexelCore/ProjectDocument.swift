@@ -411,14 +411,14 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 let effects = layer["effects"]?.arrayValue ?? []
                 if !effects.isEmpty, ["audio", "camera", "light", "null"].contains(layerType) {
                     issues.append(ProjectIssue(severity: .warning, path: "\(location).effects",
-                        message: "Effects have no visible result on \\(layerType) layers in the source engine."))
+                        message: "Effects have no visible result on \(layerType) layers in the source engine."))
                 }
                 if layerType != "object3d" && layerType != "model3d" {
                     for (effectIndex, effectValue) in effects.enumerated() {
                         guard let effectID = effectValue.objectValue?["type"]?.stringValue,
                               definitions[effectID]?.target == "layer_3d" else { continue }
-                        issues.append(ProjectIssue(severity: .warning, path: "\(location).effects[\\(effectIndex)].type",
-                            message: "Effect '\\(effectID)' targets 3D layers and may be ignored on this layer type."))
+                        issues.append(ProjectIssue(severity: .warning, path: "\(location).effects[\(effectIndex)].type",
+                            message: "Effect '\(effectID)' targets 3D layers and may be ignored on this layer type."))
                     }
                 }
                 validateEffects(effects, path: "\(location).effects")
