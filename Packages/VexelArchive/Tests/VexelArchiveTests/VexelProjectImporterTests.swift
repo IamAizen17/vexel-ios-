@@ -105,6 +105,27 @@ final class VexelProjectImporterTests: XCTestCase {
         )
     }
 
+    func testNativeV1DocumentMigratesBeforeImportValidation() throws {
+        var fields = ProjectDocument.starter(title: "").fields
+        fields["formatVersion"] = .number(1)
+        fields.removeValue(forKey: "generator")
+        fields.removeValue(forKey: "assets")
+        fields.removeValue(forKey: "markers")
+        fields.removeValue(forKey: "layers")
+        var composition = fields["composition"]?.objectValue ?? [:]
+        composition.removeValue(forKey: "background")
+        fields["composition"] = .object(composition)
+
+        let imported = try VexelProjectImporter.importDocument(from: ProjectDocument(fields: fields).encoded())
+        XCTAssertEqual(imported.fields["formatVersion"], .number(Double(ProjectDocument.currentVersion)))
+        XCTAssertEqual(imported.fields["generator"], .string("Vexel"))
+        XCTAssertEqual(imported.fields["assets"], .array([]))
+        XCTAssertEqual(imported.fields["markers"], .array([]))
+        XCTAssertEqual(imported.fields["layers"], .array([]))
+        XCTAssertEqual(imported.fields["composition"]?.objectValue?["background"], .string("#0D0F12"))
+        XCTAssertTrue(imported.validate().isEmpty)
+    }
+
     func testFutureKNSVersionIsRejected() throws {
         let project = legacyProject(version: 13)
         XCTAssertThrowsError(try VexelProjectImporter.importDocument(from: project.encoded()))
