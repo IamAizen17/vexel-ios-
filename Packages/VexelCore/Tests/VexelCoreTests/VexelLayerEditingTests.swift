@@ -28,7 +28,7 @@ final class VexelLayerEditingTests: XCTestCase {
             source,
             takenIDs: ["group", "child-a", "child-b", "external-parent"],
             newID: "group-copy",
-            idFactory: { type in "\\(type.rawValue)-copy" }
+            idFactory: { type in "\(type.rawValue)-copy" }
         )
 
         XCTAssertEqual(copy.id, "group-copy")
@@ -73,7 +73,7 @@ final class VexelLayerEditingTests: XCTestCase {
             at: 2,
             takenIDs: ["video", "external"],
             newID: "video-second",
-            idFactory: { _ in "nested-\\(UUID().uuidString)" }
+            idFactory: { _ in "nested-\(UUID().uuidString)" }
         ))
 
         XCTAssertEqual(result.first.id, "video")
