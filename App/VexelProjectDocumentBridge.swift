@@ -6,11 +6,13 @@ extension VexelProjectItem {
         let composition = document.fields["composition"]?.objectValue ?? [:]
         let width = Self.boundedInteger(composition["width"]?.numberValue, range: 16...8192, fallback: 1080)
         let height = Self.boundedInteger(composition["height"]?.numberValue, range: 16...8192, fallback: 1920)
-        let fps = Self.boundedInteger(composition["fps"]?.numberValue, range: 1...120, fallback: 30)
+        let sourceFPS = composition["fps"]?.numberValue
+        let fps = Self.boundedInteger(sourceFPS, range: 1...120, fallback: 30)
         let rawDuration = composition["duration"]?.numberValue ?? 10
         let duration = rawDuration.isFinite && (0.01...3600).contains(rawDuration) ? rawDuration : 10
         self.init(title: document.title, width: width, height: height, fps: fps, duration: duration)
         documentJSON = String(data: (try? document.encoded()) ?? Data(), encoding: .utf8)
+        self.sourceFPS = sourceFPS.flatMap { $0.isFinite && (1...120).contains($0) ? $0 : nil }
         assetsDirectory = nil
         timelineTracks = (document.fields["layers"]?.arrayValue ?? []).compactMap(Self.track(from:))
         layerNames = Self.flattenNames(timelineTracks)
@@ -45,7 +47,8 @@ extension VexelProjectItem {
         var composition = fields["composition"]?.objectValue ?? [:]
         composition["width"] = .number(Double(width))
         composition["height"] = .number(Double(height))
-        composition["fps"] = .number(Double(fps))
+        let preservedFPS = sourceFPS.flatMap { $0.isFinite && (1...120).contains($0) && Int($0.rounded()) == fps ? $0 : nil }
+        composition["fps"] = .number(preservedFPS ?? Double(fps))
         composition["duration"] = .number(duration)
         fields["composition"] = .object(composition)
 
