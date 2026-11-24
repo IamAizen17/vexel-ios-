@@ -165,7 +165,7 @@ public struct VexelComposition: Codable, Equatable, Sendable {
     }
 }
 
-public struct VexelAsset: Codable, Equatable, Sendable {
+public enum VexelAssetType: String, Codable, CaseIterable, Sendable {\n    case image, video, audio, model, font\n}\n\npublic struct VexelAsset: Codable, Equatable, Sendable {
     public var id: String
     public var type: String
     public var path: String
@@ -181,7 +181,7 @@ public struct VexelAsset: Codable, Equatable, Sendable {
     private enum Keys: String, CaseIterable {
         case id, type, path, displayName, mimeType, width, height, duration, hasAudio, sha256
     }
-    public init(id: String, type: String, path: String, displayName: String? = nil, mimeType: String? = nil,
+    public init(id: String, type: VexelAssetType, path: String, displayName: String? = nil, mimeType: String? = nil,
                 width: Int? = nil, height: Int? = nil, duration: Double? = nil, hasAudio: Bool? = nil,
                 sha256: String? = nil, unknownFields: [String: JSONValue] = [:]) {
         self.id = id; self.type = type; self.path = path; self.displayName = displayName; self.mimeType = mimeType
@@ -190,7 +190,7 @@ public struct VexelAsset: Codable, Equatable, Sendable {
     }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicCodingKey.self)
-        id = try c.decode(String.self, forKey: .init("id")); type = try c.decode(String.self, forKey: .init("type"))
+        id = try c.decode(String.self, forKey: .init("id")); type = try c.decode(VexelAssetType.self, forKey: .init("type"))
         path = try c.decode(String.self, forKey: .init("path"))
         displayName = try c.decodeIfPresent(String.self, forKey: .init("displayName"))
         mimeType = try c.decodeIfPresent(String.self, forKey: .init("mimeType"))
@@ -235,7 +235,7 @@ public struct VexelMarkerData: Codable, Equatable, Sendable {
     }
 }
 
-public struct VexelLayer: Codable, Equatable, Sendable {
+public enum VexelBlendMode: String, Codable, Sendable {\n    case normal, add, multiply, screen\n}\n\npublic struct VexelLayer: Codable, Equatable, Sendable {
     public var id: String
     public var type: VexelLayerType
     public var name: String?
