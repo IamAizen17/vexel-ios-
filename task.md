@@ -168,8 +168,11 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Add typed marker upsert/removal commands and typed transform keyframe add/update/removal commands, preserving animation metadata and unknown marker fields.
 - [x] Route marker saves and playhead position-keyframe creation through typed store commands; add store regression tests for undo/redo, sorting, metadata preservation and invalid keyframe times.
 - [x] Connect position X/Y fields in both compact and wide inspectors to native transform commands.
-- [ ] Connect anchor, scale, rotation, opacity, text and other property controls to typed descriptors and commands; keep unimplemented controls disabled or clearly marked.
-- [ ] Replace remaining generic snapshot-replacement commits with dedicated typed commands and verify all edit surfaces.
+- [x] Connect anchor, scale, rotation and opacity controls in compact and wide inspectors to native transform commands using source-compatible units.
+- [x] Preserve animated transform keyframes, loop/expression settings and unknown track fields when editing a property's base value.
+- [ ] Connect text content/font properties through typed text commands and preserve nested unknown fields.
+- [ ] Keep unsupported mask, transition, animator and other property controls disabled or clearly marked.
+- [ ] Replace remaining generic snapshot-replacement commits with dedicated typed commands and verify all edit surfaces, including text and media-specific properties.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
@@ -221,7 +224,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 ## 5. Known limitations (do not misreport)
 
 - The timeline remains a reduced UI projection over the canonical typed native project. Some edits still use validated snapshot replacement rather than dedicated typed commands.
-- The workspace now delegates undo/redo and committed mutations to `VexelEditingStore`; transform/property inspector controls and several advanced editing surfaces remain unconnected.
+- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation and opacity are connected. Text, mask, transition, animator and several advanced editing surfaces remain unconnected.
 - The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes and nested groups. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
 - The effect catalogue is not proof that 73 effects execute.
@@ -233,7 +236,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch code head before this task-status update: `f2a98fa4f3f2cb3693e6d88973c5f59976d94faa`. Latest targeted P1 CI run `45379222761` is pending for typed marker/keyframe commands and inspector position wiring.
+Current feature branch code head before this task-status update: `83a1b71326cb6b2af3897cb9ad052c7f016e24d6`. Latest P1 CI run `45381510326` is validating transform inspector wiring, animation metadata preservation and UI coverage. The earlier attempt `45381125892` exposed a test-only enum spelling error (`pingPong` vs `pingpong`); corrected in `83a1b71`.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
