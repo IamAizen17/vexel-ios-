@@ -5,11 +5,10 @@ Vexel targets iPhone and iPad, with iOS 16.0 as the deployment baseline. The app
 
 ## Build from GitHub without a Mac
 
-The workflow at `.github/workflows/ios-ipa.yml` runs on a GitHub-hosted macOS runner. Push to `main` or a
-`feat/**` branch, open a pull request, or start the workflow manually from the Actions tab.
+The workflow at `.github/workflows/ios-ipa.yml` is manual-only (`workflow_dispatch`) and runs on a GitHub-hosted macOS runner. Pushes and pull requests do not start it automatically. Open **Actions → Vexel Validation → Run workflow** to start validation. The optional `build_ipa` input defaults to `false`; enable it only when you also want an unsigned IPA build.
 
 The workflow:
-1. Runs the VexelCore unit tests.
+1. Builds and tests every Swift package under `Packages/`.
 2. Installs XcodeGen and generates `Vexel.xcodeproj`.
 3. Archives the app for generic physical iOS devices with code signing disabled.
 4. Packages the archived app as `Vexel-unsigned.ipa`.
