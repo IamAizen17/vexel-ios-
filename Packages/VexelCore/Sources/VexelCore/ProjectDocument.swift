@@ -315,9 +315,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             case "number":
                 validType = value.numberValue?.isFinite == true
             case "integer":
-                if let number = value.numberValue {
-                    validType = number.isFinite && number.rounded(.towardZero) == number
-                } else { validType = false }
+                validType = value.numberValue?.isFinite == true
             case "boolean":
                 if case .bool = value { validType = true } else { validType = false }
             case "color":
@@ -409,7 +407,21 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             for (index, value) in layers.enumerated() {
                 guard let layer = value.objectValue else { continue }
                 let location = "\(path)[\(index)]"
-                validateEffects(layer["effects"]?.arrayValue ?? [], path: "\(location).effects")
+                let layerType = layer["type"]?.stringValue ?? "unknown"
+                let effects = layer["effects"]?.arrayValue ?? []
+                if !effects.isEmpty, ["audio", "camera", "light", "null"].contains(layerType) {
+                    issues.append(ProjectIssue(severity: .warning, path: "\(location).effects",
+                        message: "Effects have no visible result on \\(layerType) layers in the source engine."))
+                }
+                if layerType != "object3d" && layerType != "model3d" {
+                    for (effectIndex, effectValue) in effects.enumerated() {
+                        guard let effectID = effectValue.objectValue?["type"]?.stringValue,
+                              definitions[effectID]?.target == "layer_3d" else { continue }
+                        issues.append(ProjectIssue(severity: .warning, path: "\(location).effects[\\(effectIndex)].type",
+                            message: "Effect '\\(effectID)' targets 3D layers and may be ignored on this layer type."))
+                    }
+                }
+                validateEffects(effects, path: "\(location).effects")
                 inspect(layer["layers"]?.arrayValue ?? [], path: "\(location).layers")
             }
         }
