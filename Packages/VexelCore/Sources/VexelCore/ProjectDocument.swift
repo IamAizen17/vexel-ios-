@@ -246,25 +246,31 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             }
         }
         if let editorView = fields["editorView"] {
-            guard let view = editorView.objectValue else {
+            if let view = editorView.objectValue {
+                if let modeValue = view["mode"] {
+                    guard let mode = modeValue.stringValue, ["camera", "editor", "inside"].contains(mode) else {
+                        issues.append(ProjectIssue(severity: .error, path: "editorView.mode", message: "Editor view mode must be camera, editor, or inside."))
+                        continueEditorViewValidation: do {}
+                    }
+                }
+                if let targetValue = view["target"] {
+                    guard let target = targetValue.arrayValue, target.count == 3,
+                          target.allSatisfy({ $0.numberValue?.isFinite == true }) else {
+                        issues.append(ProjectIssue(severity: .error, path: "editorView.target", message: "Editor view target must contain three finite coordinates."))
+                        continueEditorViewValidation: do {}
+                    }
+                }
+                if let distance = view["distance"]?.numberValue, !(50...200_000).contains(distance) {
+                    issues.append(ProjectIssue(severity: .error, path: "editorView.distance", message: "Editor view distance must be between 50 and 200000."))
+                }
+                if let pitch = view["pitch"]?.numberValue, !(-89...89).contains(pitch) {
+                    issues.append(ProjectIssue(severity: .error, path: "editorView.pitch", message: "Editor view pitch must be between -89 and 89 degrees."))
+                }
+                if let fov = view["fov"]?.numberValue, !(1...170).contains(fov) {
+                    issues.append(ProjectIssue(severity: .error, path: "editorView.fov", message: "Editor view field of view must be between 1 and 170 degrees."))
+                }
+            } else {
                 issues.append(ProjectIssue(severity: .error, path: "editorView", message: "Editor view must be an object."))
-                return issues
-            }
-            if let mode = view["mode"]?.stringValue, !["camera", "editor", "inside"].contains(mode) {
-                issues.append(ProjectIssue(severity: .error, path: "editorView.mode", message: "Editor view mode must be camera, editor, or inside."))
-            }
-            if let target = view["target"]?.arrayValue,
-               target.count != 3 || target.contains(where: { $0.numberValue?.isFinite != true }) {
-                issues.append(ProjectIssue(severity: .error, path: "editorView.target", message: "Editor view target must contain three finite coordinates."))
-            }
-            if let distance = view["distance"]?.numberValue, !(50...200_000).contains(distance) {
-                issues.append(ProjectIssue(severity: .error, path: "editorView.distance", message: "Editor view distance must be between 50 and 200000."))
-            }
-            if let pitch = view["pitch"]?.numberValue, !(-89...89).contains(pitch) {
-                issues.append(ProjectIssue(severity: .error, path: "editorView.pitch", message: "Editor view pitch must be between -89 and 89 degrees."))
-            }
-            if let fov = view["fov"]?.numberValue, !(1...170).contains(fov) {
-                issues.append(ProjectIssue(severity: .error, path: "editorView.fov", message: "Editor view field of view must be between 1 and 170 degrees."))
             }
         }
 
@@ -337,42 +343,42 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 } else { validType = false }
             default:
                 issues.append(ProjectIssue(severity: .warning, path: path,
-                    message: "Parameter type '\\(definition.type.rawValue)' is not understood by this validator. Its value will be preserved."))
+                    message: "Parameter type '\(definition.type.rawValue)' is not understood by this validator. Its value will be preserved."))
                 return
             }
 
             guard validType else {
                 issues.append(ProjectIssue(severity: .error, path: path,
-                    message: "Value does not match the declared '\\(definition.type.rawValue)' parameter type."))
+                    message: "Value does not match the declared '\(definition.type.rawValue)' parameter type."))
                 return
             }
             if let number = value.numberValue {
                 if let minimum = definition.minimum, number < minimum {
-                    issues.append(ProjectIssue(severity: .error, path: path, message: "Value is below the minimum of \\(minimum)."))
+                    issues.append(ProjectIssue(severity: .error, path: path, message: "Value is below the minimum of \(minimum)."))
                 }
                 if let maximum = definition.maximum, number > maximum {
-                    issues.append(ProjectIssue(severity: .error, path: path, message: "Value exceeds the maximum of \\(maximum)."))
+                    issues.append(ProjectIssue(severity: .error, path: path, message: "Value exceeds the maximum of \(maximum)."))
                 }
             }
         }
 
         func validateEffects(_ values: [JSONValue], path: String) {
             for (index, value) in values.enumerated() {
-                let location = "\\(path)[\\(index)]"
+                let location = "\(path)[\(index)]"
                 guard let effect = value.objectValue,
                       let effectID = effect["type"]?.stringValue else { continue }
                 guard let definition = definitions[effectID] else {
-                    issues.append(ProjectIssue(severity: .warning, path: "\\(location).type",
-                        message: "Effect '\\(effectID)' is not in the installed catalogue. Its data will be preserved but cannot be validated or rendered."))
+                    issues.append(ProjectIssue(severity: .warning, path: "\(location).type",
+                        message: "Effect '\(effectID)' is not in the installed catalogue. Its data will be preserved but cannot be validated or rendered."))
                     continue
                 }
 
                 let parameters = Dictionary(uniqueKeysWithValues: definition.parameters.map { ($0.name, $0) })
                 for (name, rawValue) in effect where name != "type" && name != "enabled" {
-                    let parameterPath = "\\(location).\\(name)"
+                    let parameterPath = "\(location).\(name)"
                     guard let parameter = parameters[name] else {
                         issues.append(ProjectIssue(severity: .warning, path: parameterPath,
-                            message: "Parameter is not defined by effect '\\(effectID)'. Its value will be preserved."))
+                            message: "Parameter is not defined by effect '\(effectID)'. Its value will be preserved."))
                         continue
                     }
 
@@ -385,14 +391,14 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                             continue
                         }
                         if let baseValue = track.value {
-                            validateParameterValue(baseValue, definition: parameter, path: "\\(parameterPath).value")
+                            validateParameterValue(baseValue, definition: parameter, path: "\(parameterPath).value")
                         }
                         for (keyframeIndex, keyframe) in track.keyframes.enumerated() {
                             validateParameterValue(keyframe.value, definition: parameter,
-                                path: "\\(parameterPath).keyframes[\\(keyframeIndex)].value")
+                                path: "\(parameterPath).keyframes[\(keyframeIndex)].value")
                         }
                         if track.expression != nil, track.expressionEnabled != false {
-                            issues.append(ProjectIssue(severity: .warning, path: "\\(parameterPath).expression",
+                            issues.append(ProjectIssue(severity: .warning, path: "\(parameterPath).expression",
                                 message: "Expression syntax cannot yet be validated by the iOS core. The expression is preserved but not evaluated by the current scene engine."))
                         }
                     } else {
@@ -405,9 +411,9 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         func inspect(_ layers: [JSONValue], path: String) {
             for (index, value) in layers.enumerated() {
                 guard let layer = value.objectValue else { continue }
-                let location = "\\(path)[\\(index)]"
-                validateEffects(layer["effects"]?.arrayValue ?? [], path: "\\(location).effects")
-                inspect(layer["layers"]?.arrayValue ?? [], path: "\\(location).layers")
+                let location = "\(path)[\(index)]"
+                validateEffects(layer["effects"]?.arrayValue ?? [], path: "\(location).effects")
+                inspect(layer["layers"]?.arrayValue ?? [], path: "\(location).layers")
             }
         }
         inspect(fields["layers"]?.arrayValue ?? [], path: "layers")
@@ -516,15 +522,15 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             if let shape = layer["shape"]?.objectValue {
                 let kind = shape["kind"]?.stringValue
                 if kind == "path", (shape["path"]?.objectValue?["points"]?.arrayValue?.count ?? 0) < 2 {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).shape.path", message: "Path shapes require at least two points."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).shape.path", message: "Path shapes require at least two points."))
                 }
                 if let stops = shape["fill"]?.objectValue?["gradient"]?.objectValue?["stops"]?.arrayValue,
                    stops.count < 2 {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).shape.fill.gradient.stops", message: "A gradient requires at least two stops."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).shape.fill.gradient.stops", message: "A gradient requires at least two stops."))
                 }
             }
             if let masks = layer["masks"]?.arrayValue, masks.count > 4 {
-                issues.append(ProjectIssue(severity: .warning, path: "\\(location).masks", message: "Only the first four masks are rendered by the source engine."))
+                issues.append(ProjectIssue(severity: .warning, path: "\(location).masks", message: "Only the first four masks are rendered by the source engine."))
             }
 
             for transitionKey in ["transitionIn", "transitionOut"] {
