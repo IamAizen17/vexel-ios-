@@ -133,10 +133,10 @@ public struct ZIPProjectArchive: Sendable {
                     }
                     throw error
                 }
-                return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination)
+                return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination, compatibilityReport: VexelProjectImporter.compatibilityReport(for: project))
             }
             keepStaging = true
-            return ProjectArchivePayload(project: project, extractedAssetsDirectory: staging)
+            return ProjectArchivePayload(project: project, extractedAssetsDirectory: staging, compatibilityReport: VexelProjectImporter.compatibilityReport(for: project))
         } catch {
             throw error
         }
