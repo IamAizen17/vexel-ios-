@@ -169,7 +169,7 @@ public enum VexelAssetType: String, Codable, CaseIterable, Sendable {\n    case 
     public var id: String
     public var type: String
     public var path: String
-    public var displayName: String?
+    public var name: String?
     public var mimeType: String?
     public var width: Int?
     public var height: Int?
@@ -179,12 +179,12 @@ public enum VexelAssetType: String, Codable, CaseIterable, Sendable {\n    case 
     public var unknownFields: [String: JSONValue]
 
     private enum Keys: String, CaseIterable {
-        case id, type, path, displayName, mimeType, width, height, duration, hasAudio, sha256
+        case id, type, path, name, mimeType, width, height, duration, hasAudio, sha256
     }
-    public init(id: String, type: VexelAssetType, path: String, displayName: String? = nil, mimeType: String? = nil,
+    public init(id: String, type: VexelAssetType, path: String, name: String? = nil, mimeType: String? = nil,
                 width: Int? = nil, height: Int? = nil, duration: Double? = nil, hasAudio: Bool? = nil,
                 sha256: String? = nil, unknownFields: [String: JSONValue] = [:]) {
-        self.id = id; self.type = type; self.path = path; self.displayName = displayName; self.mimeType = mimeType
+        self.id = id; self.type = type; self.path = path; self.name = name; self.mimeType = mimeType
         self.width = width; self.height = height; self.duration = duration; self.hasAudio = hasAudio
         self.sha256 = sha256; self.unknownFields = unknownFields
     }
@@ -192,7 +192,7 @@ public enum VexelAssetType: String, Codable, CaseIterable, Sendable {\n    case 
         let c = try decoder.container(keyedBy: DynamicCodingKey.self)
         id = try c.decode(String.self, forKey: .init("id")); type = try c.decode(VexelAssetType.self, forKey: .init("type"))
         path = try c.decode(String.self, forKey: .init("path"))
-        displayName = try c.decodeIfPresent(String.self, forKey: .init("displayName"))
+        name = try c.decodeIfPresent(String.self, forKey: .init("name"))
         mimeType = try c.decodeIfPresent(String.self, forKey: .init("mimeType"))
         width = try c.decodeIfPresent(Int.self, forKey: .init("width")); height = try c.decodeIfPresent(Int.self, forKey: .init("height"))
         duration = try c.decodeIfPresent(Double.self, forKey: .init("duration"))
@@ -203,7 +203,7 @@ public enum VexelAssetType: String, Codable, CaseIterable, Sendable {\n    case 
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: DynamicCodingKey.self)
         try c.encode(id, forKey: .init("id")); try c.encode(type, forKey: .init("type")); try c.encode(path, forKey: .init("path"))
-        try c.encodeIfPresent(displayName, forKey: .init("displayName")); try c.encodeIfPresent(mimeType, forKey: .init("mimeType"))
+        try c.encodeIfPresent(name, forKey: .init("name")); try c.encodeIfPresent(mimeType, forKey: .init("mimeType"))
         try c.encodeIfPresent(width, forKey: .init("width")); try c.encodeIfPresent(height, forKey: .init("height"))
         try c.encodeIfPresent(duration, forKey: .init("duration")); try c.encodeIfPresent(hasAudio, forKey: .init("hasAudio"))
         try c.encodeIfPresent(sha256, forKey: .init("sha256"))
