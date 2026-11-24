@@ -160,6 +160,77 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(issues.contains { $0.path == "layers[0].layers[1].image.asset" && $0.message.contains("does not exist") })
     }
 
+    func testValidatesCutoutFramesStrokesAndMediaRanges() {
+        var project = ProjectDocument.starter(title: "Cutout validation")
+        project.fields["assets"] = .array([
+            .object(["id": .string("video"), "type": .string("video"), "path": .string("assets/video.mp4")])
+        ])
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("clip"),
+                "type": .string("video"),
+                "duration": .number(3),
+                "video": .object([
+                    "asset": .string("video"),
+                    "speed": .number(0),
+                    "sourceStart": .number(-1),
+                    "cutout": .object([
+                        "source": .string("video"),
+                        "sourceStart": .number(0),
+                        "duration": .number(1),
+                        "frames": .array([
+                            .object([
+                                "time": .number(2),
+                                "strokes": .array([
+                                    .object([
+                                        "mode": .string("paint"),
+                                        "size": .number(0.8),
+                                        "points": .array([.array([.number(1.2), .number(0.5)])])
+                                    ])
+                                ])
+                            ])
+                        ])
+                    ])
+                ])
+            ])
+        ])
+
+        let paths = Set(project.validate().map(\\.path))
+        XCTAssertTrue(paths.contains("layers[0].video.speed"))
+        XCTAssertTrue(paths.contains("layers[0].video.sourceStart"))
+        XCTAssertTrue(paths.contains("layers[0].video.cutout.frames[0].time"))
+        XCTAssertTrue(paths.contains("layers[0].video.cutout.frames[0].strokes[0].mode"))
+        XCTAssertTrue(paths.contains("layers[0].video.cutout.frames[0].strokes[0].size"))
+        XCTAssertTrue(paths.contains("layers[0].video.cutout.frames[0].strokes[0].points[0]"))
+    }
+
+    func testValidatesMotionBlurMarkersAndParentCycles() {
+        var project = ProjectDocument.starter(title: "Semantic validation")
+        var composition = project.fields["composition"]?.objectValue ?? [:]
+        composition["motionBlur"] = .object([
+            "enabled": .bool(true),
+            "samples": .number(65),
+            "shutterAngle": .number(721)
+        ])
+        project.fields["composition"] = .object(composition)
+        project.fields["markers"] = .array([
+            .object(["id": .string("marker"), "time": .number(1)]),
+            .object(["id": .string("marker"), "time": .number(4000)])
+        ])
+        project.fields["layers"] = .array([
+            .object(["id": .string("first"), "type": .string("shape"), "duration": .number(2), "parent": .string("second")]),
+            .object(["id": .string("second"), "type": .string("shape"), "duration": .number(2), "parent": .string("first")])
+        ])
+
+        let paths = Set(project.validate().map(\\.path))
+        XCTAssertTrue(paths.contains("composition.motionBlur.samples"))
+        XCTAssertTrue(paths.contains("composition.motionBlur.shutterAngle"))
+        XCTAssertTrue(paths.contains("markers[1].id"))
+        XCTAssertTrue(paths.contains("markers[1].time"))
+        XCTAssertTrue(paths.contains("layers.first.parent") || paths.contains("layers.first"))
+        XCTAssertTrue(project.validate().contains { $0.message.contains("cycle") })
+    }
+
     func testSceneEvaluatorProducesVisibleShapeLayers() {
         var project = ProjectDocument.starter(title: "Scene")
         project.fields["layers"] = .array([
