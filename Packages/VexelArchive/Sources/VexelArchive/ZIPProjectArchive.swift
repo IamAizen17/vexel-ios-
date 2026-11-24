@@ -36,6 +36,7 @@ public enum ZIPProjectArchiveError: Error, Equatable {
 public struct ZIPProjectArchive: Sendable {
     private let maximumExtractedBytes: UInt64
     private let moveItemAction: @Sendable (URL, URL) throws -> Void
+    private let replaceItemAction: @Sendable (URL, URL) throws -> Void
     public static let projectEntry = "vexel.json"
     public static let legacyProjectEntry = "project.json"
     public static let maximumEntries = 10_000
@@ -47,14 +48,21 @@ public struct ZIPProjectArchive: Sendable {
     public init() {
         maximumExtractedBytes = Self.maximumUncompressedBytes
         moveItemAction = { try FileManager.default.moveItem(at: $0, to: $1) }
+        replaceItemAction = { destination, replacement in
+            _ = try FileManager.default.replaceItemAt(destination, withItemAt: replacement, backupItemName: nil, options: [])
+        }
     }
 
     init(
         maximumExtractedBytes: UInt64,
-        moveItemAction: @escaping @Sendable (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) }
+        moveItemAction: @escaping @Sendable (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) },
+        replaceItemAction: @escaping @Sendable (URL, URL) throws -> Void = { destination, replacement in
+            _ = try FileManager.default.replaceItemAt(destination, withItemAt: replacement, backupItemName: nil, options: [])
+        }
     ) {
         self.maximumExtractedBytes = min(maximumExtractedBytes, Self.maximumUncompressedBytes)
         self.moveItemAction = moveItemAction
+        self.replaceItemAction = replaceItemAction
     }
 
     public func read(from archiveURL: URL, extractingAssetsTo destination: URL? = nil) throws -> ProjectArchivePayload {
@@ -239,7 +247,7 @@ public struct ZIPProjectArchive: Sendable {
 
         try manager.createDirectory(at: archiveURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         if manager.fileExists(atPath: archiveURL.path) {
-            _ = try manager.replaceItemAt(archiveURL, withItemAt: partialURL, backupItemName: nil, options: [])
+            try replaceItemAction(archiveURL, partialURL)
         } else {
             try manager.moveItem(at: partialURL, to: archiveURL)
         }
