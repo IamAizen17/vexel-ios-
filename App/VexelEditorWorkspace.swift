@@ -365,7 +365,7 @@ struct VexelEditorWorkspace: View {
                 layerNames = project.layerNames
                 project.modified = Date()
                 project.synchronizeDocument()
-                commitEdit {}
+                commitEdit { _ in }
                 if isPlaying {
                     do { try audioPlayback.play(project: project, from: currentTime) }
                     catch { showingNotice = "Audio playback failed: \(error.localizedDescription)" }
