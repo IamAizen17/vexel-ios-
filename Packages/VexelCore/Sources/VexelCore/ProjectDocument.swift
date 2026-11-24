@@ -49,7 +49,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
               rawVersion.isFinite,
               rawVersion.rounded(.towardZero) == rawVersion,
               rawVersion >= 1,
-              rawVersion <= Double(Int.max) else {
+              rawVersion < Double(Int.max) else {
             throw ProjectDocumentError.unsupportedVersion(nil)
         }
         var version = Int(rawVersion)
