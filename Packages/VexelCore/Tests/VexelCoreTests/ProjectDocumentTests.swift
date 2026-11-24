@@ -195,7 +195,7 @@ final class ProjectDocumentTests: XCTestCase {
             ])
         ])
 
-        let paths = Set(project.validate().map(\\.path))
+        let paths = Set(project.validate().map(\.path))
         XCTAssertTrue(paths.contains("layers[0].video.speed"))
         XCTAssertTrue(paths.contains("layers[0].video.sourceStart"))
         XCTAssertTrue(paths.contains("layers[0].video.cutout.frames[0].time"))
@@ -222,7 +222,7 @@ final class ProjectDocumentTests: XCTestCase {
             .object(["id": .string("second"), "type": .string("shape"), "duration": .number(2), "parent": .string("first")])
         ])
 
-        let paths = Set(project.validate().map(\\.path))
+        let paths = Set(project.validate().map(\.path))
         XCTAssertTrue(paths.contains("composition.motionBlur.samples"))
         XCTAssertTrue(paths.contains("composition.motionBlur.shutterAngle"))
         XCTAssertTrue(paths.contains("markers[1].id"))
