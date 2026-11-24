@@ -9,6 +9,7 @@ struct VexelProjectItem: Identifiable, Hashable, Codable {
     var width: Int
     var height: Int
     var fps: Int
+    var sourceFPS: Double?
     var duration: Double
     var modified: Date
     var layerNames: [String]
@@ -23,6 +24,7 @@ struct VexelProjectItem: Identifiable, Hashable, Codable {
         self.width = width
         self.height = height
         self.fps = fps
+        self.sourceFPS = nil
         self.duration = duration
         self.modified = Date()
         self.layerNames = []
