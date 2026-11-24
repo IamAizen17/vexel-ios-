@@ -415,6 +415,55 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertFalse(issues.contains { $0.path == "layers[0].effects[0].amount" && $0.severity == .error })
     }
 
+    func testValidatesEditorViewAndSourceShapeLimits() {
+        var project = ProjectDocument.starter()
+        project.fields["editorView"] = .object([
+            "mode": .string("invalid"),
+            "target": .array([.number(0), .number(1)]),
+            "distance": .number(10),
+            "pitch": .number(90),
+            "fov": .number(180)
+        ])
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("path"), "type": .string("shape"),
+                "shape": .object([
+                    "kind": .string("path"),
+                    "path": .object(["points": .array([.object(["point": .array([.number(0), .number(0)])])])]),
+                    "fill": .object(["gradient": .object(["stops": .array([.object(["offset": .number(0), "color": .string("#000000")])])])])
+                ]),
+                "masks": .array((0..<5).map { _ in .object([:]) })
+            ])
+        ])
+
+        let issues = project.validate()
+        let errors = Set(issues.filter { $0.severity == .error }.map(\\.path))
+        XCTAssertTrue(errors.contains("editorView.mode"))
+        XCTAssertTrue(errors.contains("editorView.target"))
+        XCTAssertTrue(errors.contains("editorView.distance"))
+        XCTAssertTrue(errors.contains("editorView.pitch"))
+        XCTAssertTrue(errors.contains("editorView.fov"))
+        XCTAssertTrue(errors.contains("layers[0].shape.path"))
+        XCTAssertTrue(errors.contains("layers[0].shape.fill.gradient.stops"))
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].masks" })
+    }
+
+    func testWarnsWhenSourceSceneLimitsAreExceeded() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object(["id": .string("camera-1"), "type": .string("camera")]),
+            .object(["id": .string("camera-2"), "type": .string("camera")]),
+            .object(["id": .string("light-1"), "type": .string("light")]),
+            .object(["id": .string("light-2"), "type": .string("light")]),
+            .object(["id": .string("light-3"), "type": .string("light")]),
+            .object(["id": .string("light-4"), "type": .string("light")]),
+            .object(["id": .string("light-5"), "type": .string("light")])
+        ])
+        let issues = project.validate()
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.message.contains("Multiple camera") })
+        XCTAssertTrue(issues.contains { $0.severity == .warning && $0.message.contains("four lights") })
+    }
+
 }
     func testEffectInstanceParametersAreValidatedAgainstCanonicalDefinitions() {
         let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [

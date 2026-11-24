@@ -245,12 +245,58 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 }
             }
         }
+        if let editorView = fields["editorView"] {
+            guard let view = editorView.objectValue else {
+                issues.append(ProjectIssue(severity: .error, path: "editorView", message: "Editor view must be an object."))
+                return issues
+            }
+            if let mode = view["mode"]?.stringValue, !["camera", "editor", "inside"].contains(mode) {
+                issues.append(ProjectIssue(severity: .error, path: "editorView.mode", message: "Editor view mode must be camera, editor, or inside."))
+            }
+            if let target = view["target"]?.arrayValue,
+               target.count != 3 || target.contains(where: { $0.numberValue?.isFinite != true }) {
+                issues.append(ProjectIssue(severity: .error, path: "editorView.target", message: "Editor view target must contain three finite coordinates."))
+            }
+            if let distance = view["distance"]?.numberValue, !(50...200_000).contains(distance) {
+                issues.append(ProjectIssue(severity: .error, path: "editorView.distance", message: "Editor view distance must be between 50 and 200000."))
+            }
+            if let pitch = view["pitch"]?.numberValue, !(-89...89).contains(pitch) {
+                issues.append(ProjectIssue(severity: .error, path: "editorView.pitch", message: "Editor view pitch must be between -89 and 89 degrees."))
+            }
+            if let fov = view["fov"]?.numberValue, !(1...170).contains(fov) {
+                issues.append(ProjectIssue(severity: .error, path: "editorView.fov", message: "Editor view field of view must be between 1 and 170 degrees."))
+            }
+        }
+
         validateAssetReferences(fields, assetTypes: assetTypes, issues: &issues)
 
         if let layers = fields["layers"]?.arrayValue {
             var identifiers = Set<String>()
             validateLayers(layers, path: "layers", identifiers: &identifiers, issues: &issues)
             validateLayerSemantics(layers, path: "layers", depth: 0, issues: &issues)
+        }
+
+        if let layers = fields["layers"]?.arrayValue {
+            var cameraCount = 0
+            var lightCount = 0
+            func countSceneEntities(_ values: [JSONValue]) {
+                for value in values {
+                    guard let layer = value.objectValue else { continue }
+                    switch layer["type"]?.stringValue {
+                    case "camera": cameraCount += 1
+                    case "light": lightCount += 1
+                    default: break
+                    }
+                    countSceneEntities(layer["layers"]?.arrayValue ?? [])
+                }
+            }
+            countSceneEntities(layers)
+            if cameraCount > 1 {
+                issues.append(ProjectIssue(severity: .warning, path: "layers", message: "Multiple camera layers exist; the source engine selects the top-most active camera."))
+            }
+            if lightCount > 4 {
+                issues.append(ProjectIssue(severity: .warning, path: "layers", message: "More than four lights exist; the source engine renders at most four simultaneously."))
+            }
         }
 
         return issues
@@ -465,6 +511,20 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 } else {
                     issues.append(ProjectIssue(severity: .error, path: "\(location).matte.layer", message: "Matte source must identify a sibling layer in the same group."))
                 }
+            }
+
+            if let shape = layer["shape"]?.objectValue {
+                let kind = shape["kind"]?.stringValue
+                if kind == "path", (shape["path"]?.objectValue?["points"]?.arrayValue?.count ?? 0) < 2 {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).shape.path", message: "Path shapes require at least two points."))
+                }
+                if let stops = shape["fill"]?.objectValue?["gradient"]?.objectValue?["stops"]?.arrayValue,
+                   stops.count < 2 {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).shape.fill.gradient.stops", message: "A gradient requires at least two stops."))
+                }
+            }
+            if let masks = layer["masks"]?.arrayValue, masks.count > 4 {
+                issues.append(ProjectIssue(severity: .warning, path: "\\(location).masks", message: "Only the first four masks are rendered by the source engine."))
             }
 
             for transitionKey in ["transitionIn", "transitionOut"] {
