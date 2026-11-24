@@ -501,8 +501,7 @@ struct VexelHomeView: View {
                         ForEach(projects) { project in
                             ProjectCard(project: project, onOpen: { onOpen(project) }, onDuplicate: {
                                 do {
-                                    let copy = try VexelProjectStore.duplicate(project)
-                                    projects.insert(copy, at: 0)
+                                    projects = try VexelProjectStore.duplicate(project, addingTo: projects)
                                 } catch {
                                     notice = "Could not duplicate project: \(error.localizedDescription)"
                                 }

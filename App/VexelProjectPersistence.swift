@@ -7,6 +7,15 @@ enum VexelProjectStore {
         case assetTooLarge
     }
 
+    private struct DuplicateCommitError: LocalizedError {
+        let persistenceMessage: String
+        let cleanupMessage: String
+
+        var errorDescription: String? {
+            "The project copy could not be saved (\(persistenceMessage)), and its copied assets could not be rolled back (\(cleanupMessage))."
+        }
+    }
+
     struct ImportedAsset {
         let id: String
         let type: String
@@ -54,6 +63,31 @@ enum VexelProjectStore {
 
     static func assetsDirectory(for projectID: UUID) throws -> URL {
         try assetsRoot().appendingPathComponent(projectID.uuidString, isDirectory: true)
+    }
+
+    static func duplicate(
+        _ project: VexelProjectItem,
+        addingTo existingProjects: [VexelProjectItem]
+    ) throws -> [VexelProjectItem] {
+        let copy = try duplicate(project)
+        var updatedProjects = existingProjects
+        updatedProjects.insert(copy, at: 0)
+
+        do {
+            try save(updatedProjects)
+        } catch {
+            let persistenceError = error
+            do {
+                try deleteAssets(for: copy)
+            } catch {
+                throw DuplicateCommitError(
+                    persistenceMessage: persistenceError.localizedDescription,
+                    cleanupMessage: error.localizedDescription
+                )
+            }
+            throw persistenceError
+        }
+        return updatedProjects
     }
 
     static func duplicate(_ project: VexelProjectItem) throws -> VexelProjectItem {

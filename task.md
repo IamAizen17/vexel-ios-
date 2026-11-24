@@ -143,7 +143,8 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [ ] Prove unknown-field preservation through full app edit/save/export round trips.
 - [x] Validate project asset references and expected asset types recursively; validate effect parameter instances before accepting an imported project.
 - [x] Make project deletion save the updated library index before deleting its asset directory, so an index-write failure cannot leave a saved project pointing to deleted assets.
-- [ ] Audit project duplication, asset references, persistence failure handling and recovery requirements.
+- [x] Make project duplication commit the copied asset directory and updated library index as one recoverable operation; roll back copied assets when index persistence fails.
+- [ ] Add automated failure-injection coverage for project duplication and audit remaining persistence recovery requirements.
 - [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
 - [x] Refresh the source audit, Android compatibility guide and porting roadmap to reflect persisted projects, connected import review, effect-aware validation and the current iOS-only development order.
 - [ ] Refresh PR #2 status text after the final CI run.
