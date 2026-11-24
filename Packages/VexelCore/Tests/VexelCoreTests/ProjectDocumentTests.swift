@@ -448,6 +448,30 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.path == "layers[0].masks" })
     }
 
+    func testWarnsForLayersEndingBeforeZeroAndKeyframesOutsideLayerTime() {
+        var project = ProjectDocument.starter()
+        project.fields["layers"] = .array([
+            .object([
+                "id": .string("offscreen"),
+                "type": .string("shape"),
+                "start": .number(-8),
+                "duration": .number(4),
+                "transform": .object([
+                    "position": .object([
+                        "keyframes": .array([
+                            .object(["time": .number(5), "value": .array([.number(0), .number(0)])]),
+                            .object(["time": .number(7), "value": .array([.number(10), .number(10)])])
+                        ])
+                    ])
+                ])
+            ])
+        ])
+
+        let warnings = project.validate().filter { $0.severity == .warning }
+        XCTAssertTrue(warnings.contains { $0.path == "layers[0].start" })
+        XCTAssertTrue(warnings.contains { $0.path == "layers[0].transform.position.keyframes" })
+    }
+
     func testWarnsWhenSourceSceneLimitsAreExceeded() {
         var project = ProjectDocument.starter()
         project.fields["layers"] = .array([

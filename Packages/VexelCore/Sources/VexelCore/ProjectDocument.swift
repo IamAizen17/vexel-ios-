@@ -604,6 +604,21 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             }
 
             validateKeyframeOrdering(.object(layer), path: location, issues: &issues)
+            validateKeyframeRange(
+                .object(layer),
+                path: location,
+                layerDuration: layer["duration"]?.numberValue ?? 5,
+                issues: &issues
+            )
+            let layerStart = layer["start"]?.numberValue ?? 0
+            let layerDuration = layer["duration"]?.numberValue ?? 5
+            if layerStart + layerDuration <= 0 {
+                issues.append(ProjectIssue(
+                    severity: .warning,
+                    path: "\(location).start",
+                    message: "The layer ends before composition time zero and is never visible."
+                ))
+            }
             validateLayerSemantics(children, path: "\(location).layers", depth: depth + 1, issues: &issues)
         }
 
@@ -708,6 +723,38 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         case .array(let values):
             for (index, child) in values.enumerated() {
                 validateKeyframeOrdering(child, path: "\(path)[\(index)]", issues: &issues)
+            }
+        case .string, .number, .bool, .null:
+            break
+        }
+    }
+
+    private func validateKeyframeRange(
+        _ value: JSONValue,
+        path: String,
+        layerDuration: Double,
+        issues: inout [ProjectIssue]
+    ) {
+        switch value {
+        case .object(let object):
+            for (key, child) in object {
+                let childPath = "\(path).\(key)"
+                if key == "keyframes", let frames = child.arrayValue {
+                    let times = frames.compactMap { $0.objectValue?["time"]?.numberValue }
+                    if let first = times.first, let last = times.last,
+                       first > layerDuration + 0.000001 || last < -0.000001 {
+                        issues.append(ProjectIssue(
+                            severity: .warning,
+                            path: childPath,
+                            message: "All keyframes are outside the layer's local time range (0...\(layerDuration) seconds)."
+                        ))
+                    }
+                }
+                validateKeyframeRange(child, path: childPath, layerDuration: layerDuration, issues: &issues)
+            }
+        case .array(let values):
+            for (index, child) in values.enumerated() {
+                validateKeyframeRange(child, path: "\(path)[\(index)]", layerDuration: layerDuration, issues: &issues)
             }
         case .string, .number, .bool, .null:
             break
