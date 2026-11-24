@@ -73,7 +73,7 @@ public enum VexelProjectImporter {
         let composition = project.fields["composition"]?.objectValue ?? [:]
         for key in ["motionBlur", "lighting", "environment"] where composition[key] != nil {
             result.append(VexelUnsupportedFeature(
-                path: "composition.\\(key)",
+                path: "composition.\(key)",
                 feature: key,
                 reason: "This feature is preserved in the project document but is not implemented by the current iOS rendering pipeline."
             ))
@@ -82,26 +82,26 @@ public enum VexelProjectImporter {
         func inspect(_ layers: [JSONValue], path: String) {
             for (index, value) in layers.enumerated() {
                 guard let layer = value.objectValue else { continue }
-                let location = "\\(path)[\\(index)]"
+                let location = "\(path)[\(index)]"
                 let type = layer["type"]?.stringValue ?? "unknown"
                 let supportedTypes: Set<String> = ["text", "shape", "image", "video", "audio", "group", "object3d", "model3d", "camera", "light", "null"]
                 if !supportedTypes.contains(type) {
                     result.append(VexelUnsupportedFeature(
-                        path: "\\(location).type",
-                        feature: "unknown-layer:\\(type)",
+                        path: "\(location).type",
+                        feature: "unknown-layer:\(type)",
                         reason: "The layer discriminator is not recognized by this importer. Its raw JSON is retained, but editing or rendering support is unavailable."
                     ))
                 }
                 if ["video", "audio", "object3d", "model3d", "camera", "light", "null"].contains(type) {
                     result.append(VexelUnsupportedFeature(
-                        path: "\\(location).type",
+                        path: "\(location).type",
                         feature: type,
                         reason: "The layer is retained for round-trip compatibility but its playback or rendering implementation is incomplete."
                     ))
                 }
                 for key in ["transform3d", "masks", "matte", "transitionIn", "transitionOut", "cutout", "timeSlice"] where layer[key] != nil {
                     result.append(VexelUnsupportedFeature(
-                        path: "\\(location).\\(key)",
+                        path: "\(location).\(key)",
                         feature: key,
                         reason: "The serialized feature is preserved, but the corresponding editor/render operation is not implemented."
                     ))
@@ -109,7 +109,7 @@ public enum VexelProjectImporter {
                 if let text = layer["text"]?.objectValue,
                    let animators = text["propertyAnimators"]?.arrayValue, !animators.isEmpty {
                     result.append(VexelUnsupportedFeature(
-                        path: "\\(location).text.propertyAnimators",
+                        path: "\(location).text.propertyAnimators",
                         feature: "text-property-animators",
                         reason: "Per-character property animation is preserved but is not connected to the current iOS text renderer."
                     ))
@@ -118,7 +118,7 @@ public enum VexelProjectImporter {
                     if let media = layer[mediaKey]?.objectValue,
                        let eq = media["eq"]?.arrayValue, !eq.isEmpty {
                         result.append(VexelUnsupportedFeature(
-                            path: "\\(location).\\(mediaKey).eq",
+                            path: "\(location).\(mediaKey).eq",
                             feature: "media-equalizer",
                             reason: "The serialized equalizer bands are preserved but are not applied by the current iOS audio pipeline."
                         ))
@@ -128,8 +128,8 @@ public enum VexelProjectImporter {
                     for (effectIndex, effect) in effects.enumerated() {
                         let effectType = effect.objectValue?["type"]?.stringValue ?? "unknown"
                         result.append(VexelUnsupportedFeature(
-                            path: "\\(location).effects[\\(effectIndex)]",
-                            feature: "effect:\\(effectType)",
+                            path: "\(location).effects[\(effectIndex)]",
+                            feature: "effect:\(effectType)",
                             reason: "Effect parameters are preserved, but this effect is not yet connected to the iOS render graph."
                         ))
                     }
@@ -138,7 +138,7 @@ public enum VexelProjectImporter {
                     switch value {
                     case .object(let object):
                         for (key, child) in object where key != "layers" {
-                            let childPath = "\\(valuePath).\\(key)"
+                            let childPath = "\(valuePath).\(key)"
                             if key == "expression", child.stringValue != nil {
                                 result.append(VexelUnsupportedFeature(
                                     path: childPath,
@@ -151,14 +151,14 @@ public enum VexelProjectImporter {
                         }
                     case .array(let values):
                         for (childIndex, child) in values.enumerated() {
-                            findExpressions(child, at: "\\(valuePath)[\\(childIndex)]")
+                            findExpressions(child, at: "\(valuePath)[\(childIndex)]")
                         }
                     case .string, .number, .bool, .null:
                         break
                     }
                 }
                 findExpressions(.object(layer), at: location)
-                inspect(layer["layers"]?.arrayValue ?? [], path: "\\(location).layers")
+                inspect(layer["layers"]?.arrayValue ?? [], path: "\(location).layers")
             }
         }
         inspect(project.fields["layers"]?.arrayValue ?? [], path: "layers")
