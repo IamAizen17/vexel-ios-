@@ -15,12 +15,12 @@ rendering, and AVFoundation media pipeline.
 - `Packages/VexelAudio/`: realtime and offline audio contracts.
 - `Packages/VexelExport/`: shared preview/export orchestration contracts.
 - `Packages/VexelPlugins/`: plugin package and capability contracts.
-- `.github/workflows/ios-ipa.yml`: CI tests and unsigned IPA packaging.
+- `.github/workflows/ios-ipa.yml`: manually triggered Swift package validation and optional unsigned IPA packaging.
 - `docs/`: architecture, reverse-engineering evidence, porting roadmap, project format, testing, licensing, and build instructions.
 
 ## Build without owning a Mac
 
-Push a commit or run **Actions → iOS Build → Run workflow**. After the workflow succeeds, download the
+Open **Actions → Vexel Validation → Run workflow** and leave `build_ipa` disabled to run Swift package tests. Enable `build_ipa` only when you want to consume a macOS runner and build an unsigned IPA. After the workflow succeeds, download the
 `Vexel-unsigned-IPA` artifact. It is an unsigned build artifact, not directly installable on a physical iPhone.
 Device installation requires signing and a provisioning profile. See [docs/BUILDING.md](docs/BUILDING.md).
 
