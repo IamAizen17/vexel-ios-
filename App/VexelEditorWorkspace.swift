@@ -839,8 +839,8 @@ struct VexelEditorWorkspace: View {
                 duration = min(loadedDuration.seconds, max(0.1, project.duration - currentTime))
             }
             let track = makeImportedTrack(asset, start: currentTime, duration: duration)
-            commitEdit {
-                project.timelineTracks.append(track)
+            commitEdit { candidate in
+                candidate.timelineTracks.append(track)
                 selectedTrackID = track.id
             }
             showingNotice = "Imported \(asset.name) into the project and added an audio track."
