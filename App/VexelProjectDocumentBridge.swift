@@ -47,7 +47,7 @@ extension VexelProjectItem {
         var composition = fields["composition"]?.objectValue ?? [:]
         composition["width"] = .number(Double(width))
         composition["height"] = .number(Double(height))
-        let preservedFPS = sourceFPS.flatMap { $0.isFinite && (1...120).contains($0) && Int($0.rounded()) == fps ? $0 : nil }
+        let preservedFPS = sourceFPS.flatMap { $0.isFinite && (1.0...120.0).contains($0) && Int($0.rounded()) == fps ? $0 : nil }
         composition["fps"] = .number(preservedFPS ?? Double(fps))
         composition["duration"] = .number(duration)
         fields["composition"] = .object(composition)
