@@ -103,6 +103,49 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertNil(snapshot.layers[0].layers[1].parent)
     }
 
+    func testGroupAndUngroupPreserveSiblingTimingAndOrder() async throws {
+        let first = VexelLayer(id: "first", type: .shape, name: "First", start: 0, duration: 4)
+        let second = VexelLayer(id: "second", type: .shape, name: "Second", start: 2, duration: 5)
+        let store = try makeStore(layers: [first, second])
+
+        try await store.execute(.groupLayers(firstID: "first", secondID: "second", groupID: "group", name: "Scene"))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.map(\\.id), ["group"])
+        XCTAssertEqual(snapshot.layers[0].start, 0)
+        XCTAssertEqual(snapshot.layers[0].duration, 7)
+        XCTAssertEqual(snapshot.layers[0].layers.map(\\.id), ["first", "second"])
+        XCTAssertEqual(snapshot.layers[0].layers[1].start, 2)
+
+        try await store.execute(.ungroupLayer(id: "group"))
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.map(\\.id), ["first", "second"])
+        XCTAssertEqual(snapshot.layers[1].start, 2)
+        XCTAssertEqual(snapshot.layers[1].duration, 5)
+    }
+
+    func testUngroupRejectsGroupLevelPropertiesThatWouldBeLost() async throws {
+        let group = VexelLayer(
+            id: "group",
+            type: .group,
+            start: 0,
+            duration: 4,
+            transform: VexelTransform(properties: ["opacity": .constant(.number(0.5))]),
+            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 4)]
+        )
+        let store = try makeStore(layers: [group])
+
+        do {
+            try await store.execute(.ungroupLayer(id: "group"))
+            XCTFail("Ungrouping must not discard a group transform.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \\(error)")
+            }
+        }
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.id, "group")
+    }
+
     func testGroupCannotMoveIntoItsOwnDescendant() async throws {
         let group = VexelLayer(
             id: "group",
