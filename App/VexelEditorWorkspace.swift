@@ -171,7 +171,7 @@ struct VexelEditorWorkspace: View {
             if let number = value?.numberValue {
                 values[property] = [number]
             } else if let components = value?.arrayValue {
-                let numbers = components.compactMap(\\.numberValue)
+                let numbers = components.compactMap(\.numberValue)
                 if numbers.count == defaults[property]?.count { values[property] = numbers }
             }
         }
@@ -181,7 +181,7 @@ struct VexelEditorWorkspace: View {
     private func commitSelectedTransform(property: String, values: [Double]) {
         guard let track = selectedTimelineTrack,
               let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
-              !values.isEmpty, values.allSatisfy(\\.isFinite) else { return }
+              !values.isEmpty, values.allSatisfy(\.isFinite) else { return }
         let is3D = track.kind == .rendered3D
         let value: VexelAnimatableValue
         if property == "opacity" || (property == "rotation" && !is3D) {
