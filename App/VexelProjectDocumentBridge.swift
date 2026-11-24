@@ -3,20 +3,37 @@ import VexelCore
 
 extension VexelProjectItem {
     init(document: ProjectDocument) {
+        let nativeProject = try? VexelNativeProject(document: document)
         let composition = document.fields["composition"]?.objectValue ?? [:]
-        let width = Self.boundedInteger(composition["width"]?.numberValue, range: 16...8192, fallback: 1080)
-        let height = Self.boundedInteger(composition["height"]?.numberValue, range: 16...8192, fallback: 1920)
-        let sourceFPS = composition["fps"]?.numberValue
+        let widthValue = nativeProject.map { Double($0.composition.width) } ?? composition["width"]?.numberValue
+        let heightValue = nativeProject.map { Double($0.composition.height) } ?? composition["height"]?.numberValue
+        let sourceFPS = nativeProject?.composition.fps ?? composition["fps"]?.numberValue
+        let rawDuration = nativeProject?.composition.duration ?? composition["duration"]?.numberValue ?? 10
+        let width = Self.boundedInteger(widthValue, range: 16...8192, fallback: 1080)
+        let height = Self.boundedInteger(heightValue, range: 16...8192, fallback: 1920)
         let fps = Self.boundedInteger(sourceFPS, range: 1...120, fallback: 30)
-        let rawDuration = composition["duration"]?.numberValue ?? 10
         let duration = rawDuration.isFinite && (0.01...3600).contains(rawDuration) ? rawDuration : 10
         self.init(title: document.title, width: width, height: height, fps: fps, duration: duration)
         documentJSON = String(data: (try? document.encoded()) ?? Data(), encoding: .utf8)
         self.sourceFPS = sourceFPS.flatMap { $0.isFinite && (1.0...120.0).contains($0) ? $0 : nil }
         assetsDirectory = nil
-        timelineTracks = (document.fields["layers"]?.arrayValue ?? []).compactMap(Self.track(from:))
+        let typedLayerValues = nativeProject?.layers.compactMap { layer -> JSONValue? in
+            guard let data = try? JSONEncoder().encode(layer) else { return nil }
+            return try? JSONDecoder().decode(JSONValue.self, from: data)
+        }
+        let layerValues = typedLayerValues ?? document.fields["layers"]?.arrayValue ?? []
+        timelineTracks = layerValues.compactMap(Self.track(from:))
         layerNames = Self.flattenNames(timelineTracks)
-        markers = (document.fields["markers"]?.arrayValue ?? []).compactMap { value in
+        let typedMarkers = nativeProject?.markers.map { marker in
+            VexelMarker(
+                id: UUID(),
+                name: marker.name ?? "Marker",
+                time: marker.time,
+                color: marker.color ?? "Teal",
+                sourceID: marker.id
+            )
+        }
+        markers = typedMarkers ?? (document.fields["markers"]?.arrayValue ?? []).compactMap { value in
             guard let object = value.objectValue else { return nil }
             return VexelMarker(
                 id: UUID(),
@@ -94,7 +111,17 @@ extension VexelProjectItem {
         guard let json = copy.documentJSON, let data = json.data(using: .utf8) else {
             throw CocoaError(.fileWriteUnknown)
         }
-        return try ProjectDocument(data: data)
+        let document = try ProjectDocument(data: data)
+        let nativeProject = try VexelNativeProject(document: document)
+        let normalized = try nativeProject.projectDocument()
+        let errors = normalized.validate().filter { $0.severity == .error }
+        guard errors.isEmpty else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: [],
+                debugDescription: errors.map { "\($0.path): \($0.message)" }.joined(separator: "\n")
+            ))
+        }
+        return normalized
     }
 
     private static func track(from value: JSONValue) -> VexelTimelineTrack? {
