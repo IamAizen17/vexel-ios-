@@ -36,7 +36,7 @@ extension VexelProjectItem {
         markers = typedMarkers ?? (document.fields["markers"]?.arrayValue ?? []).compactMap { value in
             guard let object = value.objectValue else { return nil }
             return VexelMarker(
-                id: object["id"]?.stringValue.map(VexelStableIdentifier.uuid(forSourceID:)) ?? UUID(),
+                id: object["id"]?.stringValue.map { VexelStableIdentifier.uuid(forSourceID: $0) } ?? UUID(),
                 name: object["name"]?.stringValue ?? "Marker",
                 time: object["time"]?.numberValue ?? 0,
                 color: object["color"]?.stringValue ?? "Teal",
