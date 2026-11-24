@@ -142,7 +142,8 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [x] Make project deletion save the updated library index before deleting its asset directory, so an index-write failure cannot leave a saved project pointing to deleted assets.
 - [ ] Audit project duplication, asset references, persistence failure handling and recovery requirements.
 - [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
-- [ ] Refresh remaining roadmap/PR status text after P0 verification.
+- [x] Refresh the source audit, Android compatibility guide and porting roadmap to reflect persisted projects, connected import review, effect-aware validation and the current iOS-only development order.
+- [ ] Refresh PR #2 status text after the final CI run.
 - [ ] Keep CI green for package tests, XcodeGen generation, simulator build and unsigned IPA archive.
 - [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
