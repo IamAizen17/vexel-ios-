@@ -354,7 +354,7 @@ public enum VexelAnimatableValue: Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let value = try JSONValue(from: decoder)
-        if let object = value.objectValue, object["keyframes"]?.arrayValue != nil {
+        if let object = value.objectValue, object["keyframes"]?.arrayValue != nil || object["expression"]?.stringValue != nil {
             self = .animated(try JSONDecoder().decode(VexelAnimationTrack.self, from: JSONEncoder().encode(value)))
         } else {
             self = .constant(value)
@@ -376,27 +376,42 @@ public enum VexelLoopMode: String, Codable, Sendable {
 
 public struct VexelAnimationTrack: Codable, Equatable, Sendable {
     public var keyframes: [VexelKeyframe]
+    public var value: JSONValue?
     public var loop: VexelLoopMode?
     public var expression: String?
     public var expressionEnabled: Bool?
     public var unknownFields: [String: JSONValue]
-    public init(keyframes: [VexelKeyframe], loop: VexelLoopMode? = nil, expression: String? = nil,
-                expressionEnabled: Bool? = nil, unknownFields: [String: JSONValue] = [:]) {
-        self.keyframes = keyframes; self.loop = loop; self.expression = expression
+    public init(keyframes: [VexelKeyframe] = [], value: JSONValue? = nil, loop: VexelLoopMode? = nil,
+                expression: String? = nil, expressionEnabled: Bool? = nil, unknownFields: [String: JSONValue] = [:]) {
+        self.keyframes = keyframes; self.value = value; self.loop = loop; self.expression = expression
         self.expressionEnabled = expressionEnabled; self.unknownFields = unknownFields
     }
-    private enum Keys: String, CaseIterable { case keyframes, loop, expression, expressionEnabled }
+    private enum Keys: String, CaseIterable { case keyframes, value, loop, expression, expressionEnabled }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: DynamicCodingKey.self)
-        keyframes = try c.decode([VexelKeyframe].self, forKey: .init("keyframes"))
+        let keyframesKey = DynamicCodingKey("keyframes")
+        let hasKeyframes = c.contains(keyframesKey)
+        keyframes = try c.decodeIfPresent([VexelKeyframe].self, forKey: keyframesKey) ?? []
+        value = try c.decodeIfPresent(JSONValue.self, forKey: .init("value"))
         loop = try c.decodeIfPresent(VexelLoopMode.self, forKey: .init("loop"))
         expression = try c.decodeIfPresent(String.self, forKey: .init("expression"))
         expressionEnabled = try c.decodeIfPresent(Bool.self, forKey: .init("expressionEnabled"))
+        if hasKeyframes && keyframes.isEmpty {
+            throw DecodingError.dataCorruptedError(forKey: keyframesKey, in: c, debugDescription: "Animated keyframes must not be empty.")
+        }
+        if !hasKeyframes && expression != nil && value == nil {
+            throw DecodingError.dataCorruptedError(forKey: .init("value"), in: c, debugDescription: "Expression-only animation requires a static value.")
+        }
+        for index in 1..<keyframes.count where keyframes[index].time < keyframes[index - 1].time {
+            throw DecodingError.dataCorruptedError(forKey: keyframesKey, in: c, debugDescription: "Keyframes must be sorted by time.")
+        }
         unknownFields = try VexelNativeProject.decodeExtra(c, known: Set(Keys.allCases.map(\.rawValue)))
     }
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: DynamicCodingKey.self)
-        try c.encode(keyframes, forKey: .init("keyframes")); try c.encodeIfPresent(loop, forKey: .init("loop"))
+        if !keyframes.isEmpty { try c.encode(keyframes, forKey: .init("keyframes")) }
+        try c.encodeIfPresent(value, forKey: .init("value"))
+        try c.encodeIfPresent(loop, forKey: .init("loop"))
         try c.encodeIfPresent(expression, forKey: .init("expression"))
         try c.encodeIfPresent(expressionEnabled, forKey: .init("expressionEnabled"))
         for (key, value) in unknownFields where !Keys.allCases.map(\.rawValue).contains(key) { try c.encode(value, forKey: .init(key)) }
