@@ -188,7 +188,7 @@ final class NativeProjectSchemaTests: XCTestCase {
             {"id": "hdr", "type": "image", "path": "assets/hdr.png"}
           ],
           "layers": [
-            {"id":"text","type":"text","duration":8,"text":{"content":"Title","font":{"family":"sans-serif","weight":700,"asset":"font"},"fontSize":48,"color":"#FFFFFF","align":"center","lineHeight":1.2,"letterSpacing":0,"maxWidth":800,"animators":[],"propertyAnimators":[]}},
+            {"id":"text","type":"text","duration":8,"text":{"content":"Title","font":{"family":"sans-serif","weight":700,"asset":"font"},"fontSize":48,"color":"#FFFFFF","align":"center","lineHeight":1.2,"letterSpacing":0,"maxWidth":800,"animators":[{"type":"fade","start":0.2,"amount":1,"easing":"easeIn"}],"propertyAnimators":[{"name":"position","enabled":true,"position":[0,0]}]}},
             {"id":"shape","type":"shape","duration":8,"shape":{"kind":"star","size":[300,300],"roundness":4,"sides":5,"innerRatio":0.5,"fill":{"enabled":true}}},
             {"id":"image","type":"image","duration":8,"image":{"asset":"img"}},
             {"id":"video","type":"video","duration":8,"video":{"asset":"video","sourceStart":0.5,"speed":1.25,"volume":1,"muted":false,"fadeIn":0.2,"fadeOut":0.3,"alphaPacked":true,"eq":[{"type":"peak","frequency":1000,"gain":2,"q":1}],"cutout":{"source":"video","duration":4},"futureMedia":"kept"}},
@@ -216,6 +216,8 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(text.content, "Title")
         XCTAssertEqual(text.font?.asset, "font")
         XCTAssertEqual(text.font?.weight, 700)
+        XCTAssertEqual(text.animators?.first?.start, 0.2)
+        XCTAssertEqual(text.propertyAnimators?.first?.name, "position")
         guard case .shape(let shape)? = schema.layers[1].typedContent else { return XCTFail("Expected typed shape content.") }
         XCTAssertEqual(shape.kind, "star")
         XCTAssertEqual(shape.fill?.enabled, true)
