@@ -84,6 +84,14 @@ public enum VexelProjectImporter {
                 guard let layer = value.objectValue else { continue }
                 let location = "\(path)[\(index)]"
                 let type = layer["type"]?.stringValue ?? "unknown"
+                if let blendMode = layer["blendMode"]?.stringValue,
+                   !["normal", "add", "multiply", "screen"].contains(blendMode) {
+                    result.append(VexelUnsupportedFeature(
+                        path: "\\(location).blendMode",
+                        feature: "blend-mode:\\(blendMode)",
+                        reason: "The blend mode is preserved, but the current compositor does not implement this mode."
+                    ))
+                }
                 let supportedTypes: Set<String> = ["text", "shape", "image", "video", "audio", "group", "object3d", "model3d", "camera", "light", "null"]
                 if !supportedTypes.contains(type) {
                     result.append(VexelUnsupportedFeature(
