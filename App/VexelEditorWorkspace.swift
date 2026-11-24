@@ -54,6 +54,8 @@ struct VexelEditorWorkspace: View {
     @State private var showRename = false
     @State private var undoStack: [VexelProjectItem] = []
     @State private var redoStack: [VexelProjectItem] = []
+    @State private var editingStore: VexelEditingStore?
+    @State private var editingCommandTask: Task<Void, Never>?
     @State private var showingMediaPicker = false
     @State private var showingAudioPicker = false
     @State private var showingNotice: String?
@@ -187,6 +189,7 @@ struct VexelEditorWorkspace: View {
             project.layerNames = layerNames
             if selectedTrackID == nil { selectedTrackID = project.timelineTracks.first?.id }
             project.synchronizeDocument()
+            resetEditingStoreFromWorkspace()
             onProjectChange(project)
         }
         .onChange(of: selectedTrackID) { _ in selectedTab = "Transform" }
@@ -344,6 +347,7 @@ struct VexelEditorWorkspace: View {
                 layerNames = project.layerNames
                 project.modified = Date()
                 project.synchronizeDocument()
+                resetEditingStoreFromWorkspace()
                 onProjectChange(project)
                 if isPlaying {
                     do { try audioPlayback.play(project: project, from: currentTime) }
@@ -444,6 +448,49 @@ struct VexelEditorWorkspace: View {
         .background(VexelPalette.sheet, in: RoundedRectangle(cornerRadius: 16))
     }
 
+    private func resetEditingStoreFromWorkspace() {
+        do {
+            let document = try project.makeProjectDocument()
+            let nativeProject = try VexelNativeProject(document: document)
+            editingStore = try VexelEditingStore(project: nativeProject)
+        } catch {
+            editingStore = nil
+            showingNotice = "The editing engine could not synchronize this project: \(error.localizedDescription)"
+        }
+    }
+
+    private func performEditingCommand(_ command: VexelEditingCommand, selecting sourceID: String? = nil) {
+        guard let store = editingStore else {
+            showingNotice = "The editing engine is unavailable. Reopen the project and try again."
+            return
+        }
+        let previousTask = editingCommandTask
+        editingCommandTask = Task { @MainActor in
+            await previousTask?.value
+            do {
+                try await store.execute(command)
+                let nativeProject = await store.snapshot()
+                let document = try nativeProject.projectDocument()
+                var updated = VexelProjectItem(document: document)
+                updated.id = project.id
+                updated.assetsDirectory = project.assetsDirectory
+                updated.modified = Date()
+                updated.layerNames = flattenTrackNames(updated.timelineTracks)
+                undoStack.append(project)
+                if undoStack.count > 100 { undoStack.removeFirst() }
+                redoStack.removeAll()
+                project = updated
+                layerNames = updated.layerNames
+                if let sourceID {
+                    selectedTrackID = VexelStableIdentifier.uuid(forSourceID: sourceID)
+                }
+                onProjectChange(updated)
+            } catch {
+                showingNotice = error.localizedDescription
+            }
+        }
+    }
+
     private func commitEdit(_ mutation: () -> Void) {
         undoStack.append(project)
         if undoStack.count > 100 { undoStack.removeFirst() }
@@ -453,6 +500,7 @@ struct VexelEditorWorkspace: View {
         layerNames = project.layerNames
         project.modified = Date()
         project.synchronizeDocument()
+        resetEditingStoreFromWorkspace()
         onProjectChange(project)
     }
 
@@ -475,14 +523,46 @@ struct VexelEditorWorkspace: View {
     }
 
     private func addLayer(named name: String, kind: VexelTimelineTrack.Kind) {
-        commitEdit {
-            let resolvedName = uniqueLayerName(name)
-            let track = VexelTimelineTrack(name: resolvedName, duration: project.duration, kind: kind)
-            project.timelineTracks.insert(track, at: 0)
-            layerNames.insert(resolvedName, at: 0)
-            selectedTrackID = track.id
-            selectedLayer = 0
+        let resolvedName = uniqueLayerName(name)
+        let id = UUID().uuidString
+        let type: VexelLayerType
+        let content: JSONValue
+        switch kind {
+        case .text:
+            type = .text
+            content = .object([
+                "content": .string(resolvedName),
+                "fontSize": .number(64),
+                "color": .string("#FFFFFF")
+            ])
+        case .audio:
+            type = .audio
+            content = .object([:])
+        case .group:
+            type = .group
+            content = .object([:])
+        case .rendered3D:
+            type = .object3D
+            content = .object(["primitive": .string("cube"), "size": .number(200)])
+        case .visual:
+            type = .shape
+            content = .object([
+                "kind": .string("rectangle"),
+                "size": .array([.number(400), .number(400)]),
+                "fill": .object(["color": .string("#55CDBE")])
+            ])
         }
+        let layer = VexelLayer(
+            id: id,
+            type: type,
+            name: resolvedName,
+            start: 0,
+            duration: project.duration,
+            visible: true,
+            locked: false,
+            content: content
+        )
+        performEditingCommand(.addLayer(layer, containerID: nil, index: 0), selecting: id)
     }
 
     private func uniqueLayerName(_ base: String) -> String {
@@ -516,32 +596,22 @@ struct VexelEditorWorkspace: View {
     }
 
     private func duplicateSelectedTrack() {
-        guard let index = selectedTopLevelIndex() else {
-            showingNotice = "Select a top-level timeline layer to duplicate."
+        guard let selectedTimelineTrack else {
+            showingNotice = "Select a timeline layer to duplicate."
             return
         }
-        commitEdit {
-            let source = project.timelineTracks[index]
-            let name = uniqueLayerName(source.name + " Copy")
-            let duplicate = cloneTrack(source, name: name, locked: false)
-            project.timelineTracks.insert(duplicate, at: index + 1)
-            layerNames.insert(name, at: min(index + 1, layerNames.count))
-            selectedTrackID = duplicate.id
-            selectedLayer = min(index + 1, layerNames.count - 1)
-        }
+        let sourceID = selectedTimelineTrack.sourceID ?? selectedTimelineTrack.id.uuidString
+        let duplicateID = UUID().uuidString
+        performEditingCommand(.duplicateLayer(id: sourceID, newID: duplicateID), selecting: duplicateID)
     }
 
     private func deleteSelectedTrack() {
-        guard let index = selectedTopLevelIndex() else {
-            showingNotice = "Select a top-level timeline layer to delete."
+        guard let selectedTimelineTrack else {
+            showingNotice = "Select a timeline layer to delete."
             return
         }
-        commitEdit {
-            project.timelineTracks.remove(at: index)
-            if layerNames.indices.contains(index) { layerNames.remove(at: index) }
-            selectedLayer = max(0, min(index - 1, layerNames.count - 1))
-            selectedTrackID = project.timelineTracks.indices.contains(selectedLayer) ? project.timelineTracks[selectedLayer].id : project.timelineTracks.first?.id
-        }
+        let sourceID = selectedTimelineTrack.sourceID ?? selectedTimelineTrack.id.uuidString
+        performEditingCommand(.removeLayer(id: sourceID))
     }
 
     private func addKeyframeAtPlayhead() {
@@ -577,21 +647,12 @@ struct VexelEditorWorkspace: View {
             showingNotice = "Move the playhead inside the selected clip before splitting."
             return
         }
-        commitEdit {
-            var left = source
-            left.duration = splitTime - source.start
-            let localSplitTime = splitTime - source.start
-            left.keyframes = source.keyframes.filter { $0 <= localSplitTime }
-            let rightName = uniqueLayerName(source.name + " Split")
-            var right = cloneTrack(source, name: rightName, start: splitTime, duration: end - splitTime)
-            right.keyframes = source.keyframes.filter { $0 >= localSplitTime }.map { $0 - localSplitTime }
-
-            project.timelineTracks[index] = left
-            project.timelineTracks.insert(right, at: index + 1)
-            layerNames.insert(rightName, at: min(index + 1, layerNames.count))
-            selectedTrackID = right.id
-            selectedLayer = min(index + 1, layerNames.count - 1)
-        }
+        let sourceID = source.sourceID ?? source.id.uuidString
+        let splitID = UUID().uuidString
+        performEditingCommand(
+            .splitLayer(id: sourceID, localTime: splitTime - source.start, newID: splitID),
+            selecting: splitID
+        )
     }
 
     private func groupSelectedWithNextTrack() {
@@ -599,20 +660,18 @@ struct VexelEditorWorkspace: View {
             showingNotice = "Select a layer with an adjacent layer beneath it to create a group."
             return
         }
-        commitEdit {
-            let pair = Array(project.timelineTracks[index...index + 1])
-            let groupStart = pair.map(\.start).min() ?? 0
-            let groupEnd = pair.map { $0.start + $0.duration }.max() ?? groupStart
-            var children = pair
-            for childIndex in children.indices { children[childIndex].start -= groupStart }
-            let groupName = uniqueLayerName("Group")
-            let group = VexelTimelineTrack(name: groupName, start: groupStart, duration: max(0.001, groupEnd - groupStart), kind: .group, isGroup: true, isExpanded: true, children: children)
-            project.timelineTracks.replaceSubrange(index...(index + 1), with: [group])
-            layerNames.removeSubrange(index...(index + 1))
-            layerNames.insert(groupName, at: index)
-            selectedTrackID = group.id
-            selectedLayer = index
-        }
+        let first = project.timelineTracks[index]
+        let second = project.timelineTracks[index + 1]
+        let groupID = UUID().uuidString
+        performEditingCommand(
+            .groupLayers(
+                firstID: first.sourceID ?? first.id.uuidString,
+                secondID: second.sourceID ?? second.id.uuidString,
+                groupID: groupID,
+                name: uniqueLayerName("Group")
+            ),
+            selecting: groupID
+        )
     }
 
     @discardableResult
@@ -630,12 +689,9 @@ struct VexelEditorWorkspace: View {
     }
 
     private func removeEffect(_ effectID: String) {
-        guard let selectedTrackID else { return }
-        commitEdit {
-            _ = updateTrack(id: selectedTrackID, in: &project.timelineTracks) { track in
-                track.effects.removeAll { $0 == effectID }
-            }
-        }
+        guard let selectedTimelineTrack else { return }
+        let sourceID = selectedTimelineTrack.sourceID ?? selectedTimelineTrack.id.uuidString
+        performEditingCommand(.removeEffect(layerID: sourceID, type: effectID))
     }
 
     private func selectLayer(at action: String, prefix: String) {
@@ -648,12 +704,12 @@ struct VexelEditorWorkspace: View {
     private func toggleLayerProperty(at action: String, prefix: String, property: String) {
         guard let index = Int(action.dropFirst(prefix.count)),
               project.timelineTracks.indices.contains(index) else { return }
-        let id = project.timelineTracks[index].id
-        commitEdit {
-            _ = updateTrack(id: id, in: &project.timelineTracks) { track in
-                if property == "visible" { track.visible.toggle() }
-                if property == "locked" { track.locked.toggle() }
-            }
+        let track = project.timelineTracks[index]
+        let sourceID = track.sourceID ?? track.id.uuidString
+        if property == "visible" {
+            performEditingCommand(.setLayerVisibility(id: sourceID, visible: !track.visible))
+        } else if property == "locked" {
+            performEditingCommand(.setLayerLock(id: sourceID, locked: !track.locked))
         }
     }
 
@@ -801,13 +857,11 @@ struct VexelEditorWorkspace: View {
                     return
                 }
                 let effectID = String(action.dropFirst("effect:".count))
-                commitEdit {
-                    let found = updateTrack(id: selectedTrackID, in: &project.timelineTracks) { track in
-                        if !track.effects.contains(effectID) { track.effects.append(effectID) }
-                    }
-                    if !found { showingNotice = "The selected layer could not be found." }
-                }
-                showingNotice = "Added \(effectID) to the selected layer's effect stack. GPU rendering is not enabled yet."
+                let sourceID = selectedTimelineTrack?.sourceID ?? selectedTrackID.uuidString
+                performEditingCommand(
+                    .addEffect(layerID: sourceID, effect: VexelEffect(type: effectID, parameters: [:]))
+                )
+                showingNotice = "Added \(effectID) to the selected layer's effect stack. Effect rendering is still in progress."
             } else {
                 showingNotice = "\(tool.rawValue) operation is not implemented yet."
             }
