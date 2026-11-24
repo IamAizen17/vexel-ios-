@@ -244,4 +244,115 @@ final class ZIPProjectArchiveTests: XCTestCase {
         ])
         XCTAssertThrowsError(try ZIPProjectArchive().write(project, to: directory.appendingPathComponent("missing.vexelproj")))
     }
+
+    func testActualDecompressedAssetBytesAreBoundedIndependentlyOfZIPMetadata() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let assetsRoot = directory.appendingPathComponent("assets-root", isDirectory: true)
+        let assetURL = assetsRoot.appendingPathComponent("assets/payload.bin")
+        try FileManager.default.createDirectory(at: assetURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(repeating: 0x41, count: 256).write(to: assetURL)
+
+        var fields = ProjectDocument.starter(title: "Bounded extraction").fields
+        fields["assets"] = .array([
+            .object(["id": .string("payload"), "type": .string("image"), "path": .string("assets/payload.bin")])
+        ])
+        let project = ProjectDocument(fields: fields)
+        let archiveURL = directory.appendingPathComponent("bounded.vexelproj")
+        try ZIPProjectArchive().write(project, assetsDirectory: assetsRoot, to: archiveURL)
+
+        let projectBytes = UInt64(try project.encoded().count)
+        let archive = ZIPProjectArchive(maximumExtractedBytes: projectBytes + 32)
+        XCTAssertThrowsError(try archive.read(from: archiveURL)) { error in
+            XCTAssertEqual(error as? ZIPProjectArchiveError, .archiveTooLarge)
+        }
+    }
+
+    func testFailedDestinationPromotionRestoresPreviousAssetsDirectory() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let archiveURL = directory.appendingPathComponent("project.vexelproj")
+        try ZIPProjectArchive().write(ProjectDocument.starter(title: "Promotion failure"), to: archiveURL)
+
+        let destination = directory.appendingPathComponent("assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        let sentinel = destination.appendingPathComponent("existing.txt")
+        try Data("preserve-me".utf8).write(to: sentinel)
+
+        let archive = ZIPProjectArchive(
+            maximumExtractedBytes: ZIPProjectArchive.maximumUncompressedBytes,
+            moveItemAction: { source, target in
+                if source.lastPathComponent.contains(".staging-") {
+                    throw CocoaError(.fileWriteNoPermission)
+                }
+                try FileManager.default.moveItem(at: source, to: target)
+            }
+        )
+        XCTAssertThrowsError(try archive.read(from: archiveURL, extractingAssetsTo: destination)) { error in
+            guard case ZIPProjectArchiveError.destinationReplacementFailed = error else {
+                return XCTFail("Unexpected error: \\(error)")
+            }
+        }
+        XCTAssertEqual(try Data(contentsOf: sentinel), Data("preserve-me".utf8))
+    }
+
+    func testInvalidImportDoesNotModifyExistingAssetsDirectory() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let projectJSON = directory.appendingPathComponent("project.json")
+        var fields = ProjectDocument.starter(title: "Rollback").fields
+        fields["assets"] = .array([
+            .object(["id": .string("missing"), "type": .string("image"), "path": .string("assets/missing.png")])
+        ])
+        try ProjectDocument(fields: fields).encoded().write(to: projectJSON)
+        let archiveURL = directory.appendingPathComponent("missing-asset.zip")
+        let zip = try XCTUnwrap(Archive(url: archiveURL, accessMode: .create))
+        try zip.addEntry(with: ZIPProjectArchive.legacyProjectEntry, fileURL: projectJSON, compressionMethod: .deflate)
+
+        let destination = directory.appendingPathComponent("existing-assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        let sentinel = destination.appendingPathComponent("keep.txt")
+        try Data("untouched".utf8).write(to: sentinel)
+
+        XCTAssertThrowsError(try ZIPProjectArchive().read(from: archiveURL, extractingAssetsTo: destination))
+        XCTAssertEqual(try Data(contentsOf: sentinel), Data("untouched".utf8))
+    }
+
+    func testArchiveImportReturnsUnsupportedFeatureReport() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var fields = ProjectDocument.starter(title: "Feature report").fields
+        fields["layers"] = .array([
+            .object([
+                "id": .string("video"), "type": .string("video"), "duration": .number(3),
+                "video": .object(["asset": .string("unused")]),
+                "effects": .array([.object(["type": .string("gaussianBlur")])]),
+                "transform": .object(["position": .object([
+                    "expression": .string("time * 2"),
+                    "keyframes": .array([])
+                ])])
+            ])
+        ])
+        fields["assets"] = .array([
+            .object(["id": .string("unused"), "type": .string("video"), "path": .string("assets/video.mov")])
+        ])
+        let source = directory.appendingPathComponent("source")
+        try FileManager.default.createDirectory(at: source.appendingPathComponent("assets"), withIntermediateDirectories: true)
+        try Data([0x01, 0x02]).write(to: source.appendingPathComponent("assets/video.mov"))
+        let archiveURL = directory.appendingPathComponent("report.vexelproj")
+        try ZIPProjectArchive().write(ProjectDocument(fields: fields), assetsDirectory: source, to: archiveURL)
+
+        let imported = try ZIPProjectArchive().read(from: archiveURL)
+        XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "video" })
+        XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "effect:gaussianBlur" })
+        XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "expression" })
+    }
+
 }
