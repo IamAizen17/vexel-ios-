@@ -54,3 +54,26 @@ jobs:
           path: reference/build/compatibility-artifacts/kinesis-video-audio.knsproj
           if-no-files-found: error
           retention-days: 14
+
+  import-into-vexel:
+    name: Import generated archive with Vexel
+    needs: generate
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Check out selected Vexel branch
+        uses: actions/checkout@v4
+
+      - name: Download source-generated archive
+        uses: actions/download-artifact@v4
+        with:
+          name: kinesis-source-generated-knsproj
+          path: compatibility-artifacts
+
+      - name: Import archive with VexelArchive
+        env:
+          VEXEL_SOURCE_KNSPROJ_PATH: ${{ github.workspace }}/compatibility-artifacts/kinesis-video-audio.knsproj
+        run: |
+          set -euo pipefail
+          test -s "$VEXEL_SOURCE_KNSPROJ_PATH"
+          swift test --package-path Packages/VexelArchive --filter testImportsSourceGeneratedKotlinArchive
