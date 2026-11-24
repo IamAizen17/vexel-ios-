@@ -37,7 +37,6 @@ jobs:
             echo "- Commit: ${commit}"
             echo "- Runner: ${runner}"
             echo "- Workspace checkout: verified"
-            echo "- macOS runner: not used"
           } >> "${GITHUB_STEP_SUMMARY}"
           printf 'Public Actions smoke test passed on %s at %s\n' "${runner}" "${commit}"
 
