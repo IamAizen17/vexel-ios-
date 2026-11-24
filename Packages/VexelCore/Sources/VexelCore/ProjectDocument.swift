@@ -173,6 +173,50 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             issues.append(ProjectIssue(severity: .error, path: "composition.duration", message: "Duration must be greater than zero and no more than one hour." ))
         }
 
+        for key in ["assets", "markers", "layers"] {
+            if let value = fields[key], value.arrayValue == nil {
+                issues.append(ProjectIssue(severity: .error, path: key, message: "Expected an array."))
+            }
+        }
+
+        if let motionBlur = composition["motionBlur"]?.objectValue {
+            let samples = motionBlur["samples"]?.numberValue ?? 8
+            let shutterAngle = motionBlur["shutterAngle"]?.numberValue ?? 180
+            if !(1...64).contains(samples) {
+                issues.append(ProjectIssue(severity: .error, path: "composition.motionBlur.samples", message: "Motion blur samples must be between 1 and 64."))
+            }
+            if !(0...720).contains(shutterAngle) {
+                issues.append(ProjectIssue(severity: .error, path: "composition.motionBlur.shutterAngle", message: "Shutter angle must be between 0 and 720 degrees."))
+            }
+        }
+        if let environment = composition["environment"]?.objectValue,
+           let intensity = environment["intensity"]?.numberValue,
+           !(0...10).contains(intensity) {
+            issues.append(ProjectIssue(severity: .error, path: "composition.environment.intensity", message: "Environment intensity must be between 0 and 10."))
+        }
+
+        var markerIDs = Set<String>()
+        if let markers = fields["markers"]?.arrayValue {
+            for (index, marker) in markers.enumerated() {
+                let path = "markers[\\(index)]"
+                guard let object = marker.objectValue else {
+                    issues.append(ProjectIssue(severity: .error, path: path, message: "Marker must be an object."))
+                    continue
+                }
+                guard let id = object["id"]?.stringValue, !id.isEmpty else {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(path).id", message: "Marker ID is required."))
+                    continue
+                }
+                if !markerIDs.insert(id).inserted {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(path).id", message: "Marker IDs must be unique."))
+                }
+                let time = object["time"]?.numberValue ?? -1
+                if !(0...3600).contains(time) {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(path).time", message: "Marker time must be between 0 and 3600 seconds."))
+                }
+            }
+        }
+
         var assetTypes: [String: String] = [:]
         var assetIdentifiers = Set<String>()
         if let assets = fields["assets"]?.arrayValue {
@@ -205,6 +249,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         if let layers = fields["layers"]?.arrayValue {
             var identifiers = Set<String>()
             validateLayers(layers, path: "layers", identifiers: &identifiers, issues: &issues)
+            validateLayerSemantics(layers, path: "layers", depth: 0, issues: &issues)
         }
 
         return issues
@@ -244,6 +289,221 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             if let children = object["layers"]?.arrayValue {
                 validateLayers(children, path: "\(location).layers", identifiers: &identifiers, issues: &issues)
             }
+        }
+    }
+
+
+
+    private func validateLayerSemantics(
+        _ layers: [JSONValue],
+        path: String,
+        depth: Int,
+        issues: inout [ProjectIssue]
+    ) {
+        if depth > 16 {
+            issues.append(ProjectIssue(severity: .error, path: path, message: "Group nesting exceeds the maximum depth of 16."))
+            return
+        }
+
+        var siblings: [String: [String: JSONValue]] = [:]
+        for value in layers {
+            guard let object = value.objectValue, let id = object["id"]?.stringValue else { continue }
+            siblings[id] = object
+        }
+
+        for (index, value) in layers.enumerated() {
+            guard let layer = value.objectValue else { continue }
+            let location = "\\(path)[\\(index)]"
+            let id = layer["id"]?.stringValue ?? ""
+            let type = layer["type"]?.stringValue ?? "unknown"
+            let children = layer["layers"]?.arrayValue ?? []
+
+            if !children.isEmpty && type != "group" {
+                issues.append(ProjectIssue(severity: .error, path: "\\(location).layers", message: "Only group layers may contain child layers."))
+            }
+
+            if let parentID = layer["parent"]?.stringValue {
+                if parentID == id {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).parent", message: "A layer cannot parent itself."))
+                } else if let parent = siblings[parentID] {
+                    let parentType = parent["type"]?.stringValue ?? "unknown"
+                    let childIs3D = ["object3d", "model3d", "camera", "light"].contains(type)
+                    let parentIs3D = ["object3d", "model3d", "camera", "light"].contains(parentType)
+                    if childIs3D != parentIs3D || ["audio", "camera", "light"].contains(parentType) {
+                        issues.append(ProjectIssue(severity: .error, path: "\\(location).parent", message: "Parent and child layer types are incompatible."))
+                    }
+                } else {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).parent", message: "Parent must identify a sibling layer in the same group."))
+                }
+            }
+
+            if let matteID = layer["matte"]?.objectValue?["layer"]?.stringValue {
+                if matteID == id {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).matte.layer", message: "A layer cannot use itself as a matte."))
+                } else if let matteLayer = siblings[matteID] {
+                    let matteType = matteLayer["type"]?.stringValue ?? "unknown"
+                    if !["text", "shape", "image", "video"].contains(type) ||
+                       !["text", "shape", "image", "video"].contains(matteType) {
+                        issues.append(ProjectIssue(severity: .error, path: "\\(location).matte", message: "Track mattes require 2D visual layers."))
+                    }
+                    if matteLayer["matte"]?.objectValue?["layer"]?.stringValue == id {
+                        issues.append(ProjectIssue(severity: .error, path: "\\(location).matte.layer", message: "Two layers cannot be each other's matte."))
+                    }
+                } else {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).matte.layer", message: "Matte source must identify a sibling layer in the same group."))
+                }
+            }
+
+            for transitionKey in ["transitionIn", "transitionOut"] {
+                if let transition = layer[transitionKey]?.objectValue,
+                   let transitionDuration = transition["duration"]?.numberValue,
+                   transitionDuration <= 0 {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(transitionKey).duration", message: "Transition duration must be greater than zero."))
+                }
+            }
+
+            if let text = layer["text"]?.objectValue,
+               let font = text["font"]?.objectValue,
+               let weight = font["weight"]?.numberValue,
+               !(100...900).contains(weight) {
+                issues.append(ProjectIssue(severity: .error, path: "\\(location).text.font.weight", message: "Font weight must be between 100 and 900."))
+            }
+
+            for mediaKey in ["video", "audio"] {
+                guard let media = layer[mediaKey]?.objectValue else { continue }
+                let speed = media["speed"]?.numberValue ?? 1
+                let sourceStart = media["sourceStart"]?.numberValue ?? 0
+                if speed <= 0 {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).speed", message: "Media playback speed must be greater than zero."))
+                }
+                if sourceStart < 0 {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).sourceStart", message: "Media source start must be non-negative."))
+                }
+                if mediaKey == "video", let cutout = media["cutout"]?.objectValue {
+                    validateCutout(cutout, path: "\\(location).video.cutout", issues: &issues)
+                }
+                if let bands = media["eq"]?.arrayValue {
+                    if bands.count > 8 {
+                        issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).eq", message: "At most eight equalizer bands are supported."))
+                    }
+                    for (bandIndex, bandValue) in bands.enumerated() {
+                        guard let band = bandValue.objectValue else { continue }
+                        let frequency = band["frequency"]?.numberValue ?? 0
+                        let gain = band["gain"]?.numberValue ?? 0
+                        let q = band["q"]?.numberValue ?? 0
+                        if !(20...20000).contains(frequency) || !(-24...24).contains(gain) || !(0.1...10).contains(q) {
+                            issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).eq[\\(bandIndex)]", message: "Equalizer frequency, gain, and Q are outside supported ranges."))
+                        }
+                    }
+                }
+            }
+
+            if let light = layer["light"]?.objectValue,
+               let softness = light["shadowSoftness"]?.numberValue,
+               !(0...8).contains(softness) {
+                issues.append(ProjectIssue(severity: .error, path: "\\(location).light.shadowSoftness", message: "Shadow softness must be between 0 and 8."))
+            }
+
+            validateKeyframeOrdering(.object(layer), path: location, issues: &issues)
+            validateLayerSemantics(children, path: "\\(location).layers", depth: depth + 1, issues: &issues)
+        }
+
+        for (id, layer) in siblings {
+            var cursor: String? = id
+            var visited = Set<String>()
+            while let currentID = cursor, let current = siblings[currentID] {
+                if !visited.insert(currentID).inserted {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(path).\\(id).parent", message: "Parent chain contains a cycle."))
+                    break
+                }
+                cursor = current["parent"]?.stringValue
+            }
+            _ = layer
+        }
+    }
+
+    private func validateCutout(
+        _ cutout: [String: JSONValue],
+        path: String,
+        issues: inout [ProjectIssue]
+    ) {
+        let sourceStart = cutout["sourceStart"]?.numberValue ?? 0
+        let duration = cutout["duration"]?.numberValue ?? 0
+        if sourceStart < 0 || !(duration > 0 && duration <= 3600) {
+            issues.append(ProjectIssue(severity: .error, path: path, message: "Cutout source start must be non-negative and duration must be between zero and one hour."))
+        }
+        let frames = cutout["frames"]?.arrayValue ?? []
+        if frames.count > 240 {
+            issues.append(ProjectIssue(severity: .error, path: "\\(path).frames", message: "A cutout recipe may contain at most 240 painted frames."))
+        }
+        for (frameIndex, frameValue) in frames.enumerated() {
+            guard let frame = frameValue.objectValue else { continue }
+            let framePath = "\\(path).frames[\\(frameIndex)]"
+            let time = frame["time"]?.numberValue ?? -1
+            if !(0...duration).contains(time) {
+                issues.append(ProjectIssue(severity: .error, path: "\\(framePath).time", message: "Painted frame time must be within the cutout duration."))
+            }
+            let strokes = frame["strokes"]?.arrayValue ?? []
+            if strokes.count > 64 {
+                issues.append(ProjectIssue(severity: .error, path: "\\(framePath).strokes", message: "A painted frame may contain at most 64 strokes."))
+            }
+            for (strokeIndex, strokeValue) in strokes.enumerated() {
+                guard let stroke = strokeValue.objectValue else { continue }
+                let strokePath = "\\(framePath).strokes[\\(strokeIndex)]"
+                let mode = stroke["mode"]?.stringValue ?? "add"
+                if mode != "add" && mode != "remove" {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).mode", message: "Cutout stroke mode must be add or remove."))
+                }
+                let size = stroke["size"]?.numberValue ?? 0.06
+                if !(0.005...0.5).contains(size) {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).size", message: "Cutout brush size must be between 0.005 and 0.5."))
+                }
+                let points = stroke["points"]?.arrayValue ?? []
+                if points.isEmpty || points.count > 2000 {
+                    issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).points", message: "A stroke must contain between 1 and 2000 points."))
+                }
+                for (pointIndex, point) in points.enumerated() {
+                    let coordinates = point.arrayValue ?? []
+                    if coordinates.count != 2 ||
+                       coordinates.contains(where: { value in
+                           guard let number = value.numberValue else { return true }
+                           return !(0...1).contains(number)
+                       }) {
+                        issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).points[\\(pointIndex)]", message: "Stroke points must be normalized [x, y] coordinates between 0 and 1."))
+                    }
+                }
+            }
+        }
+    }
+
+    private func validateKeyframeOrdering(_ value: JSONValue, path: String, issues: inout [ProjectIssue]) {
+        switch value {
+        case .object(let object):
+            for (key, child) in object {
+                let childPath = "\\(path).\\(key)"
+                if key == "keyframes", let frames = child.arrayValue {
+                    var previous: Double?
+                    for (index, frame) in frames.enumerated() {
+                        let time = frame.objectValue?["time"]?.numberValue
+                        guard let time else {
+                            issues.append(ProjectIssue(severity: .error, path: "\\(childPath)[\\(index)].time", message: "Keyframe time is required."))
+                            continue
+                        }
+                        if let previous, time - previous < 0.000001 {
+                            issues.append(ProjectIssue(severity: .error, path: "\\(childPath)[\\(index)].time", message: "Keyframe times must be strictly increasing."))
+                        }
+                        previous = time
+                    }
+                } else {
+                    validateKeyframeOrdering(child, path: childPath, issues: &issues)
+                }
+            }
+        case .array(let values):
+            for (index, child) in values.enumerated() {
+                validateKeyframeOrdering(child, path: "\\(path)[\\(index)]", issues: &issues)
+            }
+        case .string, .number, .bool, .null:
+            break
         }
     }
 
