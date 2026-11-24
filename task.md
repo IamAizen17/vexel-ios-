@@ -100,7 +100,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
 - [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
 - [x] Test destination rollback failure and verify the retained backup path is recoverable.
-- [ ] Add failure-injection coverage for archive export destination replacement.
+- [x] Add failure-injection coverage for archive export destination replacement; verify the existing archive and temporary-file cleanup.
 - [ ] Add native Vexel schema migrations and migration tests.
 - Keep project creation, editing, persistence and export native to Vexel. Android compatibility remains isolated in `VexelProjectImporter`.
 
