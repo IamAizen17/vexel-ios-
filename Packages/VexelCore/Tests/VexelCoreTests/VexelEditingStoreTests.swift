@@ -393,15 +393,15 @@ final class VexelEditingStoreTests: XCTestCase {
 
         try await store.execute(.reorderLayers(containerID: nil, orderedIDs: ["third", "first", "second"]))
         var snapshot = await store.snapshot()
-        XCTAssertEqual(snapshot.layers.map(\\.id), ["third", "first", "second"])
-        XCTAssertEqual(snapshot.layers[0].content?["kind"], nil)
+        XCTAssertEqual(snapshot.layers.map(\.id), ["third", "first", "second"])
+        XCTAssertEqual(snapshot.layers[0].content?.objectValue?["kind"], .string("star"))
 
         let beforeInvalidOrder = snapshot
         do {
             try await store.execute(.reorderLayers(containerID: nil, orderedIDs: ["first", "second"]))
             XCTFail("A partial sibling order must be rejected.")
         } catch let error as VexelEditingStoreError {
-            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \(error)") }
         }
         snapshot = await store.snapshot()
         XCTAssertEqual(snapshot, beforeInvalidOrder)

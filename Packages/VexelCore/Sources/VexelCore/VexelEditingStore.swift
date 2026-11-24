@@ -338,7 +338,7 @@ public actor VexelEditingStore {
                 siblings = project.layers
             }
             guard siblings.count == orderedIDs.count,
-                  Set(siblings.map(\\.id)) == Set(orderedIDs) else {
+                  Set(siblings.map(\.id)) == Set(orderedIDs) else {
                 throw VexelEditingStoreError.invalidOperation("Layer order must contain every sibling exactly once.")
             }
             let byID = Dictionary(uniqueKeysWithValues: siblings.map { ($0.id, $0) })
