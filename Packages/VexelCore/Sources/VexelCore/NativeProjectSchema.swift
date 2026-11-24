@@ -84,7 +84,7 @@ public struct VexelNativeProject: Codable, Equatable, Sendable {
         markers = try container.decodeIfPresent([VexelMarkerData].self, forKey: .init("markers")) ?? []
         editorView = try container.decodeIfPresent(JSONValue.self, forKey: .init("editorView"))
         layers = try container.decodeIfPresent([VexelLayer].self, forKey: .init("layers")) ?? []
-        let known = Set(CodingKeys.allCases.map(\.rawValue))
+        let known: Set<String> = ["format", "formatVersion", "generator", "meta", "composition", "assets", "markers", "editorView", "layers"]
         unknownFields = try Self.decodeUnknown(from: container, excluding: known)
     }
 
@@ -99,7 +99,8 @@ public struct VexelNativeProject: Codable, Equatable, Sendable {
         try container.encode(markers, forKey: .init("markers"))
         try container.encodeIfPresent(editorView, forKey: .init("editorView"))
         try container.encode(layers, forKey: .init("layers"))
-        for (key, value) in unknownFields where CodingKeys(rawValue: key) == nil {
+        let known: Set<String> = ["format", "formatVersion", "generator", "meta", "composition", "assets", "markers", "editorView", "layers"]
+        for (key, value) in unknownFields where !known.contains(key) {
             try container.encode(value, forKey: .init(key))
         }
     }
