@@ -796,7 +796,7 @@ struct VexelPluginsPage: View {
 
 private extension UTType {
     static let vexelProject = UTType(
-        exportedAs: "com.iamAizen17.vexel.project",
+        exportedAs: "com.ragestudios.vexel.project",
         conformingTo: .zip
     )
 }
