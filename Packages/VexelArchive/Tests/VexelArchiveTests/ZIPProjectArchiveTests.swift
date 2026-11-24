@@ -293,7 +293,8 @@ final class ZIPProjectArchiveTests: XCTestCase {
             }
         )
         XCTAssertThrowsError(try archive.read(from: archiveURL, extractingAssetsTo: destination)) { error in
-            guard case ZIPProjectArchiveError.destinationReplacementFailed = error else {
+            guard let archiveError = error as? ZIPProjectArchiveError,
+                  case .destinationReplacementFailed = archiveError else {
                 return XCTFail("Unexpected error: \\(error)")
             }
         }
