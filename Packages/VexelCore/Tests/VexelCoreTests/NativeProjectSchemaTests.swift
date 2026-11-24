@@ -246,4 +246,25 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(updatedVideo.content?.objectValue?["futureMedia"]?.stringValue, "kept")
     }
 
+
+    func testInvalidEasingAndUnsortedKeyframesAreRejected() throws {
+        let cubic = """
+        {"format":"vexelproj","formatVersion":1,
+         "composition":{"width":1080,"height":1920,"fps":30,"duration":5},
+         "layers":[{"id":"s","type":"shape","duration":5,"transform":{"rotation":{
+           "keyframes":[{"time":0,"value":0,"easing":{"cubicBezier":[1.2,0,0.5,1]}}]
+         }}}]}
+        """.data(using: .utf8)!
+        XCTAssertThrowsError(try JSONDecoder().decode(VexelNativeProject.self, from: cubic))
+
+        let unsorted = """
+        {"format":"vexelproj","formatVersion":1,
+         "composition":{"width":1080,"height":1920,"fps":30,"duration":5},
+         "layers":[{"id":"s","type":"shape","duration":5,"transform":{"rotation":{
+           "keyframes":[{"time":2,"value":0},{"time":1,"value":1}]
+         }}}]}
+        """.data(using: .utf8)!
+        XCTAssertThrowsError(try JSONDecoder().decode(VexelNativeProject.self, from: unsorted))
+    }
+
 }
