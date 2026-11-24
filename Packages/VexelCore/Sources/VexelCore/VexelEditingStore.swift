@@ -143,6 +143,9 @@ public actor VexelEditingStore {
             }
 
         case .duplicateLayer(let id, let newID):
+            guard !allLayerIDs(in: project.layers).contains(newID) else {
+                throw VexelEditingStoreError.duplicateIdentifier(newID)
+            }
             guard let source = findLayer(id, in: project.layers) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
@@ -161,6 +164,9 @@ public actor VexelEditingStore {
             try insert(copy, into: &project.layers, containerID: containerID, index: siblingIndex.map { $0 + 1 })
 
         case .splitLayer(let id, let localTime, let newID):
+            guard !allLayerIDs(in: project.layers).contains(newID) else {
+                throw VexelEditingStoreError.duplicateIdentifier(newID)
+            }
             guard let source = findLayer(id, in: project.layers) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
