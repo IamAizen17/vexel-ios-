@@ -77,6 +77,16 @@ Current archive limits: document JSON up to 64 MiB, aggregate uncompressed data 
 - Save/reopen must preserve semantic project equality.
 - Migrations are pure transformations with fixtures for every supported version.
 
+### Native Vexel v1 to v2
+
+The v1-to-v2 migration is lossless for existing fields and fills defaults that v2 makes explicit:
+- `generator` defaults to `Vexel`.
+- `meta` is materialized and an empty/missing title becomes `Untitled`.
+- `assets`, `markers`, and `layers` are materialized as empty arrays when absent.
+- `composition.background` defaults to `#0D0F12` when absent.
+
+The importer runs migration before semantic validation. Newer unsupported versions are rejected rather than interpreted as v2.
+
 ## Versioning
 
 A migration registry maps (format, formatVersion) to the current internal model. Reject newer unsupported versions with an actionable error. Never decode them as an older schema.
