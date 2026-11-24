@@ -437,7 +437,7 @@ final class ProjectDocumentTests: XCTestCase {
         ])
 
         let issues = project.validate()
-        let errors = Set(issues.filter { $0.severity == .error }.map(\\.path))
+        let errors = Set(issues.filter { $0.severity == .error }.map(\.path))
         XCTAssertTrue(errors.contains("editorView.mode"))
         XCTAssertTrue(errors.contains("editorView.target"))
         XCTAssertTrue(errors.contains("editorView.distance"))
@@ -464,7 +464,6 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(issues.contains { $0.severity == .warning && $0.message.contains("four lights") })
     }
 
-}
     func testEffectInstanceParametersAreValidatedAgainstCanonicalDefinitions() {
         let catalog = VexelEffectCatalog(version: 1, categories: [], effects: [
             VexelEffectDefinition(id: "brightness", category: "color", englishName: "Brightness", target: "any",
@@ -489,7 +488,7 @@ final class ProjectDocumentTests: XCTestCase {
         ])])
 
         let issues = project.validate(effectCatalog: catalog)
-        XCTAssertEqual(Set(issues.filter { $0.severity == .error }.map(\\.path)), Set([
+        XCTAssertEqual(Set(issues.filter { $0.severity == .error }.map(\.path)), Set([
             "layers[0].effects[0].amount", "layers[0].effects[0].enabled",
             "layers[0].effects[0].mode", "layers[0].effects[0].center", "layers[0].effects[0].stops"
         ]))
@@ -518,4 +517,4 @@ final class ProjectDocumentTests: XCTestCase {
         ])])
         XCTAssertTrue(project.validate(effectCatalog: catalog).isEmpty)
     }
-
+}
