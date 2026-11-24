@@ -84,19 +84,45 @@ public enum VexelProjectImporter {
                 guard let layer = value.objectValue else { continue }
                 let location = "\\(path)[\\(index)]"
                 let type = layer["type"]?.stringValue ?? "unknown"
-                if ["video", "audio", "object3d", "model3d", "camera", "light"].contains(type) {
+                let supportedTypes: Set<String> = ["text", "shape", "image", "video", "audio", "group", "object3d", "model3d", "camera", "light", "null"]
+                if !supportedTypes.contains(type) {
+                    result.append(VexelUnsupportedFeature(
+                        path: "\\(location).type",
+                        feature: "unknown-layer:\\(type)",
+                        reason: "The layer discriminator is not recognized by this importer. Its raw JSON is retained, but editing or rendering support is unavailable."
+                    ))
+                }
+                if ["video", "audio", "object3d", "model3d", "camera", "light", "null"].contains(type) {
                     result.append(VexelUnsupportedFeature(
                         path: "\\(location).type",
                         feature: type,
                         reason: "The layer is retained for round-trip compatibility but its playback or rendering implementation is incomplete."
                     ))
                 }
-                for key in ["masks", "matte", "transitionIn", "transitionOut"] where layer[key] != nil {
+                for key in ["transform3d", "masks", "matte", "transitionIn", "transitionOut", "cutout", "timeSlice"] where layer[key] != nil {
                     result.append(VexelUnsupportedFeature(
                         path: "\\(location).\\(key)",
                         feature: key,
                         reason: "The serialized feature is preserved, but the corresponding editor/render operation is not implemented."
                     ))
+                }
+                if let text = layer["text"]?.objectValue,
+                   let animators = text["propertyAnimators"]?.arrayValue, !animators.isEmpty {
+                    result.append(VexelUnsupportedFeature(
+                        path: "\\(location).text.propertyAnimators",
+                        feature: "text-property-animators",
+                        reason: "Per-character property animation is preserved but is not connected to the current iOS text renderer."
+                    ))
+                }
+                for mediaKey in ["video", "audio"] {
+                    if let media = layer[mediaKey]?.objectValue,
+                       let eq = media["eq"]?.arrayValue, !eq.isEmpty {
+                        result.append(VexelUnsupportedFeature(
+                            path: "\\(location).\\(mediaKey).eq",
+                            feature: "media-equalizer",
+                            reason: "The serialized equalizer bands are preserved but are not applied by the current iOS audio pipeline."
+                        ))
+                    }
                 }
                 if let effects = layer["effects"]?.arrayValue {
                     for (effectIndex, effect) in effects.enumerated() {
