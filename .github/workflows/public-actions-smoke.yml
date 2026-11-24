@@ -1,0 +1,42 @@
+name: Public Actions Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-actions-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: Verify public GitHub-hosted Actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify runner and repository workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -d .github/workflows
+          commit="$(git rev-parse HEAD)"
+          branch="${GITHUB_REF_NAME}"
+          runner="${RUNNER_OS} / ${RUNNER_ARCH}"
+          {
+            echo "## Public Actions smoke test"
+            echo ""
+            echo "- Result: passed"
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- Ref: ${branch}"
+            echo "- Commit: ${commit}"
+            echo "- Runner: ${runner}"
+            echo "- Workspace checkout: verified"
+            echo "- macOS runner: not used"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          printf 'Public Actions smoke test passed on %s at %s\n' "${runner}" "${commit}"
