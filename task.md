@@ -223,7 +223,7 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head at review: `0e6f1f505ec3c7162a8488aa21fc696ba4b23b5e`.
+Current feature branch head at review: `6a5394f23ef138379592d192ac44f4e8706ce48c`.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
@@ -235,6 +235,7 @@ Current feature branch head at review: `0e6f1f505ec3c7162a8488aa21fc696ba4b23b5e
 Successful workflow references:
 - Latest successful CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364469639
 - Source-writer archive and Vexel import: https://github.com/IamAizen17/vexel-ios-/actions/runs/45364456096
+- [ ] Archive regression test for edited metadata and nested unknown-field preservation was added after the successful run above and still needs manual CI execution.
 - IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
 
 ## 7. Required engineering workflow
