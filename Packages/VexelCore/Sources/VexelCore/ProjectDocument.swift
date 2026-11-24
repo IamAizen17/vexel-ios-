@@ -174,8 +174,9 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         }
 
         for key in ["assets", "markers", "layers"] {
-            if let value = fields[key], value.arrayValue == nil {
-                issues.append(ProjectIssue(severity: .error, path: key, message: "Expected an array."))
+            guard let value = fields[key], value.arrayValue != nil else {
+                issues.append(ProjectIssue(severity: .error, path: key, message: "A native project must contain this array."))
+                continue
             }
         }
 
@@ -440,7 +441,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             guard let frame = frameValue.objectValue else { continue }
             let framePath = "\\(path).frames[\\(frameIndex)]"
             let time = frame["time"]?.numberValue ?? -1
-            if !(0...duration).contains(time) {
+            if time < 0 || time > duration {
                 issues.append(ProjectIssue(severity: .error, path: "\\(framePath).time", message: "Painted frame time must be within the cutout duration."))
             }
             let strokes = frame["strokes"]?.arrayValue ?? []
