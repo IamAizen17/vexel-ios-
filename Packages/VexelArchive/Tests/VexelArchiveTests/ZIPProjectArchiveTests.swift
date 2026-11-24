@@ -424,17 +424,20 @@ final class ZIPProjectArchiveTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
-        let destination = directory.appendingPathComponent("existing.vexelproj", isDirectory: true)
-        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
-        let sentinel = destination.appendingPathComponent("keep.txt")
-        try Data("preserve-export-target".utf8).write(to: sentinel)
+        let destination = directory.appendingPathComponent("existing.vexelproj")
+        try Data("preserve-export-target".utf8).write(to: destination)
+        let archive = ZIPProjectArchive(
+            maximumExtractedBytes: ZIPProjectArchive.maximumUncompressedBytes,
+            replaceItemAction: { _, _ in throw CocoaError(.fileWriteNoPermission) }
+        )
 
-        XCTAssertThrowsError(try ZIPProjectArchive().write(
+        XCTAssertThrowsError(try archive.write(
             ProjectDocument.starter(title: "Replacement failure"),
             to: destination
         ))
-        XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path))
-        XCTAssertEqual(try Data(contentsOf: sentinel), Data("preserve-export-target".utf8))
+        XCTAssertEqual(try Data(contentsOf: destination), Data("preserve-export-target".utf8))
+        let remaining = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        XCTAssertEqual(remaining, ["existing.vexelproj"])
     }
 
 }
