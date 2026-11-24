@@ -89,14 +89,17 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - [x] Audit the Android v12 models, serializers, archive writer and migration registry against source.
 - [x] Add the Kotlin-generated v12 JSON fixture and an Android repository video/audio sample archive with its real referenced media payloads. The archive is assembled for tests, not exported by the Android app.
 - [x] Add typed accessors for all 11 layer content variants, text/property animators, media/equalizer/cutout metadata, shape fill/stroke/path/trim, 3D materials/text, camera depth-of-field, light properties, masks, mattes, transitions, metadata, motion blur, environment and editor view. Raw JSONValue remains the lossless backing store.
-- [x] Add typed 2D/3D vector tuples, gradient endpoints, path point/tangent accessors, cutout frame/stroke accessors, and typed definitions for the seven effect parameter kinds in the source effect catalogue.\n- [x] Route project open/save bridge conversion through `VexelNativeProject`, including typed layer/marker decoding and schema validation before persistence.\n- [ ] Move editor mutations from the reduced timeline projection onto the typed canonical project model and command store.
+- [x] Add typed 2D/3D vector tuples, gradient endpoints, path point/tangent accessors, cutout frame/stroke accessors, and typed definitions for the seven effect parameter kinds in the source effect catalogue.
+- [x] Route project open/save bridge conversion through `VexelNativeProject`, including typed layer/marker decoding and schema validation before persistence.
+- [ ] Move editor mutations from the reduced timeline projection onto the typed canonical project model and command store.
 - [x] Add recursive unknown-field preservation tests across nested groups, transforms, animation tracks, effects and root metadata.
 - [x] Add typed discriminator and content-accessor coverage for all 11 Android layer types, plus expression-only animations, loop modes and easing tests.
 - [x] Add source-compatible core duplicate/split operations and tests for nested IDs, parent/matte references, keyframe time offsets, transitions and media in-points.
 - [x] Add an import compatibility report for preserved-but-unimplemented features.
 - [x] Connect the typed schema to the app persistence bridge and show the unsupported-feature report in a pre-import review sheet.
 - [ ] Obtain a direct Android-app-exported `.knsproj` archive and compare its archive entries, CRCs, metadata and referenced assets.
-- [x] Add semantic validation for nested asset references, unique marker/layer IDs, parent and matte sibling references/cycles, group depth, motion blur, media speed/source offsets, equalizer bands, cutout frames/strokes/points, transition durations, font weights, and keyframe ordering.\n- [ ] Finish effect-specific parameter value/range validation and audit remaining source-validator edge cases against Kotlin fixtures.
+- [x] Add semantic validation for nested asset references, unique marker/layer IDs, parent and matte sibling references/cycles, group depth, motion blur, media speed/source offsets, equalizer bands, cutout frames/strokes/points, transition durations, font weights, and keyframe ordering.
+- [ ] Finish effect-specific parameter value/range validation and audit remaining source-validator edge cases against Kotlin fixtures.
 - [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
 - [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
 - [x] Test destination rollback failure and verify the retained backup path is recoverable.
@@ -106,7 +109,8 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 ### P1: Canonical editing model and command engine
 
-- [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.\n- [ ] Route all SwiftUI workspace and timeline mutations through `VexelEditingStore`; remove view-local mutations and workspace-owned undo stacks.
+- [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.
+- [ ] Route all SwiftUI workspace and timeline mutations through `VexelEditingStore`; remove view-local mutations and workspace-owned undo stacks.
 - [ ] Expand command coverage for group/ungroup, multi-selection, snapping, ripple edits, and marker operations.
 - Port timeline reorder, move, trim, split, duplicate, group/ungroup, parenting, multi-selection, snapping, and ripple edits.
 - Implement typed property descriptors and set-value/auto-keyframe behavior.
