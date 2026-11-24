@@ -75,7 +75,7 @@ final class VexelEditingStoreTests: XCTestCase {
     }
 
     func testEffectCommandsPreserveParametersAndUndo() async throws {
-        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 4)
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))
         let store = try makeStore(layers: [layer])
         let glow = VexelEffect(type: "glow", parameters: ["radius": .number(12)])
         let blur = VexelEffect(type: "blur", parameters: ["amount": .number(4)])
@@ -101,8 +101,8 @@ final class VexelEditingStoreTests: XCTestCase {
             start: 0,
             duration: 8,
             layers: [
-                VexelLayer(id: "first", type: .shape, start: 0, duration: 8),
-                VexelLayer(id: "second", type: .shape, start: 0, duration: 8)
+                VexelLayer(id: "first", type: .shape, start: 0, duration: 8, content: .object(["kind": .string("rectangle")])),
+                VexelLayer(id: "second", type: .shape, start: 0, duration: 8, content: .object(["kind": .string("rectangle")]))
             ]
         )
         let store = try makeStore(layers: [group])
@@ -123,8 +123,8 @@ final class VexelEditingStoreTests: XCTestCase {
     }
 
     func testGroupAndUngroupPreserveSiblingTimingAndOrder() async throws {
-        let first = VexelLayer(id: "first", type: .shape, name: "First", start: 0, duration: 4)
-        let second = VexelLayer(id: "second", type: .shape, name: "Second", start: 2, duration: 5)
+        let first = VexelLayer(id: "first", type: .shape, name: "First", start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))
+        let second = VexelLayer(id: "second", type: .shape, name: "Second", start: 2, duration: 5, content: .object(["kind": .string("rectangle")]))
         let store = try makeStore(layers: [first, second])
 
         try await store.execute(.groupLayers(firstID: "first", secondID: "second", groupID: "group", name: "Scene"))
@@ -149,7 +149,7 @@ final class VexelEditingStoreTests: XCTestCase {
             start: 0,
             duration: 4,
             transform: VexelTransform(properties: ["opacity": .constant(.number(0.5))]),
-            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 4)]
+            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))]
         )
         let store = try makeStore(layers: [group])
 
@@ -173,7 +173,7 @@ final class VexelEditingStoreTests: XCTestCase {
             duration: 8,
             content: .object(["threeD": .bool(true)])
         )
-        let child = VexelLayer(id: "object", type: .object3D, start: 0, duration: 8)
+        let child = VexelLayer(id: "object", type: .object3D, start: 0, duration: 8, content: .object(["primitive": .string("cube")]))
         let store = try makeStore(layers: [parent, child])
 
         try await store.execute(.setParent(id: "object", parentID: "null-3d"))
@@ -195,7 +195,7 @@ final class VexelEditingStoreTests: XCTestCase {
             type: .group,
             start: 0,
             duration: 8,
-            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 8)]
+            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 8, content: .object(["kind": .string("rectangle")]))]
         )
         let store = try makeStore(layers: [group])
 

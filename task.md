@@ -150,7 +150,7 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [ ] Refresh PR #2 status text after final CI verification.
 - [x] Disable automatic push and pull-request triggers for expensive workflows; iOS CI, source archive generation/import, and IPA packaging are now manual-dispatch only.
 - [x] Keep CI green for package tests, XcodeGen generation and simulator build on commit `7ed70d4` (run `45364469639`).
-- [ ] Run the updated `xcodebuild test` workflow on the final P0 commit. The previous successful run checked out an earlier SHA and does not verify the new app test target or latest validator changes.
+- [ ] Run the updated `xcodebuild test` workflow on the final P0 commit. The latest run `45369537649` reached the core tests and exposed test fixtures that omit required layer payloads; those fixtures are being corrected to match the native schema. The final revision still needs a passing run.
 - [ ] Re-run the manual unsigned IPA workflow against the final P0 commit.
 - [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 

@@ -4,6 +4,7 @@ import XCTest
 final class ProjectDocumentTests: XCTestCase {
     func testSourceValidatorParityForMissingPayloadAndIgnoredLayerFeatures() {
         var project = ProjectDocument.starter()
+        project.fields["compatibility"] = .object(["source": .string("android-reference")])
         project.fields["layers"] = .array([
             .object([
                 "id": .string("missing-text"),
@@ -465,6 +466,7 @@ final class ProjectDocumentTests: XCTestCase {
         var project = ProjectDocument.starter()
         project.fields["layers"] = .array([.object([
             "id": .string("shape"), "type": .string("shape"),
+            "shape": .object(["kind": .string("rectangle")]),
             "effects": .array([.object([
                 "type": .string("exposure"),
                 "amount": .object([
@@ -656,6 +658,7 @@ final class ProjectDocumentTests: XCTestCase {
         var project = ProjectDocument.starter()
         project.fields["layers"] = .array([.object([
             "id": .string("shape"), "type": .string("shape"),
+            "shape": .object(["kind": .string("rectangle")]),
             "effects": .array([.object([
                 "type": .string("gradientMap"), "amount": .number(0.75),
                 "stops": .array([
@@ -676,7 +679,8 @@ final class ProjectDocumentTests: XCTestCase {
         func project(value: JSONValue) -> ProjectDocument {
             var document = ProjectDocument.starter()
             document.fields["layers"] = .array([.object([
-                "id": .string("shape"), "type": .string("shape"),
+                "id": .string("shape"), "type": .string("object3d"),
+                "object3d": .object(["primitive": .string("cube")]),
                 "effects": .array([.object([
                     "type": .string("depthMap"),
                     "samples": value
