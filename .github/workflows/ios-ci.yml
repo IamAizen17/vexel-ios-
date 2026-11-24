@@ -2,14 +2,6 @@ name: iOS Continuous Integration
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/modular-engine-architecture
-    paths:
-      - .github/workflows/ios-ci.yml
-      - App/VexelEditorWorkspace.swift
-      - Packages/VexelCore/Sources/VexelCore/VexelEditingStore.swift
-      - Packages/VexelCore/Tests/VexelCoreTests/VexelEditingStoreTests.swift
 
 permissions:
   contents: read
