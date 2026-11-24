@@ -111,6 +111,8 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(schema.layers.first?.blendMode, .unknown("futureBlend"))
         XCTAssertEqual(schema.assets.first?.type, .unknown("lut"))
         XCTAssertNil(schema.layers.first?.typedContent)
+        let reopened = try JSONDecoder().decode(VexelNativeProject.self, from: JSONEncoder().encode(schema))
+        XCTAssertEqual(reopened, schema)
     }
 
     func testTypedAnimationSupportsAndroidLoopModesCyclicEasingAndDisabledExpressions() throws {
