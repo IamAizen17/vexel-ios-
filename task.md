@@ -64,10 +64,10 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Audio layers retain the `audio` discriminator even if the payload is absent; the bridge supplies an empty audio object for the interim model.
 - Archive code writes native `vexel.json` and referenced assets, and rejects traversal, duplicate paths, symlinks, unsupported entries, excessive entry counts, oversized entries and high compression ratios. Extraction now enforces byte budgets against actual decompressed chunks, not only ZIP metadata.
 - Import uses a staging directory and restores an existing destination after a failed promotion. Failure-injection tests cover promotion rollback and invalid-import isolation.
-- Archive imports expose a structured unsupported-feature report. The current UI does not yet present that report as an import review screen.
+- Archive imports expose a structured unsupported-feature report. The home-screen import flow now presents that report in a review sheet before committing the imported project.
 - A source-repository Android video/audio sample archive fixture includes the exact referenced MP4/M4A assets. It follows the Android writer's ZIP layout but was assembled for tests, not exported by the Android app.
 
-P0 remains incomplete. Outstanding work includes completing typed vector/gradient/cutout internals and effect-specific parameter schemas, wiring the typed schema into app persistence/editing, connecting compatibility reports to import UI, obtaining a direct Android-app-exported archive, completing v12 semantic validation and asset-reference coverage, adding native schema migrations, and executing the expanded test suite on a supported macOS runner. Do not claim complete Android round-trip compatibility until those checks pass.
+P0 is materially advanced but not fully closed. Typed coordinate/cutout accessors and effect parameter definitions are implemented; the app bridge and effect catalogue use the typed schema; native v1-to-v2 migration is implemented; and import review is connected. Remaining P0 work is effect-instance parameter validation, auditing semantic checks against more source fixtures, obtaining a direct source-app archive if available, and running the expanded suite on a macOS runner. Do not claim complete Android round-trip compatibility until those checks pass.
 
 ### Engine and package foundations
 
@@ -78,7 +78,7 @@ P0 remains incomplete. Outstanding work includes completing typed vector/gradien
 - Initial Metal shader functions for fullscreen copy, brightness/contrast, Gaussian blur, and multi-scale glow combination.
 - Shader translation interfaces and tests.
 - Effect registry verification and engine/shader coverage verification scripts.
-- A GitHub Actions workflow exists for package checks, Xcode project generation, generic iOS archiving, and unsigned IPA artifact packaging. Do not trigger macOS Actions jobs while the account's available usage is exhausted.
+- A GitHub Actions workflow exists for package checks, Xcode project generation, generic iOS archiving, and unsigned IPA artifact packaging. A manual public-repository runner smoke workflow exists on `main`; run it before relying on fresh macOS validation.
 
 ## Priority implementation backlog
 
@@ -107,7 +107,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 ### P1: Canonical editing model and command engine
 
 - [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.\n- [ ] Route all SwiftUI workspace and timeline mutations through `VexelEditingStore`; remove view-local mutations and workspace-owned undo stacks.
-- Implement typed commands with validation, deterministic state transitions, undo/redo, and command coalescing.
+- [ ] Expand command coverage for group/ungroup, multi-selection, snapping, ripple edits, and marker operations.
 - Port timeline reorder, move, trim, split, duplicate, group/ungroup, parenting, multi-selection, snapping, and ripple edits.
 - Implement typed property descriptors and set-value/auto-keyframe behavior.
 - Port animation sampling, keyframe clipboard/navigation, cubic Bézier easing, cyclic easing, loop and ping-pong semantics.
@@ -166,7 +166,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - Previous successful workflow: run 45282736871, commit 02b83e5f40b29de404b4df91b57b033fd51a0597.
 - That run predates the current project persistence, document bridge, and ZIP archive integration. It is historical evidence only.
-- Latest schema, migration, import-review, and editing-store changes were inspected through GitHub file contents. Tests were added for typed vectors/cutout payloads/effect schemas, native migrations, and actor command history/validation; none of these latest tests have been executed.
+- Latest schema, migration, import-review, semantic-validation, and editing-store changes were inspected through GitHub file contents. Tests were added for typed vectors/cutout payloads/effect schemas, native migrations, nested semantic validation, and actor command history/validation; none of these latest tests have been executed.
 - No fresh package build, test run, Xcode project generation, iOS archive, IPA packaging, simulator test, or physical-device test has been performed for the current branch state.
 - The earlier macOS workflow attempts were not provisioned by GitHub-hosted runners (runner_id 0 and no execution steps). This is an infrastructure execution gap, not a compiler result. The repository is public; standard public GitHub-hosted runners are expected to be available without the private-repository minute quota, but the manual smoke workflow must confirm provisioning.
-- Use source-level review and non-macOS static/package checks where available until Actions usage is restored. A successful fresh macOS build and real iPhone/iPad validation remain required.
+- The repository is public, so standard GitHub-hosted runners are expected to be available without private-repository minute quotas. The manual smoke workflow must be run to confirm provisioning; a successful fresh macOS build and real iPhone/iPad validation remain required.
