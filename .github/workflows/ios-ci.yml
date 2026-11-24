@@ -10,6 +10,7 @@ on:
       - project.yml
       - App/VexelNavigation.swift
       - App/VexelEditorWorkspace.swift
+      - App/VexelToolPanels.swift
       - AppUITests/**
       - Packages/VexelCore/Sources/VexelCore/**
       - Packages/VexelCore/Tests/**
