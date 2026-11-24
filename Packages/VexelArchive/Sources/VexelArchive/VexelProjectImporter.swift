@@ -111,7 +111,7 @@ public enum VexelProjectImporter {
                 func findExpressions(_ value: JSONValue, at valuePath: String) {
                     switch value {
                     case .object(let object):
-                        for (key, child) in object {
+                        for (key, child) in object where key != "layers" {
                             let childPath = "\\(valuePath).\\(key)"
                             if key == "expression", child.stringValue != nil {
                                 result.append(VexelUnsupportedFeature(
