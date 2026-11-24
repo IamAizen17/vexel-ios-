@@ -31,6 +31,47 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Your canvas is empty"].exists)
     }
 
+    func testTransformInspectorCommitsAnchorAndScaleEdits() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        XCTAssertTrue(app.staticTexts["Your canvas is empty"].waitForExistence(timeout: 10))
+
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+
+        let properties = app.buttons["Properties"]
+        XCTAssertTrue(properties.waitForExistence(timeout: 5))
+        properties.tap()
+
+        let anchorX = app.textFields["inspector.anchor.x"]
+        XCTAssertTrue(anchorX.waitForExistence(timeout: 5))
+        anchorX.tap()
+        anchorX.press(forDuration: 1.1)
+        if app.menuItems["Select All"].waitForExistence(timeout: 1) {
+            app.menuItems["Select All"].tap()
+        }
+        anchorX.typeText("42")
+        anchorX.typeText("\\n")
+        XCTAssertEqual(anchorX.value as? String, "42")
+
+        let scaleX = app.textFields["inspector.scale.x"]
+        XCTAssertTrue(scaleX.waitForExistence(timeout: 5))
+        scaleX.tap()
+        scaleX.press(forDuration: 1.1)
+        if app.menuItems["Select All"].waitForExistence(timeout: 1) {
+            app.menuItems["Select All"].tap()
+        }
+        scaleX.typeText("125")
+        scaleX.typeText("\\n")
+        XCTAssertEqual(scaleX.value as? String, "125")
+    }
+
     func testSelectingPortraitPresetOpensMatchingComposition() {
         let app = launchApp()
 

@@ -627,33 +627,33 @@ struct VexelPropertiesPanel: View {
                 switch tab {
                 case "Transform":
                     propertyGroup("POSITION") {
-                        valueField("X", value: $positionX, unit: "px") {
+                        valueField("X", value: $positionX, unit: "px", accessibilityIdentifier: "inspector.position.x") {
                             onPositionCommit(positionX, positionY)
                         }
-                        valueField("Y", value: $positionY, unit: "px") {
+                        valueField("Y", value: $positionY, unit: "px", accessibilityIdentifier: "inspector.position.y") {
                             onPositionCommit(positionX, positionY)
                         }
                         Text("Position changes are committed to the native project.")
                             .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
                     propertyGroup("ANCHOR") {
-                        valueField("X", value: $anchorX, unit: "px") {
+                        valueField("X", value: $anchorX, unit: "px", accessibilityIdentifier: "inspector.anchor.x") {
                             onTransformCommit("anchor", [anchorX, anchorY] + (transformValues["anchor"]?.dropFirst(2).map { $0 } ?? []))
                         }
-                        valueField("Y", value: $anchorY, unit: "px") {
+                        valueField("Y", value: $anchorY, unit: "px", accessibilityIdentifier: "inspector.anchor.y") {
                             onTransformCommit("anchor", [anchorX, anchorY] + (transformValues["anchor"]?.dropFirst(2).map { $0 } ?? []))
                         }
                     }
                     propertyGroup("SCALE") {
-                        valueField("X", value: $scaleX, unit: "%") {
+                        valueField("X", value: $scaleX, unit: "%", accessibilityIdentifier: "inspector.scale.x") {
                             onTransformCommit("scale", [scaleX / 100, scaleY / 100] + (transformValues["scale"]?.dropFirst(2).map { $0 } ?? []))
                         }
-                        valueField("Y", value: $scaleY, unit: "%") {
+                        valueField("Y", value: $scaleY, unit: "%", accessibilityIdentifier: "inspector.scale.y") {
                             onTransformCommit("scale", [scaleX / 100, scaleY / 100] + (transformValues["scale"]?.dropFirst(2).map { $0 } ?? []))
                         }
                     }
                     propertyGroup("ROTATION & OPACITY") {
-                        valueField("Rotation", value: $rotation, unit: "°") {
+                        valueField("Rotation", value: $rotation, unit: "°", accessibilityIdentifier: "inspector.rotation") {
                             if transformValues["rotation"]?.count == 3 {
                                 var components = transformValues["rotation"] ?? [0, 0, 0]
                                 components[2] = rotation
@@ -662,7 +662,7 @@ struct VexelPropertiesPanel: View {
                                 onTransformCommit("rotation", [rotation])
                             }
                         }
-                        valueField("Opacity", value: $opacity, unit: "%") {
+                        valueField("Opacity", value: $opacity, unit: "%", accessibilityIdentifier: "inspector.opacity") {
                             onTransformCommit("opacity", [opacity / 100])
                         }
                     }
@@ -811,6 +811,7 @@ struct VexelPropertiesPanel: View {
         _ title: String,
         value: Binding<Double>,
         unit: String,
+        accessibilityIdentifier: String? = nil,
         onCommit: (() -> Void)? = nil
     ) -> some View {
         HStack {
@@ -820,6 +821,7 @@ struct VexelPropertiesPanel: View {
                 .multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation)
                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.text)
                 .frame(width: 64).padding(6).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 6))
+                .accessibilityIdentifier(accessibilityIdentifier ?? "inspector.value.\\(title.lowercased())")
                 .onSubmit { onCommit?() }
             Text(unit).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary).frame(width: 24, alignment: .leading)
         }
