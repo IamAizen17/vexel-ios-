@@ -14,6 +14,8 @@ public enum VexelTextProperty: String, Sendable {
 public enum VexelEditingCommand: Sendable {
     case renameProject(String)
     case setComposition(width: Int, height: Int, fps: Double, duration: Double)
+    case updateProjectSettings(title: String, width: Int, height: Int, fps: Double, duration: Double)
+    case reorderLayers(containerID: String?, orderedIDs: [String])
     case addLayer(VexelLayer, containerID: String?, index: Int?)
     case removeLayer(id: String)
     case duplicateLayer(id: String, newID: String)
@@ -132,6 +134,20 @@ public actor VexelEditingStore {
                   duration.isFinite, (0.01...3600).contains(duration) else {
                 throw VexelEditingStoreError.invalidOperation("Composition dimensions, frame rate, or duration are outside supported bounds.")
             }
+            project.composition.width = width
+            project.composition.height = height
+            project.composition.fps = fps
+            project.composition.duration = duration
+
+        case .updateProjectSettings(let title, let width, let height, let fps, let duration):
+            let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalizedTitle.isEmpty, normalizedTitle.count <= 256,
+                  (16...8192).contains(width), (16...8192).contains(height),
+                  fps.isFinite, (1...120).contains(fps),
+                  duration.isFinite, (0.01...3600).contains(duration) else {
+                throw VexelEditingStoreError.invalidOperation("Project title or composition settings are outside supported bounds.")
+            }
+            project.meta["title"] = .string(normalizedTitle)
             project.composition.width = width
             project.composition.height = height
             project.composition.fps = fps
@@ -303,6 +319,32 @@ public actor VexelEditingStore {
             }
             guard replaced else {
                 throw VexelEditingStoreError.containerNotFound(container ?? id)
+            }
+
+        case .reorderLayers(let containerID, let orderedIDs):
+            guard Set(orderedIDs).count == orderedIDs.count else {
+                throw VexelEditingStoreError.invalidOperation("Layer order cannot contain duplicate identifiers.")
+            }
+            let siblings: [VexelLayer]
+            if let containerID {
+                guard let container = findLayer(containerID, in: project.layers) else {
+                    throw VexelEditingStoreError.containerNotFound(containerID)
+                }
+                guard container.type == .group else {
+                    throw VexelEditingStoreError.containerIsNotGroup(containerID)
+                }
+                siblings = container.layers
+            } else {
+                siblings = project.layers
+            }
+            guard siblings.count == orderedIDs.count,
+                  Set(siblings.map(\\.id)) == Set(orderedIDs) else {
+                throw VexelEditingStoreError.invalidOperation("Layer order must contain every sibling exactly once.")
+            }
+            let byID = Dictionary(uniqueKeysWithValues: siblings.map { ($0.id, $0) })
+            let reordered = orderedIDs.compactMap { byID[$0] }
+            guard updateContainer(containerID, in: &project.layers, { $0 = reordered }) else {
+                throw VexelEditingStoreError.containerNotFound(containerID ?? "root")
             }
 
         case .moveLayer(let id, let toContainerID, let index):

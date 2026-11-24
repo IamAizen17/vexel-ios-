@@ -290,13 +290,13 @@ struct VexelEditorWorkspace: View {
                 project: project,
                 onSavedVersions: { showSavedVersions = true },
                 onSave: { draft in
-                    commitEdit { candidate in
-                        candidate.title = draft.title
-                        candidate.width = draft.width
-                        candidate.height = draft.height
-                        candidate.fps = draft.fps
-                        candidate.duration = draft.duration
-                    }
+                    performEditingCommand(.updateProjectSettings(
+                        title: draft.title,
+                        width: draft.width,
+                        height: draft.height,
+                        fps: Double(draft.fps),
+                        duration: draft.duration
+                    ))
                 }
             )
             .presentationDetents([.medium, .large])
@@ -520,16 +520,54 @@ struct VexelEditorWorkspace: View {
             },
             onEditEnded: {
                 isTimelineGestureActive = false
-                commitEdit { candidate in
-                    candidate.timelineTracks = timelineDraftTracks
-                    candidate.markers = timelineDraftMarkers
-                }
+                commitTimelineDraftChanges()
                 if isPlaying {
                     do { try audioPlayback.play(project: project, from: currentTime) }
                     catch { showingNotice = "Audio playback failed: \(error.localizedDescription)" }
                 }
             }
         )
+    }
+
+    private func commitTimelineDraftChanges() {
+        func sourceID(_ track: VexelTimelineTrack) -> String {
+            track.sourceID ?? track.id.uuidString
+        }
+        func commitOrderChanges(
+            from previous: [VexelTimelineTrack],
+            to updated: [VexelTimelineTrack],
+            containerID: String?
+        ) {
+            let oldIDs = previous.map(sourceID)
+            let newIDs = updated.map(sourceID)
+            if oldIDs != newIDs, Set(oldIDs) == Set(newIDs) {
+                performEditingCommand(.reorderLayers(containerID: containerID, orderedIDs: newIDs))
+            }
+            for track in updated where !track.children.isEmpty {
+                guard let previousGroup = previous.first(where: { sourceID($0) == sourceID(track) }) else { continue }
+                commitOrderChanges(from: previousGroup.children, to: track.children, containerID: sourceID(track))
+            }
+        }
+        commitOrderChanges(from: project.timelineTracks, to: timelineDraftTracks, containerID: nil)
+
+        let previousMarkers = Dictionary(
+            project.markers.map { ($0.sourceID ?? $0.id.uuidString, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let updatedMarkers = Dictionary(
+            timelineDraftMarkers.map { ($0.sourceID ?? $0.id.uuidString, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        for (id, marker) in updatedMarkers {
+            if let previous = previousMarkers[id],
+               previous.time == marker.time, previous.name == marker.name, previous.color == marker.color {
+                continue
+            }
+            saveMarker(marker)
+        }
+        for id in previousMarkers.keys where updatedMarkers[id] == nil {
+            performEditingCommand(.removeMarker(id: id))
+        }
     }
 
     private func flattenTrackNames(_ tracks: [VexelTimelineTrack]) -> [String] {

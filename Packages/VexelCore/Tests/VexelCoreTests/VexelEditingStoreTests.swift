@@ -361,6 +361,52 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
     }
 
+    func testProjectSettingsUpdateIsAtomicAndUndoable() async throws {
+        let store = try makeStore()
+        try await store.execute(.updateProjectSettings(
+            title: "  Updated  ",
+            width: 1920,
+            height: 1080,
+            fps: 29.97,
+            duration: 42
+        ))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Updated"))
+        XCTAssertEqual(snapshot.composition.width, 1920)
+        XCTAssertEqual(snapshot.composition.height, 1080)
+        XCTAssertEqual(snapshot.composition.fps, 29.97, accuracy: 0.0001)
+        XCTAssertEqual(snapshot.composition.duration, 42, accuracy: 0.0001)
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Editing store"))
+        XCTAssertEqual(snapshot.composition.width, 1080)
+        XCTAssertEqual(snapshot.composition.height, 1920)
+    }
+
+    func testReorderLayersPreservesLayerDataAndRejectsIncompleteOrder() async throws {
+        let first = VexelLayer(id: "first", type: .shape, name: "First", start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))
+        let second = VexelLayer(id: "second", type: .shape, name: "Second", start: 1, duration: 5, content: .object(["kind": .string("ellipse")]))
+        let third = VexelLayer(id: "third", type: .shape, name: "Third", start: 2, duration: 6, content: .object(["kind": .string("star")]))
+        let store = try makeStore(layers: [first, second, third])
+
+        try await store.execute(.reorderLayers(containerID: nil, orderedIDs: ["third", "first", "second"]))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.map(\\.id), ["third", "first", "second"])
+        XCTAssertEqual(snapshot.layers[0].content?["kind"], nil)
+
+        let beforeInvalidOrder = snapshot
+        do {
+            try await store.execute(.reorderLayers(containerID: nil, orderedIDs: ["first", "second"]))
+            XCTFail("A partial sibling order must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
+        }
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot, beforeInvalidOrder)
+    }
+
     func testTypedTextPropertyCommandsPreserveNestedFieldsAndAnimationMetadata() async throws {
         let layer = VexelLayer(
             id: "title",
