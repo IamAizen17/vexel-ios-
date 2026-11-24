@@ -361,6 +361,83 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
     }
 
+    func testTransformInspectorPropertiesPersistAndUndoForTwoDimensionalLayers() async throws {
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            content: .object(["kind": .string("rectangle")])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "anchor",
+            value: .constant(.array([.number(12), .number(-8)])), is3D: false
+        ))
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "scale",
+            value: .constant(.array([.number(1.25), .number(0.75)])), is3D: false
+        ))
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "rotation",
+            value: .constant(.number(37.5)), is3D: false
+        ))
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "opacity",
+            value: .constant(.number(0.65)), is3D: false
+        ))
+
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["anchor"], .constant(.array([.number(12), .number(-8)])))
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["scale"], .constant(.array([.number(1.25), .number(0.75)])))
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["rotation"], .constant(.number(37.5)))
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["opacity"], .constant(.number(0.65)))
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertNil(snapshot.layers[0].transform?.properties["opacity"])
+
+        let didRedo = await store.redo()
+        XCTAssertTrue(didRedo)
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["opacity"], .constant(.number(0.65)))
+    }
+
+    func testTransformInspectorPreservesThreeDimensionalComponents() async throws {
+        let layer = VexelLayer(
+            id: "object",
+            type: .object3D,
+            start: 0,
+            duration: 8,
+            content: .object(["primitive": .string("cube")])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTransformValue(
+            id: "object", property: "anchor",
+            value: .constant(.array([.number(1), .number(2), .number(3)])), is3D: true
+        ))
+        try await store.execute(.setTransformValue(
+            id: "object", property: "scale",
+            value: .constant(.array([.number(1.5), .number(0.75), .number(2)])), is3D: true
+        ))
+        try await store.execute(.setTransformValue(
+            id: "object", property: "rotation",
+            value: .constant(.array([.number(10), .number(20), .number(30)])), is3D: true
+        ))
+        try await store.execute(.setTransformValue(
+            id: "object", property: "opacity",
+            value: .constant(.number(0.8)), is3D: true
+        ))
+
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["anchor"], .constant(.array([.number(1), .number(2), .number(3)])))
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["scale"], .constant(.array([.number(1.5), .number(0.75), .number(2)])))
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["rotation"], .constant(.array([.number(10), .number(20), .number(30)])))
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["opacity"], .constant(.number(0.8)))
+    }
+
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
         let document = ProjectDocument.starter(title: "Editing store")
         var native = try VexelNativeProject(document: document)
