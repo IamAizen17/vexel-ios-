@@ -711,12 +711,10 @@ struct VexelPropertiesPanel: View {
                         .onChange(of: textAlignment) { onTextCommit(.alignment, .string($0.lowercased())) }
                     }
                     propertyGroup("TEXT ANIMATORS") {
-                        Picker("Animator type", selection: $animatorType) {
-                            ForEach(["Typewriter", "Fade", "Slide up", "Slide down", "Slide left", "Slide right", "Scale", "Rotate", "Wave"], id: \.self) { Text($0).tag($0) }
-                        }.tint(VexelPalette.accent)
-                        Text("Character, word and line selectors, ordering, stagger, duration and expression selectors will be connected to the text animation model.")
+                        Text("Text animators are not editable yet. Existing animator data remains preserved.")
                             .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
+                    .disabled(true)
 
                 case "Effects":
                     propertyGroup("EFFECT STACK") {
@@ -817,7 +815,7 @@ struct VexelPropertiesPanel: View {
         textContent = textValues["content"]?.stringValue ?? "Text"
         fontFamily = textValues["fontFamily"]?.stringValue ?? "sans-serif"
         fontWeight = textValues["fontWeight"]?.numberValue ?? 700
-        italic = textValues["fontItalic"]?.boolValue ?? false
+        if case .bool(let value)? = textValues["fontItalic"] { italic = value } else { italic = false }
         fontSize = textValues["fontSize"]?.numberValue ?? 96
         lineHeight = textValues["lineHeight"]?.numberValue ?? 1.2
         letterSpacing = textValues["letterSpacing"]?.numberValue ?? 0
