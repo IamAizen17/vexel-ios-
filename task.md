@@ -11,7 +11,7 @@ Related pull request: https://github.com/IamAizen17/vexel-ios-/pull/2
 - Product, app target, display name, and bundle identifier use Vexel.
 - Native project extension: `.vexelproj`.
 - Native archive document: `vexel.json`.
-- Native format identifier: `vexelproj`, version 1.
+- Native format identifier: `vexelproj`, current version 2. Version 1 native documents migrate to version 2 on import.
 - Registered document type: `com.ragestudios.vexel.project`.
 - Native MIME type: `application/vnd.vexel.project+zip`.
 - The old Android document identifier and `project.json` archive entry are recognized only by `VexelProjectImporter`. VexelCore, persistence, and export use only the native Vexel format.
@@ -54,7 +54,7 @@ These are initial workspace operations. They are not yet backed by a complete ca
 - Native Vexel project extension `.vexelproj`, archive entry `vexel.json`, and native format identifier `vexelproj` v1.
 - Registered Apple document type identifier: `com.ragestudios.vexel.project`. App bundle identifier remains `com.iamAizen17.vexel`.
 - `VexelProjectItem` and timeline tracks are Codable; project metadata and workspace state are persisted under Application Support.
-- `ProjectDocument` remains the generic JSON-backed native envelope. An additive `VexelNativeProject` typed schema now models the root, composition, assets, markers, all Android layer discriminators, transforms, animation tracks, keyframes, easing, loop modes, effects and recursive groups. The app bridge has not yet migrated to this typed schema.
+- `ProjectDocument` remains the generic JSON-backed native envelope. An additive `VexelNativeProject` typed schema now models the root, composition, assets, markers, all Android layer discriminators, transforms, animation tracks, keyframes, easing, loop modes, effects and recursive groups. The app bridge now decodes imported layers and markers through this typed schema and validates the typed round-trip before persistence. The timeline remains a reduced editing projection, not the canonical editable model.
 - `VexelProjectImporter` is the isolated Android compatibility boundary. It migrates the legacy v1-v12 envelope to native Vexel.
 - Android source audit is documented in `docs/ANDROID_V12_COMPATIBILITY.md`, based on Kotlin `Project.kt`, `Layer.kt`, `Content.kt`, `Animatable.kt`, `Easing.kt`, `Serializers.kt`, `KnsprojJson.kt`, `KnsprojArchive.kt`, and `ProjectValidator.kt`.
 - Added the Android repository's Kotlin-generated `tools/tests/fixtures/full-kotlin.json` as `android-v12-kotlin-reference.json`; importer tests assert root migration and representative nested animation/effect/transition data.
@@ -89,19 +89,19 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - [x] Audit the Android v12 models, serializers, archive writer and migration registry against source.
 - [x] Add the Kotlin-generated v12 JSON fixture and an Android repository video/audio sample archive with its real referenced media payloads. The archive is assembled for tests, not exported by the Android app.
 - [x] Add typed accessors for all 11 layer content variants, text/property animators, media/equalizer/cutout metadata, shape fill/stroke/path/trim, 3D materials/text, camera depth-of-field, light properties, masks, mattes, transitions, metadata, motion blur, environment and editor view. Raw JSONValue remains the lossless backing store.
-- [ ] Finish typed vector coordinate tuples, gradient endpoints, cutout frame/stroke internals and effect-specific parameter schemas; wire typed accessors into canonical app editing.
+- [x] Add typed 2D/3D vector tuples, gradient endpoints, path point/tangent accessors, cutout frame/stroke accessors, and typed definitions for the seven effect parameter kinds in the source effect catalogue.\n- [x] Route project open/save bridge conversion through `VexelNativeProject`, including typed layer/marker decoding and schema validation before persistence.\n- [ ] Move editor mutations from the reduced timeline projection onto the typed canonical project model and command store.
 - [x] Add recursive unknown-field preservation tests across nested groups, transforms, animation tracks, effects and root metadata.
 - [x] Add typed discriminator and content-accessor coverage for all 11 Android layer types, plus expression-only animations, loop modes and easing tests.
 - [x] Add source-compatible core duplicate/split operations and tests for nested IDs, parent/matte references, keyframe time offsets, transitions and media in-points.
 - [x] Add an import compatibility report for preserved-but-unimplemented features.
-- [ ] Connect the typed schema and compatibility report to the app's persistence bridge and import review UI.
+- [x] Connect the typed schema to the app persistence bridge and show the unsupported-feature report in a pre-import review sheet.
 - [ ] Obtain a direct Android-app-exported `.knsproj` archive and compare its archive entries, CRCs, metadata and referenced assets.
-- [ ] Complete v12 semantic validation, including all nested asset references and numeric bounds.
+- [ ] Complete v12 semantic validation, including full nested hierarchy/reference checks, cutout limits, effect parameter ranges, and numeric bounds.
 - [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
 - [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
 - [x] Test destination rollback failure and verify the retained backup path is recoverable.
 - [x] Add failure-injection coverage for archive export destination replacement; verify the existing archive and temporary-file cleanup.
-- [ ] Add native Vexel schema migrations and migration tests.
+- [x] Add native Vexel v1-to-v2 migration and importer/core migration tests.
 - Keep project creation, editing, persistence and export native to Vexel. Android compatibility remains isolated in `VexelProjectImporter`.
 
 ### P1: Canonical editing model and command engine
@@ -145,7 +145,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge is provisional. It still maps only a subset of the typed native schema into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI.
+- The project/document bridge now uses the typed native schema at its persistence boundary, but maps only a subset into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI.
 - `VexelProjectImporter` converts the external format/version envelope and the archive reader performs structural validation. The source video/audio archive fixture is a test-assembled archive based on Android repository examples, not a direct Android app export. This does not establish full Android source schema v12 semantic compatibility.
 - Archive read/write code is connected to UI flows and now has actual-byte-budget and rollback tests. It still requires a direct Android-app-exported fixture and fresh test execution before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
@@ -157,7 +157,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - Media, audio, 3D, camera, captions, elements, plugins, stabilization, cutout, and export remain incomplete or disabled. A media picker surface does not mean media is imported into the project.
 - Metal renderer and shader compiler are scaffolding. Initial shader functions do not represent full source shader parity; GLSL translation is not integrated end-to-end.
 - No Android APK/IPA binary or runtime instrumentation was used for this source audit. Findings are source-level only.
-- Latest changes have not been compiled or tested in a fresh workflow. macOS Actions usage is currently unavailable, so do not start another macOS runner job without the user's confirmation that usage is available.
+- Latest changes have not been compiled or tested in a fresh workflow. A manual public-repository Actions smoke workflow exists on `main` for Ubuntu and macOS runner provisioning, but it has not yet been triggered. Do not claim current branch compilation or package tests until a fresh validation run succeeds.
 - A prior workflow passed package checks and produced an unsigned archive/IPA, but that result predates the latest project/archive integration and does not verify the current branch.
 - An unsigned IPA is not installable without valid signing/provisioning or a compatible sideloading process.
 - GPL-3.0 obligations and third-party/native dependency licenses must be reviewed before distribution.
@@ -168,5 +168,5 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - That run predates the current project persistence, document bridge, and ZIP archive integration. It is historical evidence only.
 - Latest project/archive changes were inspected through GitHub file contents; no local Swift compiler or test execution was available during this update.
 - No fresh package build, test run, Xcode project generation, iOS archive, IPA packaging, simulator test, or physical-device test has been performed for the current branch state.
-- The latest attempted macOS workflow jobs were not provisioned by GitHub-hosted runners (runner_id 0 and no execution steps). This is an infrastructure execution gap, not a compiler result.
+- The earlier macOS workflow attempts were not provisioned by GitHub-hosted runners (runner_id 0 and no execution steps). This is an infrastructure execution gap, not a compiler result. The repository is public; standard public GitHub-hosted runners are expected to be available without the private-repository minute quota, but the manual smoke workflow must confirm provisioning.
 - Use source-level review and non-macOS static/package checks where available until Actions usage is restored. A successful fresh macOS build and real iPhone/iPad validation remain required.
