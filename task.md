@@ -133,13 +133,16 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 
 ### P0: Close project integrity and establish a truthful baseline
 
-- [ ] Finish effect-instance parameter validation and source semantic-validator audit.
-- [ ] Obtain and test a genuine source-app archive if available; otherwise document the exact compatibility limit.
-- [ ] Keep import compatibility isolated and prove unknown-field preservation through import/edit/save/export round trips.
+- [x] Validate known effect-instance parameter types, choices, point/stops shapes, finite numeric values and declared ranges against the canonical effect registry. Unknown effects/parameters are preserved and reported as warnings.
+- [ ] Audit remaining source semantic-validator edge cases across every imported layer payload.
+- [ ] Obtain and test a genuine source-app-exported archive. The current checked-in archive is test-assembled from source assets, not exported by running the Android application; exact limitation is documented in the fixture README and testing guide.
+- [x] Keep legacy import isolated; fixture tests cover unknown-field preservation through importer round trips.
+- [ ] Prove unknown-field preservation through full app edit/save/export round trips.
 - [x] Validate project asset references and expected asset types recursively; validate effect parameter instances before accepting an imported project.
 - [x] Make project deletion save the updated library index before deleting its asset directory, so an index-write failure cannot leave a saved project pointing to deleted assets.
 - [ ] Audit project duplication, asset references, persistence failure handling and recovery requirements.
-- [ ] Update all docs and status records to match actual code and CI results.
+- [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
+- [ ] Refresh remaining roadmap/PR status text after P0 verification.
 - [ ] Keep CI green for package tests, XcodeGen generation, simulator build and unsigned IPA archive.
 - [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
