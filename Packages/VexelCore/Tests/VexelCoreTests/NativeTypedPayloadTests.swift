@@ -33,7 +33,7 @@ final class NativeTypedPayloadTests: XCTestCase {
         XCTAssertEqual(pathPoint.typedOutTangent, VexelVector2(x: 3, y: 4))
     }
 
-    func testCutoutFrameAndStrokePayloadsMatchSourceRecipeShape() {
+    func testCutoutFrameAndStrokePayloadsMatchSourceRecipeShape() throws {
         let cutout = VexelCutoutBrushContent(fields: VexelObjectFields([
             "source": .string("source-video"),
             "sourceStart": .number(0.5),
@@ -57,10 +57,10 @@ final class NativeTypedPayloadTests: XCTestCase {
             ])
         ]))
 
-        let frame = try! XCTUnwrap(cutout.typedFrames?.first)
+        let frame = try XCTUnwrap(cutout.typedFrames?.first)
         XCTAssertEqual(frame.time, 0.25)
         XCTAssertEqual(frame.fields.string("futureFrameField"), "keep")
-        let stroke = try! XCTUnwrap(frame.strokes?.first)
+        let stroke = try XCTUnwrap(frame.strokes?.first)
         XCTAssertEqual(stroke.mode, .add)
         XCTAssertEqual(stroke.size, 0.06)
         XCTAssertEqual(stroke.points, [VexelVector2(x: 0.2, y: 0.3), VexelVector2(x: 0.4, y: 0.5)])
