@@ -46,7 +46,7 @@ targets:
     info:
       properties:
         UTExportedTypeDeclarations:
-          - UTTypeIdentifier: com.iamAizen17.vexel.project
+          - UTTypeIdentifier: com.ragestudios.vexel.project
             UTTypeDescription: Vexel Project
             UTTypeConformsTo:
               - public.zip-archive
@@ -60,7 +60,7 @@ targets:
             CFBundleTypeRole: Editor
             LSHandlerRank: Owner
             LSItemContentTypes:
-              - com.iamAizen17.vexel.project
+              - com.ragestudios.vexel.project
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel
