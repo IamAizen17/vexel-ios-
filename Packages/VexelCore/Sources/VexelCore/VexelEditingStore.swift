@@ -164,7 +164,7 @@ public actor VexelEditingStore {
                   pathComponents[0] == "assets",
                   !pathComponents[1].isEmpty,
                   pathComponents[1] != ".", pathComponents[1] != "..",
-                  !project.assets.contains(where: { $0.id == asset.id }),
+                  !project.assets.contains(where: { $0.id == asset.id || $0.path == asset.path }),
                   !allLayerIDs(in: project.layers).contains(layer.id) else {
                 throw VexelEditingStoreError.invalidOperation("Imported media must have a unique identifier, a supported matching layer type and a safe project-relative asset path.")
             }

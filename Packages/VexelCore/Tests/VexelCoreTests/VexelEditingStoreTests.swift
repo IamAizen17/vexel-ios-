@@ -413,7 +413,7 @@ final class VexelEditingStoreTests: XCTestCase {
             try await store.execute(.importMedia(asset: asset, layer: layer))
             XCTFail("Unsafe asset paths must be rejected.")
         } catch let error as VexelEditingStoreError {
-            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \(error)") }
         }
         let snapshot = await store.snapshot()
         XCTAssertTrue(snapshot.assets.isEmpty)
