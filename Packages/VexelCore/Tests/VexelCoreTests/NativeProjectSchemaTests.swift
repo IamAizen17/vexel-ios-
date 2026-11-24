@@ -100,4 +100,43 @@ final class NativeProjectSchemaTests: XCTestCase {
         """.data(using: .utf8)!
         XCTAssertThrowsError(try JSONDecoder().decode(VexelNativeProject.self, from: data))
     }
+
+    func testTypedAnimationSupportsAndroidLoopModesCyclicEasingAndDisabledExpressions() throws {
+        let source = """
+        {
+          "format": "vexelproj", "formatVersion": 1,
+          "composition": {"width": 1080, "height": 1920, "fps": 30, "duration": 5},
+          "layers": [{
+            "id": "shape", "type": "shape", "duration": 5,
+            "transform": {
+              "rotation": {
+                "keyframes": [{
+                  "time": 0, "value": 0,
+                  "easing": {"cyclic": {"offset": 0.2, "cycles": 3.5, "phase": 0.1}}
+                }],
+                "loop": "pingpong",
+                "expression": "time",
+                "expressionEnabled": false
+              }
+            }
+          }]
+        }
+        """.data(using: .utf8)!
+
+        let schema = try JSONDecoder().decode(VexelNativeProject.self, from: source)
+        guard case .animated(let track)? = schema.layers.first?.transform?.properties["rotation"] else {
+            return XCTFail("Expected a typed animated rotation.")
+        }
+        XCTAssertEqual(track.loop, .pingpong)
+        XCTAssertEqual(track.expression, "time")
+        XCTAssertEqual(track.expressionEnabled, false)
+        XCTAssertEqual(track.keyframes.first?.easing, .cyclic(offset: 0.2, cycles: 3.5, phase: 0.1))
+
+        let roundTrip = try JSONDecoder().decode(
+            VexelNativeProject.self,
+            from: JSONEncoder().encode(schema)
+        )
+        XCTAssertEqual(roundTrip, schema)
+    }
+
 }
