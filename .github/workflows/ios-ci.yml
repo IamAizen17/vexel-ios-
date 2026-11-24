@@ -54,11 +54,11 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build iOS simulator target
+      - name: Run app tests and build iOS simulator target
         run: |
-          xcodebuild build \
+          xcodebuild test \
             -project Vexel.xcodeproj \
             -scheme Vexel \
             -configuration Debug \
-            -destination "generic/platform=iOS Simulator" \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
             CODE_SIGNING_ALLOWED=NO

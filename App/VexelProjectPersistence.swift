@@ -73,12 +73,23 @@ enum VexelProjectStore {
         var updatedProjects = existingProjects
         updatedProjects.insert(copy, at: 0)
 
+        try commitDuplicate(
+            persist: { try save(updatedProjects) },
+            rollback: { try deleteAssets(for: copy) }
+        )
+        return updatedProjects
+    }
+
+    static func commitDuplicate(
+        persist: () throws -> Void,
+        rollback: () throws -> Void
+    ) throws {
         do {
-            try save(updatedProjects)
+            try persist()
         } catch {
             let persistenceError = error
             do {
-                try deleteAssets(for: copy)
+                try rollback()
             } catch {
                 throw DuplicateCommitError(
                     persistenceMessage: persistenceError.localizedDescription,
@@ -87,7 +98,6 @@ enum VexelProjectStore {
             }
             throw persistenceError
         }
-        return updatedProjects
     }
 
     static func duplicate(_ project: VexelProjectItem) throws -> VexelProjectItem {

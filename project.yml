@@ -78,4 +78,18 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         CODE_SIGN_STYLE: Automatic
     scheme:
-      testTargets: []
+      testTargets:
+        - VexelTests
+  VexelTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: Vexel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Vexel.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vexel"
+        BUNDLE_LOADER: "$(TEST_HOST)"
