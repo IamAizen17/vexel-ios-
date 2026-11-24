@@ -59,6 +59,38 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(project.validate().contains { $0.message.contains("unique") })
     }
 
+    func testNativeV1MigrationAddsV2DefaultsAndPreservesUnknownFields() throws {
+        let source = ProjectDocument(fields: [
+            "format": .string(ProjectDocument.format),
+            "formatVersion": .number(1),
+            "composition": .object([
+                "width": .number(1080),
+                "height": .number(1920),
+                "fps": .number(29.97),
+                "duration": .number(8)
+            ]),
+            "futureRoot": .object(["keep": .bool(true)])
+        ])
+
+        let migrated = try source.migratedToCurrentVersion()
+        XCTAssertEqual(migrated.fields["formatVersion"], .number(Double(ProjectDocument.currentVersion)))
+        XCTAssertEqual(migrated.fields["generator"], .string("Vexel"))
+        XCTAssertEqual(migrated.title, "Untitled")
+        XCTAssertEqual(migrated.fields["assets"], .array([]))
+        XCTAssertEqual(migrated.fields["markers"], .array([]))
+        XCTAssertEqual(migrated.fields["layers"], .array([]))
+        XCTAssertEqual(migrated.fields["composition"]?.objectValue?["background"], .string("#0D0F12"))
+        XCTAssertEqual(migrated.fields["composition"]?.objectValue?["fps"], .number(29.97))
+        XCTAssertEqual(migrated.fields["futureRoot"], .object(["keep": .bool(true)]))
+        XCTAssertTrue(migrated.validate().isEmpty)
+    }
+
+    func testNativeMigrationRejectsFutureVersions() throws {
+        var source = ProjectDocument.starter()
+        source.fields["formatVersion"] = .number(Double(ProjectDocument.currentVersion + 1))
+        XCTAssertThrowsError(try source.migratedToCurrentVersion())
+    }
+
     func testRejectsUnsupportedVersion() {
         var project = ProjectDocument.starter()
         project.fields["formatVersion"] = .number(99)
