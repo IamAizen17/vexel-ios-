@@ -112,7 +112,7 @@ extension VexelProjectItem {
         animatableFields.removeValue(forKey: "layers")
         let keyframes = Self.keyframeTimes(in: .object(animatableFields)).sorted()
         let sourceJSON = (try? JSONEncoder().encode(value)).flatMap { String(data: $0, encoding: .utf8) }
-        let stableID = UUID(uuidString: sourceID) ?? UUID()
+        let stableID = VexelStableIdentifier.uuid(forSourceID: sourceID)
         return VexelTimelineTrack(
             id: stableID,
             name: object["name"]?.stringValue ?? (type.capitalized + " Layer"),
