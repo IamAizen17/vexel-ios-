@@ -229,12 +229,13 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head before this task-status update: `ac41257edac9e3e2544e04a9b7feec3559e10403`. P1 CI run `45374010309` is testing the workspace/store integration and scene-evaluation tests; its final result must be recorded before IPA packaging.
+Current feature branch head after the P1 integration verification and manual-only workflow restoration: `c9f952b9368f229889d94a1d4321047c877d602e`.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
 - [x] IPA artifact: `Vexel-unsigned-IPA`; includes `Vexel-unsigned.ipa` and SHA-256 checksum. Artifact is available from the workflow run.
 - [ ] Signed installation on a physical iPhone/iPad has not been verified in this record.
+- [x] P1 integration CI run `45375103109` passed on code commit `b07238756de580dfbe5f5d982dc767a36e0ca45d`: all Swift package suites passed, including 58 VexelCore tests and 3 scene-evaluator tests; XcodeGen project generation succeeded; app persistence/bridge XCTest (4 tests) passed; iPhone 16 simulator test/build completed with `** TEST SUCCEEDED **`. The branch's current `c9f952b` commit only restores manual-only CI triggers.
 - [ ] Runtime interaction, rendering, media, audio and export behavior have not been validated on a physical device.
 - [ ] Do not reuse historical verification claims for a newer commit without checking its workflow runs.
 
