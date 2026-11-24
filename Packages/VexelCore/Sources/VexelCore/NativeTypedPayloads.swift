@@ -293,6 +293,7 @@ public extension VexelLayer {
             case .camera: .camera(VexelCameraContent(fields: fields))
             case .light: .light(VexelLightContent(fields: fields))
             case .null: .null(VexelNullContent(fields: fields))
+            case .unknown: nil
             }
         }
         set {
