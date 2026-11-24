@@ -13,4 +13,4 @@ The referenced assets are copied byte-for-byte from:
 
 The ZIP contains `project.json`, `assets/clip.mp4`, and `assets/music.m4a`, matching the entry layout documented and written by Android `KnsprojArchive.kt`.
 
-The archive was assembled as a deterministic test fixture from the Android repository's sample document and asset blobs. It was not exported by running the Android application. Keep this distinction explicit; a direct Android-app-exported `.knsproj` remains a required interoperability fixture.
+The archive generator workflow runs a focused Kotlin test against the reference repository and calls its production `KnsprojArchive.write()` implementation to create `kinesis-video-audio.knsproj`. The test reads the generated archive back with `KnsprojArchive.read()`, validates the project and verifies that both media assets survive byte-for-byte. This is stronger than hand-assembling a ZIP, but it is still generated from a checked-in sample and is not captured from an Android app session. A direct Android-app-exported `.knsproj` remains the final provenance fixture.

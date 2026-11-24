@@ -69,6 +69,10 @@ The authoritative migration registry is `Migrations` in `KnsprojJson.kt`. It run
 
 The iOS importer currently implements the nontrivial v1, v6 and v11 transformations recursively. The remaining version steps are optional-field additions and are currently represented by the version advancement. Migration behavior must remain fixture-tested.
 
+## Source-writer-generated archive verification
+
+The Vexel repository workflow `.github/workflows/source-android-archive.yml` checks out the reference repository at a pinned commit, runs a focused test in the Kotlin core module, and packages the checked-in video/audio sample through the reference production archive writer. It then uploads the generated `.knsproj` and runs Vexel's `ZIPProjectArchive` importer test against that exact artifact on macOS. This establishes archive-writer and importer interoperability for the selected sample. It does not establish that an archive was captured from an Android app session.
+
 ## Native Swift schema and source fixtures
 
 - `Packages/VexelCore/Sources/VexelCore/NativeProjectSchema.swift` adds a typed native envelope, composition, assets, markers, layer discriminators, transforms, animatable tracks, keyframes, loop modes, easing encodings, effects and recursive groups.

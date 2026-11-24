@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - feat/modular-engine-architecture
+    paths:
+      - ".github/workflows/source-android-archive.yml"
+      - "Packages/VexelArchive/Sources/**"
+      - "Packages/VexelArchive/Tests/**"
+      - "Packages/VexelCore/Sources/**"
+      - "Packages/VexelCore/Tests/**"
 
 permissions:
   contents: read
