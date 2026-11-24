@@ -51,7 +51,7 @@ These are initial workspace operations. They are not yet backed by a complete ca
 
 ### Project data, persistence, and archive groundwork
 
-- Native Vexel project extension `.vexelproj`, archive entry `vexel.json`, and native format identifier `vexelproj` v1.
+- Native Vexel project extension `.vexelproj`, archive entry `vexel.json`, and native format identifier `vexelproj` v2.
 - Registered Apple document type identifier: `com.ragestudios.vexel.project`. App bundle identifier remains `com.iamAizen17.vexel`.
 - `VexelProjectItem` and timeline tracks are Codable; project metadata and workspace state are persisted under Application Support.
 - `ProjectDocument` remains the generic JSON-backed native envelope. An additive `VexelNativeProject` typed schema now models the root, composition, assets, markers, all Android layer discriminators, transforms, animation tracks, keyframes, easing, loop modes, effects and recursive groups. The app bridge now decodes imported layers and markers through this typed schema and validates the typed round-trip before persistence. The timeline remains a reduced editing projection, not the canonical editable model.
