@@ -34,16 +34,16 @@ final class VexelProjectPersistenceTests: XCTestCase {
     }
 
     func testDuplicateCommitKeepsAssetsAfterSuccessfulIndexSave() throws {
-        var persisted = false
-        var rolledBack = false
+        var persistCount = 0
+        var rollbackCount = 0
 
         try VexelProjectStore.commitDuplicate(
-            persist: { persisted = true },
-            rollback: { rolledBack = true }
+            persist: { persistCount += 1 },
+            rollback: { rollbackCount += 1 }
         )
 
-        XCTAssertTrue(persisted)
-        XCTAssertFalse(rolledBack)
+        XCTAssertEqual(persistCount, 1)
+        XCTAssertEqual(rollbackCount, 0)
     }
 
     func testDuplicateCommitReportsRollbackFailureWithoutHidingPersistenceFailure() {
