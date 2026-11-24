@@ -17,20 +17,26 @@ final class VexelEditingStoreTests: XCTestCase {
         try await store.execute(.renameLayer(id: "shape", name: "First"), coalescingKey: "rename:shape")
         try await store.execute(.renameLayer(id: "shape", name: "Final"), coalescingKey: "rename:shape")
 
-        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Final")
-        XCTAssertTrue(await store.canUndo)
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Final")
+        let canUndo = await store.canUndo
+        XCTAssertTrue(canUndo)
         let didUndo = await store.undo()
         XCTAssertTrue(didUndo)
-        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Rectangle")
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Rectangle")
 
         let didRedo = await store.redo()
         XCTAssertTrue(didRedo)
-        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Final")
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Final")
 
         _ = await store.undo()
         try await store.execute(.renameLayer(id: "shape", name: "Replacement"))
-        XCTAssertFalse(await store.canRedo)
-        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Replacement")
+        let canRedo = await store.canRedo
+        XCTAssertFalse(canRedo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Replacement")
     }
 
     func testDuplicateAndSplitUseCoreLayerEditingSemantics() async throws {
@@ -105,7 +111,8 @@ final class VexelEditingStoreTests: XCTestCase {
                 return XCTFail("Unexpected error: \(error)")
             }
         }
-        XCTAssertEqual((await store.snapshot()).layers.first?.id, "group")
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.id, "group")
     }
 
     func testFailedCommandDoesNotMutateProjectOrCreateUndoEntry() async throws {
@@ -121,12 +128,14 @@ final class VexelEditingStoreTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(await store.snapshot(), before)
-        XCTAssertFalse(await store.canUndo)
+        let after = await store.snapshot()
+        let canUndo = await store.canUndo
+        XCTAssertEqual(after, before)
+        XCTAssertFalse(canUndo)
     }
 
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
-        var document = ProjectDocument.starter(title: "Editing store")
+        let document = ProjectDocument.starter(title: "Editing store")
         var native = try VexelNativeProject(document: document)
         native.layers = layers
         return try VexelEditingStore(project: native)
