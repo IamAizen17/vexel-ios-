@@ -217,7 +217,6 @@ struct VexelOnboardingView: View {
 private struct PendingVexelImport: Identifiable {
     let id = UUID()
     let project: VexelProjectItem
-    let assetsURL: URL
     let sourceName: String
     let unsupportedFeatures: [VexelUnsupportedFeature]
 }
@@ -291,6 +290,7 @@ private struct VexelImportReviewSheet: View {
             .navigationTitle("Import review")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .interactiveDismissDisabled(true)
     }
 }
 
@@ -347,16 +347,20 @@ struct VexelHomeView: View {
                 do {
                     let projectID = UUID()
                     let assetsURL = try VexelProjectStore.assetsDirectory(for: projectID)
-                    let payload = try ZIPProjectArchive().read(from: url, extractingAssetsTo: assetsURL)
-                    var imported = VexelProjectItem(document: payload.project)
-                    imported.id = projectID
-                    imported.assetsDirectory = assetsURL.path
-                    pendingImport = PendingVexelImport(
-                        project: imported,
-                        assetsURL: assetsURL,
-                        sourceName: url.lastPathComponent,
-                        unsupportedFeatures: VexelProjectImporter.compatibilityReport(for: payload.project)
-                    )
+                    do {
+                        let payload = try ZIPProjectArchive().read(from: url, extractingAssetsTo: assetsURL)
+                        var imported = VexelProjectItem(document: payload.project)
+                        imported.id = projectID
+                        imported.assetsDirectory = assetsURL.path
+                        pendingImport = PendingVexelImport(
+                            project: imported,
+                            sourceName: url.lastPathComponent,
+                            unsupportedFeatures: VexelProjectImporter.compatibilityReport(for: payload.project)
+                        )
+                    } catch {
+                        try? FileManager.default.removeItem(at: assetsURL)
+                        throw error
+                    }
                 } catch {
                     notice = "Import failed: \(error.localizedDescription)"
                 }
