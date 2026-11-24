@@ -9,6 +9,7 @@ on:
       - .github/workflows/ios-ci.yml
       - project.yml
       - App/VexelNavigation.swift
+      - App/VexelEditorWorkspace.swift
       - AppUITests/**
       - Packages/VexelCore/Sources/VexelCore/**
       - Packages/VexelCore/Tests/**
