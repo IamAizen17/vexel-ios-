@@ -43,8 +43,8 @@ public enum VexelLayerEditing {
         if let mediaKey,
            let media = layer.content?.objectValue,
            let sourceStart = media["sourceStart"]?.numberValue,
-           let speed = media["speed"]?.numberValue,
-           speed > 0 {
+           (media["speed"]?.numberValue ?? 1) > 0 {
+            let speed = media["speed"]?.numberValue ?? 1
             delta = max(delta, -sourceStart / speed)
         }
 
@@ -73,8 +73,8 @@ public enum VexelLayerEditing {
         result.duration = (layer.duration ?? 0) - delta
 
         if let mediaKey, var media = result.content?.objectValue,
-           let sourceStart = media["sourceStart"]?.numberValue,
-           let speed = media["speed"]?.numberValue {
+           let sourceStart = media["sourceStart"]?.numberValue {
+            let speed = media["speed"]?.numberValue ?? 1
             media["sourceStart"] = .number(max(0, sourceStart + delta * speed))
             result.content = .object(media)
         }
