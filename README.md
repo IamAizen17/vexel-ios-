@@ -44,6 +44,7 @@ xcodegen generate
 - [Reverse-engineering plan and evidence](docs/REVERSE_ENGINEERING_PLAN.md)
 - [Porting roadmap](docs/PORTING_ROADMAP.md)
 - [Vexel project format](docs/PROJECT_FORMAT.md)
+- [Android v12 compatibility audit](docs/ANDROID_V12_COMPATIBILITY.md)
 - [Testing strategy](docs/TESTING.md)
 - [Licensing and attribution](docs/LICENSING_AND_ATTRIBUTION.md)
 - [Build and IPA workflow](docs/BUILDING.md)
