@@ -9,15 +9,18 @@ final class VexelEditingStoreTests: XCTestCase {
         replacement.meta["title"] = .string("Replacement")
 
         try await store.execute(.replaceSnapshot(replacement))
-        XCTAssertEqual((await store.snapshot()).meta["title"], .string("Replacement"))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Replacement"))
 
         let didUndo = await store.undo()
         XCTAssertTrue(didUndo)
-        XCTAssertEqual((await store.snapshot()).meta["title"], original.meta["title"])
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], original.meta["title"])
 
         let didRedo = await store.redo()
         XCTAssertTrue(didRedo)
-        XCTAssertEqual((await store.snapshot()).meta["title"], .string("Replacement"))
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Replacement"))
     }
 
     func testAddUndoRedoAndCoalescedEdits() async throws {

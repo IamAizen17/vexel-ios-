@@ -567,7 +567,8 @@ struct VexelEditorWorkspace: View {
     @MainActor
     private func applyStoreSnapshot(_ store: VexelEditingStore) async {
         do {
-            let document = try await store.snapshot().projectDocument()
+            let snapshot = await store.snapshot()
+            let document = try snapshot.projectDocument()
             var updated = VexelProjectItem(document: document)
             updated.id = project.id
             updated.assetsDirectory = project.assetsDirectory
