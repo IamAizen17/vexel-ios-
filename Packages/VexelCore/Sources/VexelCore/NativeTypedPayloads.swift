@@ -29,9 +29,12 @@ public struct VexelObjectFields: Equatable, Sendable {
     }
 
     public mutating func setAnimatable(_ value: VexelAnimatableValue?, for key: String) {
-        guard let value, let data = try? JSONEncoder().encode(value),
-              let json = try? JSONDecoder().decode(JSONValue.self, from: data) else {
+        guard let value else {
             values.removeValue(forKey: key)
+            return
+        }
+        guard let data = try? JSONEncoder().encode(value),
+              let json = try? JSONDecoder().decode(JSONValue.self, from: data) else {
             return
         }
         values[key] = json
