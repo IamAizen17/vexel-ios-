@@ -25,7 +25,7 @@ public struct VexelObjectFields: Equatable, Sendable {
         return value
     }
     public func object(_ key: String) -> VexelObjectFields? {
-        values[key]?.objectValue.map(VexelObjectFields.init)
+        values[key]?.objectValue.map { VexelObjectFields($0) }
     }
     public func array(_ key: String) -> [JSONValue]? { values[key]?.arrayValue }
 
@@ -400,7 +400,7 @@ public enum VexelEditorViewMode: String, Sendable {
 public struct VexelEditorView: Equatable, Sendable {
     public var fields: VexelObjectFields
     public init(fields: VexelObjectFields) { self.fields = fields }
-    public var mode: VexelEditorViewMode? { fields.string("mode").flatMap(VexelEditorViewMode.init(rawValue:)) }
+    public var mode: VexelEditorViewMode? { fields.string("mode").flatMap { VexelEditorViewMode(rawValue: $0) } }
     public var target: JSONValue? { fields["target"] }
     public var yaw: Double? { fields.number("yaw") }
     public var pitch: Double? { fields.number("pitch") }
