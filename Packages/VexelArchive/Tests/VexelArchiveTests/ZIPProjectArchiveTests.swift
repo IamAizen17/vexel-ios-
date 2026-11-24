@@ -356,4 +356,28 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "expression" })
     }
 
+
+    func testAndroidReferenceArchiveImportsRealVideoAndAudioPayloads() throws {
+        let archiveURL = try XCTUnwrap(Bundle.module.url(
+            forResource: "android-video-audio-reference",
+            withExtension: "knsproj",
+            subdirectory: "Fixtures"
+        ))
+        let imported = try ZIPProjectArchive().read(from: archiveURL)
+        defer {
+            if let directory = imported.extractedAssetsDirectory {
+                try? FileManager.default.removeItem(at: directory)
+            }
+        }
+
+        XCTAssertEqual(imported.project.fields["compatibility"]?.objectValue?["sourceVersion"]?.numberValue, 2)
+        XCTAssertEqual(imported.project.fields["assets"]?.arrayValue?.count, 2)
+        XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "video" })
+        XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "audio" })
+
+        let assets = try XCTUnwrap(imported.extractedAssetsDirectory)
+        XCTAssertEqual(try Data(contentsOf: assets.appendingPathComponent("assets/clip.mp4")).count, 73_048)
+        XCTAssertEqual(try Data(contentsOf: assets.appendingPathComponent("assets/music.m4a")).count, 38_439)
+    }
+
 }
