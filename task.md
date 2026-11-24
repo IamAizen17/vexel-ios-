@@ -154,32 +154,36 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [ ] Optional: re-run unsigned IPA packaging on the current branch head. This is a packaging artifact check, not a blocker for P0 code integrity; the prior unsigned IPA run `45356750586` predates the final P0 code.
 - [x] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
-### P1: Canonical project/editing state and complete editing interaction
+### P1: Canonical editing state, editor redesign, and deterministic scene evaluation
 
-P1 is now active. The first implementation slice is to eliminate the workspace's duplicate undo/redo authority and make store snapshots the persistence source; the current UI still rebuilds the store from its projection and has direct mutation paths that must be migrated incrementally.
+P1 is active. The canonical-store integration is progressing and must remain distinct from the still-open editor redesign and full scene-engine work. Do not mark P1 complete until all three tracks are implemented and verified.
 
 **P1.1 Canonical editing authority**
-- [ ] Make the typed native project the authoritative editable project state.
-- [ ] Make `VexelEditingStore` the only mutation and undo/redo authority.
-- [ ] Remove duplicate workspace undo/redo stacks and prevent direct mutation of presentation projections.
-- [ ] Route every existing edit action through typed commands: transforms, properties, keyframes, markers, composition settings, media metadata, effects and timeline operations.
-- [ ] Ensure project persistence serializes the authoritative store snapshot.
-- [ ] Add command tests for validation, atomicity, undo/redo, coalescing, nested operations and serialization round trips.
+- [x] Establish `VexelEditingStore` as the owner of the typed `VexelNativeProject` snapshot and undo/redo history.
+- [x] Remove duplicate workspace undo/redo stacks.
+- [x] Keep composition-settings and timeline edits in local drafts; commit changes through the store.
+- [x] Route project rename, composition settings, timeline edits, marker edits, media registration, visibility/lock, duplicate/delete/split/group and effect operations through store commits.
+- [x] Serialize store snapshots back to the project library after successful commands.
+- [x] Add command tests for invalid-operation atomicity, undo/redo, coalescing, nested operations, grouping, effect parameters and snapshot replacement.
+- [ ] Replace generic snapshot-replacement commits with dedicated typed commands for marker and keyframe mutations.
+- [ ] Connect transform/property inspector controls to typed store commands and verify every remaining edit surface.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
-- [ ] Establish original Vexel design tokens, typography, spacing, iconography, surfaces and motion behavior.
-- [ ] Design home/projects and preset creation screens.
-- [ ] Redesign the editor around preview, timeline, layer selection, contextual tools and property editing.
-- [ ] Define portrait iPhone and landscape/iPad adaptive layouts.
-- [ ] Build reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
+- [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
+- [ ] Redesign home/projects and preset creation screens as a cohesive editing product.
+- [ ] Complete the editor redesign around preview, timeline, layer selection, contextual tools and property editing.
+- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts.
+- [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
 - [ ] Bind every implemented control to the canonical store and expose incomplete capabilities honestly.
 - [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
 
 **P1.3 Animation and deterministic scene model**
-- [ ] Implement typed property animation, keyframe sampling, easing, loop/ping-pong and constrained expressions.
-- [ ] Define the complete deterministic frame-scene contract from native project plus composition time.
-- [ ] Implement nested composition/layer timing, hierarchy, 2D/3D transforms, camera/light state, masks, mattes, transitions and evaluated effect parameters.
-- [ ] Add golden tests for representative projects and time samples.
+- [x] Establish a deterministic `FrameScene` contract from a native project document and composition time.
+- [x] Implement baseline keyframe interpolation, easing presets, cycle/ping-pong sampling and nested group timing/transforms.
+- [x] Add deterministic scene-evaluation regression tests for interpolation, loop modes and nested groups.
+- [ ] Implement typed property animation and constrained expressions.
+- [ ] Complete nested compositions, 2D/3D transforms, camera/light state, masks, mattes, transitions and evaluated effect parameters.
+- [ ] Add golden coverage for representative source projects and broader time samples.
 
 ### P2: Metal renderer and executable effects
 
@@ -212,9 +216,9 @@ P1 is now active. The first implementation slice is to eliminate the workspace's
 
 ## 5. Known limitations (do not misreport)
 
-- The timeline currently uses a reduced UI projection. It is not the canonical project model.
-- The editing store exists and handles several primary operations, but the workspace still has separate undo/redo state and unconnected mutation paths.
-- The current scene evaluator is a partial 2D evaluator, not equivalent to the source scene evaluator.
+- The timeline remains a reduced UI projection over the canonical typed native project. Some edits still use validated snapshot replacement rather than dedicated typed commands.
+- The workspace now delegates undo/redo and committed mutations to `VexelEditingStore`; transform/property inspector controls and several advanced editing surfaces remain unconnected.
+- The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes and nested groups. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
 - The effect catalogue is not proof that 73 effects execute.
 - Playback currently advances the playhead; full animated scene rendering and synchronized audio playback are not established.
@@ -225,7 +229,7 @@ P1 is now active. The first implementation slice is to eliminate the workspace's
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch head after P0 verification: `c0b95f92f831a4f8f244ea07963b3f96ca9ace25` (workflow-only manual-trigger restoration after successful code verification at `2a80cc2ed58d5d3533c017375e07e0d3aa629265`).
+Current feature branch head before this task-status update: `ac41257edac9e3e2544e04a9b7feec3559e10403`. P1 CI run `45374010309` is testing the workspace/store integration and scene-evaluation tests; its final result must be recorded before IPA packaging.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
