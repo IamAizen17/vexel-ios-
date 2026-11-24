@@ -126,6 +126,21 @@ final class VexelProjectImporterTests: XCTestCase {
         XCTAssertTrue(imported.validate().isEmpty)
     }
 
+    func testLegacyProjectsWithOmittedDefaultArraysAreNormalized() throws {
+        var fields = ProjectDocument.starter(title: "Legacy defaults").fields
+        fields["format"] = .string("knsproj")
+        fields["formatVersion"] = .number(2)
+        fields.removeValue(forKey: "assets")
+        fields.removeValue(forKey: "markers")
+        fields.removeValue(forKey: "layers")
+
+        let imported = try VexelProjectImporter.importDocument(from: ProjectDocument(fields: fields).encoded())
+        XCTAssertEqual(imported.fields["assets"], .array([]))
+        XCTAssertEqual(imported.fields["markers"], .array([]))
+        XCTAssertEqual(imported.fields["layers"], .array([]))
+        XCTAssertTrue(imported.validate().isEmpty)
+    }
+
     func testFutureKNSVersionIsRejected() throws {
         let project = legacyProject(version: 13)
         XCTAssertThrowsError(try VexelProjectImporter.importDocument(from: project.encoded()))
