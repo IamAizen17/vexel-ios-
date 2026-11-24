@@ -69,10 +69,6 @@ public struct VexelNativeProject: Codable, Equatable, Sendable {
         return try ProjectDocument(data: data)
     }
 
-    fileprivate enum CodingKeys: String, CodingKey {
-        case format, formatVersion, generator, meta, composition, assets, markers, editorView, layers
-    }
-
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: DynamicCodingKey.self)
         format = try container.decode(String.self, forKey: .init("format"))
@@ -513,8 +509,4 @@ fileprivate extension VexelNativeProject {
         }
         return result
     }
-}
-
-fileprivate extension VexelNativeProject.CodingKeys {
-    static var allCases: [Self] { [.format, .formatVersion, .generator, .meta, .composition, .assets, .markers, .editorView, .layers] }
 }
