@@ -29,6 +29,9 @@ final class SceneEvaluatorTests: XCTestCase {
     func testCycleAndPingPongLoopsSampleExpectedLocalTimes() {
         func makeDocument(loop: String) -> ProjectDocument {
             var document = ProjectDocument.starter()
+            var composition = document.fields["composition"]?.objectValue ?? [:]
+            composition["duration"] = .number(30)
+            document.fields["composition"] = .object(composition)
             document.fields["layers"] = .array([
                 .object([
                     "id": .string("looped"), "type": .string("shape"), "start": .number(0), "duration": .number(30),
