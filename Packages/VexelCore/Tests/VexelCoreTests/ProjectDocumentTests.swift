@@ -2,6 +2,17 @@ import XCTest
 @testable import VexelCore
 
 final class ProjectDocumentTests: XCTestCase {
+    func testStableSourceIdentifierMappingIsDeterministicAndPreservesUUIDs() {
+        let sourceID = "android-layer-α-42"
+        let first = VexelStableIdentifier.uuid(forSourceID: sourceID)
+        let second = VexelStableIdentifier.uuid(forSourceID: sourceID)
+        XCTAssertEqual(first, second)
+        XCTAssertNotEqual(first, VexelStableIdentifier.uuid(forSourceID: "android-layer-α-43"))
+
+        let existing = UUID()
+        XCTAssertEqual(VexelStableIdentifier.uuid(forSourceID: existing.uuidString), existing)
+    }
+
     func testStarterProjectIsValid() {
         let project = ProjectDocument.starter(title: "First Cut")
         XCTAssertTrue(project.validate().isEmpty)
