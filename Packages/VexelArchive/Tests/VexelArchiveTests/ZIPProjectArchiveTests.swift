@@ -383,4 +383,39 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: assets.appendingPathComponent("assets/music.m4a")).count, 38_439)
     }
 
+
+    func testFailedRollbackReportsRecoverableBackupLocation() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let archiveURL = directory.appendingPathComponent("project.vexelproj")
+        try ZIPProjectArchive().write(ProjectDocument.starter(title: "Rollback failure"), to: archiveURL)
+        let destination = directory.appendingPathComponent("assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        let sentinel = destination.appendingPathComponent("existing.txt")
+        try Data("recoverable".utf8).write(to: sentinel)
+
+        let archive = ZIPProjectArchive(
+            maximumExtractedBytes: ZIPProjectArchive.maximumUncompressedBytes,
+            moveItemAction: { source, target in
+                if source.lastPathComponent.contains(".staging-") ||
+                    source.lastPathComponent.contains(".backup-") {
+                    throw CocoaError(.fileWriteNoPermission)
+                }
+                try FileManager.default.moveItem(at: source, to: target)
+            }
+        )
+
+        XCTAssertThrowsError(try archive.read(from: archiveURL, extractingAssetsTo: destination)) { error in
+            guard let archiveError = error as? ZIPProjectArchiveError,
+                  case .destinationRollbackFailed(let backupPath, _) = archiveError else {
+                return XCTFail("Unexpected error: \\(error)")
+            }
+            let backup = URL(fileURLWithPath: backupPath)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: backup.appendingPathComponent("existing.txt").path))
+            XCTAssertEqual(try Data(contentsOf: backup.appendingPathComponent("existing.txt")), Data("recoverable".utf8))
+        }
+    }
+
 }
