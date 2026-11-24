@@ -301,6 +301,42 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(undone.keyframes.count, 2)
     }
 
+    func testMarkerUpsertUpdatesExistingMarkerWithoutDuplicatingIt() async throws {
+        let store = try makeStore()
+        try await store.execute(.upsertMarker(VexelMarkerData(id: "marker", time: 1, name: "Original")))
+        try await store.execute(.upsertMarker(VexelMarkerData(
+            id: "marker",
+            time: 2,
+            name: "Updated",
+            unknownFields: ["extension": .bool(true)]
+        )))
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.count, 1)
+        XCTAssertEqual(snapshot.markers[0].name, "Updated")
+        XCTAssertEqual(snapshot.markers[0].unknownFields["extension"], .bool(true))
+    }
+
+    func testKeyframeCommandRejectsTimeOutsideLayerWithoutMutatingHistory() async throws {
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 2, content: .object(["kind": .string("rectangle")]))
+        let store = try makeStore(layers: [layer])
+        let before = await store.snapshot()
+        do {
+            try await store.execute(.setKeyframe(
+                layerID: "shape",
+                property: "position",
+                keyframe: VexelKeyframe(time: 3, value: .array([.number(1), .number(2)])),
+                is3D: false
+            ))
+            XCTFail("Out-of-range keyframes must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \(error)") }
+        }
+        let after = await store.snapshot()
+        let canUndo = await store.canUndo
+        XCTAssertEqual(after, before)
+        XCTAssertFalse(canUndo)
+    }
+
     func testMarkerCommandsUpsertSortRemoveAndUndo() async throws {
         let store = try makeStore()
         let marker = VexelMarkerData(

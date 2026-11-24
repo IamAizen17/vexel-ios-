@@ -428,8 +428,12 @@ public actor VexelEditingStore {
                 var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
                 guard case .animated(var animation)? = transform.properties[property] else { return }
                 animation.keyframes.removeAll { abs($0.time - time) < 0.000001 }
-                if animation.keyframes.isEmpty, let value = animation.value {
-                    transform.properties[property] = .constant(value)
+                if animation.keyframes.isEmpty {
+                    if let value = animation.value {
+                        transform.properties[property] = .constant(value)
+                    } else {
+                        transform.properties.removeValue(forKey: property)
+                    }
                 } else {
                     transform.properties[property] = .animated(animation)
                 }
