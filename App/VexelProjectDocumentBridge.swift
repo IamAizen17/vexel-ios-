@@ -26,7 +26,7 @@ extension VexelProjectItem {
         layerNames = Self.flattenNames(timelineTracks)
         let typedMarkers = nativeProject?.markers.map { marker in
             VexelMarker(
-                id: UUID(),
+                id: VexelStableIdentifier.uuid(forSourceID: marker.id),
                 name: marker.name ?? "Marker",
                 time: marker.time,
                 color: marker.color ?? "Teal",
@@ -36,7 +36,7 @@ extension VexelProjectItem {
         markers = typedMarkers ?? (document.fields["markers"]?.arrayValue ?? []).compactMap { value in
             guard let object = value.objectValue else { return nil }
             return VexelMarker(
-                id: UUID(),
+                id: object["id"]?.stringValue.map(VexelStableIdentifier.uuid(forSourceID:)) ?? UUID(),
                 name: object["name"]?.stringValue ?? "Marker",
                 time: object["time"]?.numberValue ?? 0,
                 color: object["color"]?.stringValue ?? "Teal",
