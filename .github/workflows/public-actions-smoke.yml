@@ -40,3 +40,27 @@ jobs:
             echo "- macOS runner: not used"
           } >> "${GITHUB_STEP_SUMMARY}"
           printf 'Public Actions smoke test passed on %s at %s\n' "${runner}" "${commit}"
+
+  macos-smoke-test:
+    name: Verify public macOS Actions runner
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify Apple build toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+          {
+            echo ""
+            echo "## macOS runner"
+            echo ""
+            echo "- Result: passed"
+            echo "- Runner: ${RUNNER_OS} / ${RUNNER_ARCH}"
+            echo "- Xcode: available"
+            echo "- Swift: available"
+          } >> "${GITHUB_STEP_SUMMARY}"
