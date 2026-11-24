@@ -295,7 +295,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertThrowsError(try archive.read(from: archiveURL, extractingAssetsTo: destination)) { error in
             guard let archiveError = error as? ZIPProjectArchiveError,
                   case .destinationReplacementFailed = archiveError else {
-                return XCTFail("Unexpected error: \\(error)")
+                return XCTFail("Unexpected error: \(error)")
             }
         }
         XCTAssertEqual(try Data(contentsOf: sentinel), Data("preserve-me".utf8))
