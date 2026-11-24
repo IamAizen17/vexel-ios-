@@ -523,9 +523,9 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             ]
             if let payload = requiredPayloads[type], layer[payload]?.objectValue == nil {
                 issues.append(ProjectIssue(
-                    severity: .error,
+                    severity: .warning,
                     path: "\(location).\(payload)",
-                    message: "A '\(type)' layer requires its matching '\(payload)' payload."
+                    message: "The source validator requires a matching '\(payload)' payload; this imported layer is retained without one."
                 ))
             }
 
