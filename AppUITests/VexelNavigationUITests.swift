@@ -52,15 +52,13 @@ final class VexelNavigationUITests: XCTestCase {
         let anchorX = app.textFields["inspector.anchor.x"]
         XCTAssertTrue(anchorX.waitForExistence(timeout: 5))
         anchorX.tap()
-        let anchorValue = anchorX.value as? String ?? ""
-        anchorX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "42\\n")
+        anchorX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "42" + XCUIKeyboardKey.return.rawValue)
         XCTAssertEqual(Double(anchorX.value as? String ?? ""), 42, accuracy: 0.01)
 
         let scaleX = app.textFields["inspector.scale.x"]
         XCTAssertTrue(scaleX.waitForExistence(timeout: 5))
         scaleX.tap()
-        let scaleValue = scaleX.value as? String ?? ""
-        scaleX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "125\\n")
+        scaleX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "125" + XCUIKeyboardKey.return.rawValue)
         XCTAssertEqual(Double(scaleX.value as? String ?? ""), 125, accuracy: 0.01)
     }
 

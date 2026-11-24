@@ -412,7 +412,7 @@ final class VexelEditingStoreTests: XCTestCase {
                 VexelKeyframe(time: 4, value: .array([.number(40), .number(20)]))
             ],
             value: .array([.number(0), .number(0)]),
-            loop: .pingPong,
+            loop: .pingpong,
             expression: "time",
             expressionEnabled: false,
             unknownFields: ["futureTrackFlag": .bool(true)]
@@ -440,7 +440,7 @@ final class VexelEditingStoreTests: XCTestCase {
         }
         XCTAssertEqual(updated.value, .array([.number(100), .number(50)]))
         XCTAssertEqual(updated.keyframes, animation.keyframes)
-        XCTAssertEqual(updated.loop, .pingPong)
+        XCTAssertEqual(updated.loop, .pingpong)
         XCTAssertEqual(updated.expression, "time")
         XCTAssertEqual(updated.expressionEnabled, false)
         XCTAssertEqual(updated.unknownFields["futureTrackFlag"], .bool(true))

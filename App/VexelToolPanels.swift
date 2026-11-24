@@ -821,7 +821,7 @@ struct VexelPropertiesPanel: View {
                 .multilineTextAlignment(.trailing).keyboardType(.numbersAndPunctuation)
                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.text)
                 .frame(width: 64).padding(6).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 6))
-                .accessibilityIdentifier(accessibilityIdentifier ?? "inspector.value.\\(title.lowercased())")
+                .accessibilityIdentifier(accessibilityIdentifier ?? "inspector.value.\(title.lowercased())")
                 .onSubmit { onCommit?() }
             Text(unit).font(.system(size: 9)).foregroundStyle(VexelPalette.secondary).frame(width: 24, alignment: .leading)
         }
