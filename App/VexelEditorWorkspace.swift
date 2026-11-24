@@ -52,8 +52,8 @@ struct VexelEditorWorkspace: View {
     @State private var isPlaying = false
     @State private var currentTime = 0.0
     @State private var showRename = false
-    @State private var undoStack: [VexelProjectItem] = []
-    @State private var redoStack: [VexelProjectItem] = []
+    @State private var canUndoEdits = false
+    @State private var canRedoEdits = false
     @State private var editingStore: VexelEditingStore?
     @State private var editingCommandTask: Task<Void, Never>?
     @State private var showingMediaPicker = false
@@ -155,14 +155,10 @@ struct VexelEditorWorkspace: View {
         .sheet(item: $editingMarker) { marker in
             VexelMarkerSheet(marker: marker) { updated in
                 if let index = project.markers.firstIndex(where: { $0.id == updated.id }) {
-                    project.markers[index] = updated
+                    commitEdit { project.markers[index] = updated }
                 } else {
-                    project.markers.append(updated)
+                    commitEdit { project.markers.append(updated) }
                 }
-                project.modified = Date()
-                project.synchronizeDocument()
-                resetEditingStoreFromWorkspace()
-                onProjectChange(project)
             }
             .presentationDetents([.medium, .large])
         }
@@ -254,8 +250,8 @@ struct VexelEditorWorkspace: View {
             }
             .contentShape(Rectangle()).onTapGesture { showRename = true }
             Spacer(minLength: 4)
-            VexelIconButton(symbol: "arrow.uturn.backward", disabled: undoStack.isEmpty) { undoEdit() }
-            VexelIconButton(symbol: "arrow.uturn.forward", disabled: redoStack.isEmpty) { redoEdit() }
+            VexelIconButton(symbol: "arrow.uturn.backward", disabled: !canUndoEdits) { undoEdit() }
+            VexelIconButton(symbol: "arrow.uturn.forward", disabled: !canRedoEdits) { redoEdit() }
             VexelIconButton(symbol: "slider.horizontal.3") { showCompositionSettings = true }
             VexelIconButton(symbol: "square.and.arrow.up", active: true) { showExport = true }
         }
@@ -348,29 +344,23 @@ struct VexelEditorWorkspace: View {
                 }
                 performEditingCommand(
                     .setLayerTiming(id: sourceID, start: start, duration: duration),
-                    registerUndo: false
                 )
             },
             onTrackVisibilityChange: { trackID, visible in
                 guard let sourceID = sourceLayerID(for: trackID) else { return }
                 performEditingCommand(
                     .setLayerVisibility(id: sourceID, visible: visible),
-                    registerUndo: false
                 )
             },
             onTrackLockChange: { trackID, locked in
                 guard let sourceID = sourceLayerID(for: trackID) else { return }
                 performEditingCommand(
                     .setLayerLock(id: sourceID, locked: locked),
-                    registerUndo: false
                 )
             },
             onEditBegan: {
                 audioPlayback.stop()
                 isTimelineGestureActive = true
-                undoStack.append(project)
-                if undoStack.count > 100 { undoStack.removeFirst() }
-                redoStack.removeAll()
             },
             onEditEnded: {
                 isTimelineGestureActive = false
@@ -378,7 +368,7 @@ struct VexelEditorWorkspace: View {
                 layerNames = project.layerNames
                 project.modified = Date()
                 project.synchronizeDocument()
-                onProjectChange(project)
+                commitEdit {}
                 if isPlaying {
                     do { try audioPlayback.play(project: project, from: currentTime) }
                     catch { showingNotice = "Audio playback failed: \(error.localizedDescription)" }
@@ -485,14 +475,21 @@ struct VexelEditorWorkspace: View {
             editingStore = try VexelEditingStore(project: nativeProject)
         } catch {
             editingStore = nil
+            canUndoEdits = false
+            canRedoEdits = false
             showingNotice = "The editing engine could not synchronize this project: \(error.localizedDescription)"
+        }
+        if let store = editingStore {
+            Task { @MainActor in
+                canUndoEdits = await store.canUndo
+                canRedoEdits = await store.canRedo
+            }
         }
     }
 
     private func performEditingCommand(
         _ command: VexelEditingCommand,
-        selecting sourceID: String? = nil,
-        registerUndo: Bool = true
+        selecting sourceID: String? = nil
     ) {
         guard let store = editingStore else {
             showingNotice = "The editing engine is unavailable. Reopen the project and try again."
@@ -510,20 +507,16 @@ struct VexelEditorWorkspace: View {
                 updated.assetsDirectory = project.assetsDirectory
                 updated.modified = Date()
                 updated.layerNames = flattenTrackNames(updated.timelineTracks)
-                if registerUndo {
-                    undoStack.append(project)
-                    if undoStack.count > 100 { undoStack.removeFirst() }
-                    redoStack.removeAll()
-                }
                 project = updated
                 layerNames = updated.layerNames
                 if let sourceID {
                     selectedTrackID = VexelStableIdentifier.uuid(forSourceID: sourceID)
                 }
+                canUndoEdits = await store.canUndo
+                canRedoEdits = await store.canRedo
                 onProjectChange(updated)
             } catch {
                 showingNotice = error.localizedDescription
-                if !registerUndo { resetEditingStoreFromWorkspace() }
             }
         }
     }
@@ -540,39 +533,58 @@ struct VexelEditorWorkspace: View {
         return track.sourceID ?? track.id.uuidString
     }
 
-    private func commitEdit(_ mutation: () -> Void) {
-        undoStack.append(project)
-        if undoStack.count > 100 { undoStack.removeFirst() }
-        redoStack.removeAll()
-        mutation()
-        project.layerNames = flattenTrackNames(project.timelineTracks)
-        layerNames = project.layerNames
-        project.modified = Date()
-        project.synchronizeDocument()
-        resetEditingStoreFromWorkspace()
-        onProjectChange(project)
+    private func commitEdit(_ mutation: (inout VexelProjectItem) -> Void) {
+        var candidate = project
+        mutation(&candidate)
+        candidate.layerNames = flattenTrackNames(candidate.timelineTracks)
+        candidate.modified = Date()
+        candidate.synchronizeDocument()
+        do {
+            let nativeProject = try VexelNativeProject(document: candidate.makeProjectDocument())
+            performEditingCommand(.replaceSnapshot(nativeProject))
+        } catch {
+            showingNotice = "The edit could not be committed: \(error.localizedDescription)"
+        }
     }
 
     private func undoEdit() {
-        guard let previous = undoStack.popLast() else { return }
-        redoStack.append(project)
-        project = previous
-        layerNames = previous.layerNames
-        selectedTrackID = previous.timelineTracks.first?.id
-        project.synchronizeDocument()
-        resetEditingStoreFromWorkspace()
-        onProjectChange(project)
+        guard let store = editingStore else { return }
+        let previousTask = editingCommandTask
+        editingCommandTask = Task { @MainActor in
+            await previousTask?.value
+            guard await store.undo() else { return }
+            await applyStoreSnapshot(store)
+        }
     }
 
     private func redoEdit() {
-        guard let next = redoStack.popLast() else { return }
-        undoStack.append(project)
-        project = next
-        layerNames = next.layerNames
-        selectedTrackID = next.timelineTracks.first?.id
-        project.synchronizeDocument()
-        resetEditingStoreFromWorkspace()
-        onProjectChange(project)
+        guard let store = editingStore else { return }
+        let previousTask = editingCommandTask
+        editingCommandTask = Task { @MainActor in
+            await previousTask?.value
+            guard await store.redo() else { return }
+            await applyStoreSnapshot(store)
+        }
+    }
+
+    @MainActor
+    private func applyStoreSnapshot(_ store: VexelEditingStore) async {
+        do {
+            let document = try await store.snapshot().projectDocument()
+            var updated = VexelProjectItem(document: document)
+            updated.id = project.id
+            updated.assetsDirectory = project.assetsDirectory
+            updated.modified = Date()
+            updated.layerNames = flattenTrackNames(updated.timelineTracks)
+            project = updated
+            layerNames = updated.layerNames
+            selectedTrackID = updated.timelineTracks.first?.id
+            canUndoEdits = await store.canUndo
+            canRedoEdits = await store.canRedo
+            onProjectChange(updated)
+        } catch {
+            showingNotice = "The editing history could not be restored: \(error.localizedDescription)"
+        }
     }
 
     private func addLayer(named name: String, kind: VexelTimelineTrack.Kind) {

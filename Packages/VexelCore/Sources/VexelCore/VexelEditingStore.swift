@@ -18,6 +18,7 @@ public enum VexelEditingCommand: Sendable {
     case setLayerTiming(id: String, start: Double, duration: Double)
     case setTransformValue(id: String, property: String, value: VexelAnimatableValue, is3D: Bool)
     case setParent(id: String, parentID: String?)
+    case replaceSnapshot(VexelNativeProject)
 }
 
 public enum VexelEditingStoreError: Error, Equatable, Sendable {
@@ -370,6 +371,9 @@ public actor VexelEditingStore {
             }) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
+
+        case .replaceSnapshot(let snapshot):
+            project = snapshot
 
         case .setParent(let id, let parentID):
             guard let layer = findLayer(id, in: project.layers) else {

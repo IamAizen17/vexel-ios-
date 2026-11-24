@@ -2,6 +2,24 @@ import XCTest
 @testable import VexelCore
 
 final class VexelEditingStoreTests: XCTestCase {
+    func testSnapshotReplacementParticipatesInUndoAndRedo() async throws {
+        let store = try makeStore()
+        let original = await store.snapshot()
+        var replacement = original
+        replacement.meta["title"] = .string("Replacement")
+
+        try await store.execute(.replaceSnapshot(replacement))
+        XCTAssertEqual((await store.snapshot()).meta["title"], .string("Replacement"))
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        XCTAssertEqual((await store.snapshot()).meta["title"], original.meta["title"])
+
+        let didRedo = await store.redo()
+        XCTAssertTrue(didRedo)
+        XCTAssertEqual((await store.snapshot()).meta["title"], .string("Replacement"))
+    }
+
     func testAddUndoRedoAndCoalescedEdits() async throws {
         let store = try makeStore()
         let shape = VexelLayer(
