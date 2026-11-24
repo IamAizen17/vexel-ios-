@@ -71,6 +71,12 @@ final class NativeProjectSchemaTests: XCTestCase {
         let original = try ProjectDocument(data: source)
         let typed = try VexelNativeProject(document: original)
         XCTAssertEqual(typed.composition.fps, 29.97, accuracy: 0.0001)
+        XCTAssertEqual(typed.assets.first?.unknownFields["futureAsset"], .bool(true))
+        XCTAssertEqual(typed.markers.first?.unknownFields["futureMarker"], .string("kept"))
+        XCTAssertEqual(typed.layers.first?.unknownFields["futureGroup"]?.objectValue?["deep"]?.objectValue?["keep"], .bool(true))
+        XCTAssertEqual(typed.layers.first?.layers.first?.content?.objectValue?["futureShape"], .string("kept"))
+        XCTAssertEqual(typed.layers.first?.layers.first?.effects.first?.parameters["futureEffect"],
+                       .array([.number(1), .number(2)]))
         XCTAssertEqual(typed.layers.first?.layers.first?.transform?.properties["position"], .animated(
             VexelAnimationTrack(
                 keyframes: [
