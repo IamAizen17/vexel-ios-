@@ -981,7 +981,7 @@ private struct MediaPicker: View {
             }
             .padding(18).background(VexelPalette.background)
             .navigationTitle(audioOnly ? "Add audio" : "Add media")
-            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { onSave(project); dismiss() } } }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .onChange(of: selection) { item in if let item { onSelect(item); dismiss() } }
         }
             }
