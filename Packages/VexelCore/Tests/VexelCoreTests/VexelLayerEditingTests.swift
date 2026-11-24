@@ -34,7 +34,7 @@ final class VexelLayerEditingTests: XCTestCase {
         XCTAssertEqual(copy.id, "group-copy")
         XCTAssertEqual(copy.name, "Scene copy")
         XCTAssertEqual(copy.parent, "external-parent")
-        XCTAssertEqual(copy.layers.map(\\.id), ["shape-copy", "text-copy"])
+        XCTAssertEqual(copy.layers.map(\.id), ["shape-copy", "text-copy"])
         XCTAssertEqual(copy.layers[1].parent, "shape-copy")
         XCTAssertEqual(copy.layers[1].matte?.objectValue?["layer"]?.stringValue, "shape-copy")
         XCTAssertEqual(copy.layers[1].matte?.objectValue?["mode"]?.stringValue, "alpha")
@@ -93,7 +93,7 @@ final class VexelLayerEditingTests: XCTestCase {
         guard case .animated(let position)? = result.second.transform?.properties["position"] else {
             return XCTFail("The split layer must retain its animated transform.")
         }
-        XCTAssertEqual(position.keyframes.map(\\.time), [-2, 2])
+        XCTAssertEqual(position.keyframes.map(\.time), [-2, 2])
         XCTAssertEqual(
             result.second.content?.objectValue?["volume"]?.objectValue?["keyframes"]?.arrayValue?.compactMap { $0.objectValue?["time"]?.numberValue },
             [-2, 2]
@@ -143,10 +143,10 @@ final class VexelLayerEditingTests: XCTestCase {
         XCTAssertEqual(split.first.duration, 5)
         XCTAssertEqual(split.second.start, 5)
         XCTAssertEqual(split.second.duration, 5)
-        XCTAssertEqual(split.second.layers.map(\\.start), [-4, -3])
+        XCTAssertEqual(split.second.layers.map(\.start), [-4, -3])
         XCTAssertEqual(split.second.layers[1].parent, split.second.layers[0].id)
         XCTAssertEqual(split.second.layers[1].matte?.objectValue?["layer"]?.stringValue, split.second.layers[0].id)
-        XCTAssertEqual(source.layers.map(\\.start), [1, 2])
+        XCTAssertEqual(source.layers.map(\.start), [1, 2])
     }
 
 }
