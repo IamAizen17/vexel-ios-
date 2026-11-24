@@ -41,7 +41,7 @@ final class VexelAudioPlaybackEngine: ObservableObject {
 
         for clip in clips {
             guard let path = assetPaths[clip.assetID] else { continue }
-            let fileURL = assetsDirectory.appendingPathComponent(path)
+            let fileURL = URL(fileURLWithPath: assetsDirectory, isDirectory: true).appendingPathComponent(path)
             guard let file = try? AVAudioFile(forReading: fileURL) else { continue }
             let sampleRate = file.processingFormat.sampleRate
             guard sampleRate > 0 else { continue }
