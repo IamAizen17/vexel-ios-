@@ -170,13 +170,15 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Connect position X/Y fields in both compact and wide inspectors to native transform commands.
 - [x] Connect anchor, scale, rotation and opacity controls in compact and wide inspectors to native transform commands using source-compatible units.
 - [x] Preserve animated transform keyframes, loop/expression settings and unknown track fields when editing a property's base value.
-- [ ] Connect text content/font properties through typed text commands and preserve nested unknown fields.
-- [ ] Keep unsupported mask, transition, animator and other property controls disabled or clearly marked.
+- [x] Add typed text content/font commands for content, family, weight, italic, size, line height, letter spacing and alignment; preserve nested unknown fields and animated font-size/letter-spacing metadata.
+- [x] Connect the compact and wide text inspectors to typed text commands; keep unsupported text animator controls disabled.
+- [x] Keep unsupported mask, transition and text animator controls disabled or clearly marked.
 - [ ] Replace remaining generic snapshot-replacement commits with dedicated typed commands and verify all edit surfaces, including text and media-specific properties.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
-- [ ] Redesign home/projects and preset creation screens as a cohesive editing product.
+- [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
+- [ ] Redesign the new-composition setup sheet.
 - [ ] Complete the editor redesign around preview, timeline, layer selection, contextual tools and property editing.
 - [ ] Validate portrait iPhone and landscape/iPad adaptive layouts.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
@@ -188,7 +190,8 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Implement baseline keyframe interpolation, easing presets, cycle/ping-pong sampling and nested group timing/transforms.
 - [x] Add deterministic scene-evaluation regression tests for interpolation, loop modes and nested groups.
 - [x] Add typed keyframe insertion/removal on native transform properties, preserving existing animation track metadata.
-- [ ] Implement reusable typed property descriptors, keyframe sampling/editing for all supported properties, and constrained expressions.
+- [ ] Implement reusable typed property descriptors and keyframe sampling/editing for all supported properties, and constrained expressions.
+- [x] Preserve negative source layer/group start times in deterministic scene evaluation.
 - [ ] Complete nested compositions, 2D/3D transforms, camera/light state, masks, mattes, transitions and evaluated effect parameters.
 - [ ] Add golden coverage for representative source projects and broader time samples.
 
@@ -224,8 +227,8 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 ## 5. Known limitations (do not misreport)
 
 - The timeline remains a reduced UI projection over the canonical typed native project. Some edits still use validated snapshot replacement rather than dedicated typed commands.
-- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation and opacity are connected. Text, mask, transition, animator and several advanced editing surfaces remain unconnected.
-- The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes and nested groups. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
+- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. Text animators, masks, transitions and several advanced editing surfaces remain unconnected.
+- The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes, nested groups and negative source layer/group starts. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
 - The effect catalogue is not proof that 73 effects execute.
 - Playback currently advances the playhead; full animated scene rendering and synchronized audio playback are not established.
@@ -236,7 +239,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch code head before this task-status update: `83a1b71326cb6b2af3897cb9ad052c7f016e24d6`. Latest P1 CI run `45381510326` is validating transform inspector wiring, animation metadata preservation and UI coverage. The earlier attempt `45381125892` exposed a test-only enum spelling error (`pingPong` vs `pingpong`); corrected in `83a1b71`.
+Current feature branch code head before this task-status update: `fedde0b83c2510d427717b6c2197ff234e2a5228`. Latest P1 CI run `45382982351` is validating typed transform/text editing, 2D/3D inspector integration, scene evaluation for negative starts, adaptive home/preset UI, app tests and simulator build. Earlier test-only issues were corrected before this run.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
