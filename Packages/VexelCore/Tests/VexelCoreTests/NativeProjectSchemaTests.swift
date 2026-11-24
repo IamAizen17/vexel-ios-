@@ -98,13 +98,16 @@ final class NativeProjectSchemaTests: XCTestCase {
                        original.fields["layers"]?.arrayValue?.first?.objectValue?["layers"]?.arrayValue?.first?.objectValue?["effects"])
     }
 
-    func testUnknownLayerDiscriminatorFailsInsteadOfSilentlyDroppingContent() throws {
+    func testUnknownLayerDiscriminatorIsPreservedAsOpaqueContent() throws {
         let data = """
         {"format":"vexelproj","formatVersion":1,
          "composition":{"width":1080,"height":1920,"fps":30,"duration":5},
          "layers":[{"id":"future","type":"futureLayer","payload":{"keep":true}}]}
         """.data(using: .utf8)!
-        XCTAssertThrowsError(try JSONDecoder().decode(VexelNativeProject.self, from: data))
+        let schema = try JSONDecoder().decode(VexelNativeProject.self, from: data)
+        XCTAssertEqual(schema.layers.first?.type, .unknown("futureLayer"))
+        XCTAssertEqual(schema.layers.first?.content?.objectValue?["payload"]?.objectValue?["keep"], .bool(true))
+        XCTAssertNil(schema.layers.first?.typedContent)
     }
 
     func testTypedAnimationSupportsAndroidLoopModesCyclicEasingAndDisabledExpressions() throws {
