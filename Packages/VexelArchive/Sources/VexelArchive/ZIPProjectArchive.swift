@@ -23,9 +23,13 @@ public enum ZIPProjectArchiveError: Error, Equatable {
     case archiveTooLarge
     case missingProjectDocument
     case missingAsset(String)
+    case destinationReplacementFailed(String)
+    case destinationRollbackFailed(String, String)
 }
 
 public struct ZIPProjectArchive: Sendable {
+    private let maximumExtractedBytes: UInt64
+    private let moveItemAction: @Sendable (URL, URL) throws -> Void
     public static let projectEntry = "vexel.json"
     public static let legacyProjectEntry = "project.json"
     public static let maximumEntries = 10_000
@@ -34,7 +38,18 @@ public struct ZIPProjectArchive: Sendable {
     public static let maximumUncompressedBytes: UInt64 = 8 * 1024 * 1024 * 1024
     public static let maximumCompressionRatio = 500.0
 
-    public init() {}
+    public init() {
+        maximumExtractedBytes = Self.maximumUncompressedBytes
+        moveItemAction = { try FileManager.default.moveItem(at: $0, to: $1) }
+    }
+
+    init(
+        maximumExtractedBytes: UInt64 = Self.maximumUncompressedBytes,
+        moveItemAction: @escaping @Sendable (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) }
+    ) {
+        self.maximumExtractedBytes = min(maximumExtractedBytes, Self.maximumUncompressedBytes)
+        self.moveItemAction = moveItemAction
+    }
 
     public func read(from archiveURL: URL, extractingAssetsTo destination: URL? = nil) throws -> ProjectArchivePayload {
         guard let archive = Archive(url: archiveURL, accessMode: .read) else {
@@ -91,7 +106,7 @@ public struct ZIPProjectArchive: Sendable {
                         throw ZIPProjectArchiveError.projectDocumentTooLarge
                     }
                     var data = Data()
-                    let remaining = Self.maximumUncompressedBytes - actualTotal
+                    let remaining = maximumExtractedBytes - actualTotal
                     let extracted = try Self.extract(
                         entry,
                         from: archive,
@@ -150,15 +165,19 @@ public struct ZIPProjectArchive: Sendable {
                 let backup = destination.deletingLastPathComponent()
                     .appendingPathComponent(".\(destination.lastPathComponent).backup-\(UUID().uuidString)", isDirectory: true)
                 let hadDestination = manager.fileExists(atPath: destination.path)
-                if hadDestination { try manager.moveItem(at: destination, to: backup) }
+                if hadDestination { try moveItemAction(destination, backup) }
                 do {
-                    try manager.moveItem(at: staging, to: destination)
+                    try moveItemAction(staging, destination)
                     if hadDestination { try? manager.removeItem(at: backup) }
                 } catch {
                     if hadDestination, manager.fileExists(atPath: backup.path) {
-                        try? manager.moveItem(at: backup, to: destination)
+                        do {
+                            try moveItemAction(backup, destination)
+                        } catch {
+                            throw ZIPProjectArchiveError.destinationRollbackFailed(backup.path, error.localizedDescription)
+                        }
                     }
-                    throw error
+                    throw ZIPProjectArchiveError.destinationReplacementFailed(error.localizedDescription)
                 }
                 return ProjectArchivePayload(project: project, extractedAssetsDirectory: destination, compatibilityReport: VexelProjectImporter.compatibilityReport(for: project))
             }
