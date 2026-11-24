@@ -9,6 +9,8 @@ struct VexelPropertiesSheet: View {
     let onRemoveEffect: (String) -> Void
     let position: [Double]
     let onPositionCommit: (Double, Double) -> Void
+    let transformValues: [String: [Double]]
+    let onTransformCommit: (String, [Double]) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var tab = "Transform"
 
@@ -38,7 +40,9 @@ struct VexelPropertiesSheet: View {
                     effectIDs: effectIDs,
                     onRemoveEffect: onRemoveEffect,
                     position: position,
-                    onPositionCommit: onPositionCommit
+                    onPositionCommit: onPositionCommit,
+                    transformValues: transformValues,
+                    onTransformCommit: onTransformCommit
                 )
                 Spacer(minLength: 0)
             }

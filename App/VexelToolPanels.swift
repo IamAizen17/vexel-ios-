@@ -569,6 +569,8 @@ struct VexelPropertiesPanel: View {
     let onRemoveEffect: (String) -> Void
     let position: [Double]
     let onPositionCommit: (Double, Double) -> Void
+    let transformValues: [String: [Double]]
+    let onTransformCommit: (String, [Double]) -> Void
 
     @State private var positionX = 0.0
     @State private var positionY = 0.0
@@ -631,11 +633,39 @@ struct VexelPropertiesPanel: View {
                         valueField("Y", value: $positionY, unit: "px") {
                             onPositionCommit(positionX, positionY)
                         }
-                        Text("Position is committed to the native project when you submit either value.")
+                        Text("Position changes are committed to the native project.")
                             .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
-                    Text("Anchor, scale, rotation and opacity controls are not exposed until their typed property mappings are complete.")
-                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                    propertyGroup("ANCHOR") {
+                        valueField("X", value: $anchorX, unit: "px") {
+                            onTransformCommit("anchor", [anchorX, anchorY] + (transformValues["anchor"]?.dropFirst(2).map { $0 } ?? []))
+                        }
+                        valueField("Y", value: $anchorY, unit: "px") {
+                            onTransformCommit("anchor", [anchorX, anchorY] + (transformValues["anchor"]?.dropFirst(2).map { $0 } ?? []))
+                        }
+                    }
+                    propertyGroup("SCALE") {
+                        valueField("X", value: $scaleX, unit: "%") {
+                            onTransformCommit("scale", [scaleX / 100, scaleY / 100] + (transformValues["scale"]?.dropFirst(2).map { $0 } ?? []))
+                        }
+                        valueField("Y", value: $scaleY, unit: "%") {
+                            onTransformCommit("scale", [scaleX / 100, scaleY / 100] + (transformValues["scale"]?.dropFirst(2).map { $0 } ?? []))
+                        }
+                    }
+                    propertyGroup("ROTATION & OPACITY") {
+                        valueField("Rotation", value: $rotation, unit: "°") {
+                            if transformValues["rotation"]?.count == 3 {
+                                var components = transformValues["rotation"] ?? [0, 0, 0]
+                                components[2] = rotation
+                                onTransformCommit("rotation", components)
+                            } else {
+                                onTransformCommit("rotation", [rotation])
+                            }
+                        }
+                        valueField("Opacity", value: $opacity, unit: "%") {
+                            onTransformCommit("opacity", [opacity / 100])
+                        }
+                    }
 
                 case "Text":
                     propertyGroup("TEXT CONTENT") {
@@ -744,20 +774,30 @@ struct VexelPropertiesPanel: View {
                     VexelEmptyState(symbol: "slider.horizontal.3", title: "Inspector", detail: "Select a layer to inspect its properties.")
                 }
 
-                Text("Transform, text, mask and transition controls are not yet committed to the project model.")
-                    .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
             }
             .padding(.bottom, 12)
         }
         .onAppear {
             positionX = position.first ?? 0
             positionY = position.dropFirst().first ?? 0
+            synchronizeTransformFields()
         }
         .onChange(of: position) { values in
             positionX = values.first ?? 0
             positionY = values.dropFirst().first ?? 0
         }
+        .onChange(of: transformValues) { _ in synchronizeTransformFields() }
         .disabled(!["Transform", "Effects"].contains(tab))
+    }
+
+    private func synchronizeTransformFields() {
+        anchorX = transformValues["anchor"]?.first ?? 0
+        anchorY = transformValues["anchor"]?.dropFirst().first ?? 0
+        scaleX = (transformValues["scale"]?.first ?? 1) * 100
+        scaleY = (transformValues["scale"]?.dropFirst().first ?? 1) * 100
+        let rotationValues = transformValues["rotation"] ?? [0]
+        rotation = rotationValues.count == 3 ? rotationValues[2] : rotationValues[0]
+        opacity = (transformValues["opacity"]?.first ?? 1) * 100
     }
 
     private func propertyGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

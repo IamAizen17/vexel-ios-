@@ -140,6 +140,58 @@ struct VexelEditorWorkspace: View {
         return numbers.count >= 2 ? numbers : [0, 0]
     }
 
+    private var selectedTransformValues: [String: [Double]] {
+        let is3D = selectedTimelineTrack?.kind == .rendered3D
+        let defaults: [String: [Double]] = [
+            "anchor": is3D ? [0, 0, 0] : [0, 0],
+            "scale": is3D ? [1, 1, 1] : [1, 1],
+            "rotation": is3D ? [0, 0, 0] : [0],
+            "opacity": [1]
+        ]
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              let native = try? VexelNativeProject(document: project.makeProjectDocument()) else { return defaults }
+        func findLayer(_ layers: [VexelLayer]) -> VexelLayer? {
+            for layer in layers {
+                if layer.id == sourceID { return layer }
+                if let nested = findLayer(layer.layers) { return nested }
+            }
+            return nil
+        }
+        guard let layer = findLayer(native.layers) else { return defaults }
+        let transform = is3D ? layer.transform3D : layer.transform
+        var values = defaults
+        for property in defaults.keys {
+            let value: JSONValue?
+            switch transform?.properties[property] {
+            case .some(.constant(let constant)): value = constant
+            case .some(.animated(let animation)): value = animation.value ?? animation.keyframes.first?.value
+            case .none: value = nil
+            }
+            if let number = value?.numberValue {
+                values[property] = [number]
+            } else if let components = value?.arrayValue {
+                let numbers = components.compactMap(\\.numberValue)
+                if numbers.count == defaults[property]?.count { values[property] = numbers }
+            }
+        }
+        return values
+    }
+
+    private func commitSelectedTransform(property: String, values: [Double]) {
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              !values.isEmpty, values.allSatisfy(\\.isFinite) else { return }
+        let is3D = track.kind == .rendered3D
+        let value: VexelAnimatableValue
+        if property == "opacity" || (property == "rotation" && !is3D) {
+            value = .constant(.number(values[0]))
+        } else {
+            value = .constant(.array(values.map { .number($0) }))
+        }
+        performEditingCommand(.setTransformValue(id: sourceID, property: property, value: value, is3D: is3D))
+    }
+
     private var isWide: Bool { horizontalSizeClass == .regular }
 
     var body: some View {
@@ -209,7 +261,9 @@ struct VexelEditorWorkspace: View {
                 effectIDs: selectedTimelineTrack?.effects ?? [],
                 onRemoveEffect: { removeEffect($0) },
                 position: selectedPosition,
-                onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) }
+                onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) },
+                transformValues: selectedTransformValues,
+                onTransformCommit: { property, values in commitSelectedTransform(property: property, values: values) }
             )
                 .presentationDetents([.medium, .large])
         }
@@ -510,7 +564,9 @@ struct VexelEditorWorkspace: View {
                 effectIDs: selectedTimelineTrack?.effects ?? [],
                 onRemoveEffect: { removeEffect($0) },
                 position: selectedPosition,
-                onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) }
+                onPositionCommit: { x, y in commitSelectedPosition(x: x, y: y) },
+                transformValues: selectedTransformValues,
+                onTransformCommit: { property, values in commitSelectedTransform(property: property, values: values) }
             )
             Spacer(minLength: 0)
         }
