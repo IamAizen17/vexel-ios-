@@ -17,6 +17,10 @@ public enum VexelEditingCommand: Sendable {
     case removeEffect(layerID: String, type: String)
     case setLayerTiming(id: String, start: Double, duration: Double)
     case setTransformValue(id: String, property: String, value: VexelAnimatableValue, is3D: Bool)
+    case setKeyframe(layerID: String, property: String, keyframe: VexelKeyframe, is3D: Bool)
+    case removeKeyframe(layerID: String, property: String, time: Double, is3D: Bool)
+    case upsertMarker(VexelMarkerData)
+    case removeMarker(id: String)
     case setParent(id: String, parentID: String?)
     case replaceSnapshot(VexelNativeProject)
 }
@@ -371,6 +375,88 @@ public actor VexelEditingStore {
             }) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
+
+        case .setKeyframe(let layerID, let property, let keyframe, let is3D):
+            guard !property.isEmpty, property.count <= 64,
+                  keyframe.time.isFinite, keyframe.time >= 0 else {
+                throw VexelEditingStoreError.invalidOperation("Keyframe property and time must be valid.")
+            }
+            guard let target = findLayer(layerID, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(layerID)
+            }
+            guard is3D == is3DLayer(target) else {
+                throw VexelEditingStoreError.invalidOperation("The selected transform space does not match the layer type.")
+            }
+            guard keyframe.time <= (target.duration ?? project.composition.duration) else {
+                throw VexelEditingStoreError.invalidOperation("Keyframes must be within the layer duration.")
+            }
+            guard updateLayer(layerID, in: &project.layers, { layer in
+                var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
+                let current = transform.properties[property]
+                var animation: VexelAnimationTrack
+                switch current {
+                case .animated(let existing):
+                    animation = existing
+                case .constant(let value):
+                    animation = VexelAnimationTrack(value: value)
+                case nil:
+                    animation = VexelAnimationTrack()
+                }
+                if let index = animation.keyframes.firstIndex(where: { abs($0.time - keyframe.time) < 0.000001 }) {
+                    animation.keyframes[index] = keyframe
+                } else {
+                    animation.keyframes.append(keyframe)
+                }
+                animation.keyframes.sort { $0.time < $1.time }
+                transform.properties[property] = .animated(animation)
+                if is3D { layer.transform3D = transform } else { layer.transform = transform }
+            }) else {
+                throw VexelEditingStoreError.layerNotFound(layerID)
+            }
+
+        case .removeKeyframe(let layerID, let property, let time, let is3D):
+            guard time.isFinite, time >= 0, !property.isEmpty else {
+                throw VexelEditingStoreError.invalidOperation("Keyframe property and time must be valid.")
+            }
+            guard let target = findLayer(layerID, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(layerID)
+            }
+            guard is3D == is3DLayer(target) else {
+                throw VexelEditingStoreError.invalidOperation("The selected transform space does not match the layer type.")
+            }
+            guard updateLayer(layerID, in: &project.layers, { layer in
+                var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
+                guard case .animated(var animation)? = transform.properties[property] else { return }
+                animation.keyframes.removeAll { abs($0.time - time) < 0.000001 }
+                if animation.keyframes.isEmpty, let value = animation.value {
+                    transform.properties[property] = .constant(value)
+                } else {
+                    transform.properties[property] = .animated(animation)
+                }
+                if is3D { layer.transform3D = transform } else { layer.transform = transform }
+            }) else {
+                throw VexelEditingStoreError.layerNotFound(layerID)
+            }
+
+        case .upsertMarker(let marker):
+            guard !marker.id.isEmpty, marker.id.count <= 256,
+                  marker.time.isFinite, marker.time >= 0,
+                  marker.time <= project.composition.duration,
+                  marker.name?.count ?? 0 <= 256 else {
+                throw VexelEditingStoreError.invalidOperation("Marker identity, name, or time is outside supported bounds.")
+            }
+            if let index = project.markers.firstIndex(where: { $0.id == marker.id }) {
+                project.markers[index] = marker
+            } else {
+                project.markers.append(marker)
+            }
+            project.markers.sort { $0.time < $1.time }
+
+        case .removeMarker(let id):
+            guard let index = project.markers.firstIndex(where: { $0.id == id }) else {
+                throw VexelEditingStoreError.invalidOperation("Marker does not exist.")
+            }
+            project.markers.remove(at: index)
 
         case .replaceSnapshot(let snapshot):
             project = snapshot

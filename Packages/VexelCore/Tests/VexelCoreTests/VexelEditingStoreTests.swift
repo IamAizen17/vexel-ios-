@@ -251,6 +251,76 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertFalse(canUndo)
     }
 
+    func testTypedKeyframeCommandsPreserveAnimationMetadataAndUndo() async throws {
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 6,
+            transform: VexelTransform(properties: [
+                "position": .animated(VexelAnimationTrack(
+                    keyframes: [VexelKeyframe(time: 0, value: .array([.number(0), .number(0)]))],
+                    loop: .cycle,
+                    expression: "time",
+                    expressionEnabled: false,
+                    unknownFields: ["futureTrackFlag": .bool(true)]
+                ))
+            ]),
+            content: .object(["kind": .string("rectangle")])
+        )
+        let store = try makeStore(layers: [layer])
+        let keyframe = VexelKeyframe(
+            time: 2,
+            value: .array([.number(100), .number(50)]),
+            easing: .preset("easeIn")
+        )
+
+        try await store.execute(.setKeyframe(layerID: "shape", property: "position", keyframe: keyframe, is3D: false))
+        var snapshot = await store.snapshot()
+        guard case .animated(let animation)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Expected an animated position property.")
+        }
+        XCTAssertEqual(animation.keyframes.count, 2)
+        XCTAssertEqual(animation.loop, .cycle)
+        XCTAssertEqual(animation.expression, "time")
+        XCTAssertEqual(animation.unknownFields["futureTrackFlag"], .bool(true))
+
+        try await store.execute(.removeKeyframe(layerID: "shape", property: "position", time: 2, is3D: false))
+        snapshot = await store.snapshot()
+        guard case .animated(let restored)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Expected the original animation to remain.")
+        }
+        XCTAssertEqual(restored.keyframes.count, 1)
+
+        XCTAssertTrue(await store.undo())
+        snapshot = await store.snapshot()
+        guard case .animated(let undone)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Expected keyframe undo to restore the previous track.")
+        }
+        XCTAssertEqual(undone.keyframes.count, 2)
+    }
+
+    func testMarkerCommandsUpsertSortRemoveAndUndo() async throws {
+        let store = try makeStore()
+        let marker = VexelMarkerData(
+            id: "marker-a",
+            time: 3,
+            name: "Beat",
+            color: "#00D6C8",
+            unknownFields: ["futureMarkerData": .string("preserve")]
+        )
+        try await store.execute(.upsertMarker(marker))
+        try await store.execute(.upsertMarker(VexelMarkerData(id: "marker-b", time: 1, name: "Intro")))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
+        XCTAssertEqual(snapshot.markers[1].unknownFields["futureMarkerData"], .string("preserve"))
+
+        try await store.execute(.removeMarker(id: "marker-a"))
+        XCTAssertEqual((await store.snapshot()).markers.map(\.id), ["marker-b"])
+        XCTAssertTrue(await store.undo())
+        XCTAssertEqual((await store.snapshot()).markers.map(\.id), ["marker-b", "marker-a"])
+    }
+
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
         let document = ProjectDocument.starter(title: "Editing store")
         var native = try VexelNativeProject(document: document)
