@@ -54,6 +54,33 @@ final class SceneEvaluatorTests: XCTestCase {
         XCTAssertEqual(pingPong.layers.first?.position.x ?? -1, 80, accuracy: 0.0001)
     }
 
+    func testNegativeLayerAndGroupStartsRetainContainerLocalTiming() {
+        var document = ProjectDocument.starter()
+        document.fields["layers"] = .array([
+            .object([
+                "id": .string("group-negative"), "type": .string("group"),
+                "start": .number(-2), "duration": .number(8),
+                "transform": .object(["position": .array([.number(10), .number(20)])]),
+                "layers": .array([
+                    .object([
+                        "id": .string("child-negative"), "type": .string("shape"),
+                        "start": .number(-1), "duration": .number(4),
+                        "shape": .object(["kind": .string("rectangle")]),
+                        "transform": .object(["position": .array([.number(5), .number(6)])])
+                    ])
+                ])
+            ])
+        ])
+
+        let scene = SceneEvaluator.evaluate(document, at: 0)
+
+        XCTAssertEqual(scene.layers.count, 1)
+        XCTAssertEqual(scene.layers[0].id, "child-negative")
+        XCTAssertEqual(scene.layers[0].localTime, 3, accuracy: 0.0001)
+        XCTAssertEqual(scene.layers[0].position.x, 15, accuracy: 0.0001)
+        XCTAssertEqual(scene.layers[0].position.y, 26, accuracy: 0.0001)
+    }
+
     func testNestedGroupTransformsAndTimingAreApplied() {
         var document = ProjectDocument.starter()
         document.fields["layers"] = .array([

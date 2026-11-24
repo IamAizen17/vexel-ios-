@@ -88,7 +88,7 @@ public enum SceneEvaluator {
         for value in values {
             guard let object = value.objectValue else { continue }
             let type = object["type"]?.stringValue ?? "shape"
-            let start = parentStart + max(0, object["start"]?.numberValue ?? 0)
+            let start = parentStart + (object["start"]?.numberValue ?? 0)
             let duration = max(0, object["duration"]?.numberValue ?? .greatestFiniteMagnitude)
             guard object["visible"]?.boolValue ?? true,
                   time >= start,
@@ -172,7 +172,7 @@ public enum SceneEvaluator {
               let parent = byID[parentID] else { return parentTransform }
         var nextVisited = visited
         nextVisited.insert(parentID)
-        let start = parentStart + max(0, parent["start"]?.numberValue ?? 0)
+        let start = parentStart + (parent["start"]?.numberValue ?? 0)
         let localTime = max(0, time - start)
         let inherited = resolveParentTransform(
             parent["parent"]?.stringValue,
