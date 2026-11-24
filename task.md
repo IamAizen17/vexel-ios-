@@ -140,11 +140,11 @@ Priorities are dependency-based. Do not jump to effect parity or advanced media 
 - [x] Test Vexel's importer against the generated source-writer archive; the dedicated cross-repository CI import job passed on commit `7ed70d4`.
 - [ ] Optional provenance follow-up: obtain an archive exported by running the Android application itself. The source-writer fixture is production-serializer-generated and successfully imported, but is not an app-session export. This is not a blocker for the importer implementation.
 - [x] Keep legacy import isolated; fixture tests cover unknown-field preservation through importer round trips.
-- [ ] Prove unknown-field preservation through full app edit/save/export round trips.
+- [ ] Prove unknown-field preservation through the complete SwiftUI app edit/save/export bridge. A new archive-level regression test now covers edited native metadata and nested unknown-field preservation across ZIP export/reopen.
 - [x] Validate project asset references and expected asset types recursively; validate effect parameter instances before accepting an imported project.
 - [x] Make project deletion save the updated library index before deleting its asset directory, so an index-write failure cannot leave a saved project pointing to deleted assets.
 - [x] Make project duplication commit the copied asset directory and updated library index as one recoverable operation; roll back copied assets when index persistence fails.
-- [ ] Add automated failure-injection coverage for project duplication and audit remaining persistence recovery requirements.
+- [ ] Add automated failure-injection coverage for project duplication and audit remaining persistence recovery requirements. The app persistence store currently has no dedicated XCTest target; add one before claiming this failure path is test-covered.
 - [x] Correct README and build/testing guides to describe the current separate CI and manual unsigned-IPA workflows.
 - [x] Refresh the source audit, Android compatibility guide and porting roadmap to reflect persisted projects, connected import review, effect-aware validation and the current iOS-only development order.
 - [ ] Refresh PR #2 status text after the final CI run.

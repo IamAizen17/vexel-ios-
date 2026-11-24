@@ -94,6 +94,46 @@ final class ZIPProjectArchiveTests: XCTestCase {
     }
 
 
+    func testEditedAndroidProjectPreservesUnknownNestedFieldsThroughNativeArchiveRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let fixtureURL = try XCTUnwrap(Bundle.module.url(
+            forResource: "android-v2-group",
+            withExtension: "json",
+            subdirectory: "Fixtures"
+        ))
+        var project = try VexelProjectImporter.importDocument(from: Data(contentsOf: fixtureURL))
+
+        var meta = project.fields["meta"]?.objectValue ?? [:]
+        meta["title"] = .string("Edited in Vexel")
+        project.fields["meta"] = .object(meta)
+
+        var composition = project.fields["composition"]?.objectValue ?? [:]
+        composition["duration"] = .number(12)
+        project.fields["composition"] = .object(composition)
+
+        var layers = try XCTUnwrap(project.fields["layers"]?.arrayValue)
+        var group = try XCTUnwrap(layers.first?.objectValue)
+        group["name"] = .string("Edited group")
+        layers[0] = .object(group)
+        project.fields["layers"] = .array(layers)
+
+        let archiveURL = directory.appendingPathComponent("edited.vexelproj")
+        try ZIPProjectArchive().write(project, to: archiveURL)
+        let reopened = try ZIPProjectArchive().read(from: archiveURL).project
+
+        XCTAssertEqual(reopened.title, "Edited in Vexel")
+        XCTAssertEqual(reopened.fields["composition"]?.objectValue?["duration"]?.numberValue, 12)
+        let reopenedGroup = try XCTUnwrap(reopened.fields["layers"]?.arrayValue?.first?.objectValue)
+        XCTAssertEqual(reopenedGroup["name"]?.stringValue, "Edited group")
+        XCTAssertEqual(reopenedGroup["futureGroupField"]?.objectValue?["revision"]?.numberValue, 7)
+
+        let nested = try XCTUnwrap(reopenedGroup["layers"]?.arrayValue?[1].objectValue)
+        XCTAssertEqual(nested["futureNestedField"]?.objectValue?["mustSurvive"]?.arrayValue?.count, 2)
+    }
+
     func testSourceAndroidV12KotlinFixtureMigratesToNativeVexel() throws {
         let fixtureURL = try XCTUnwrap(Bundle.module.url(
             forResource: "android-v12-kotlin-reference",
