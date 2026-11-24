@@ -1,189 +1,235 @@
-# Vexel iOS port status
+# Vexel iOS engineering plan
 
-Last reviewed: 2026-11-24  
-Reference repository: https://github.com/IamAizen17/vexel-editor  
-Reference revision audited: 0fe341060cec9710df90bc1ba7fda85006c188d8  
-iOS implementation branch: feat/modular-engine-architecture  
-Related pull request: https://github.com/IamAizen17/vexel-ios-/pull/2
+Last reviewed: 2026-11-24
+Reference repository: https://github.com/IamAizen17/vexel-editor
+iOS implementation repository: https://github.com/IamAizen17/vexel-ios-
+Active implementation branch: `feat/modular-engine-architecture`
+Related engine PR: https://github.com/IamAizen17/vexel-ios-/pull/2
 
-## Native Vexel identity
+This is the active project handoff, implementation status, and prioritized backlog. A checked item means the implementation exists and has supporting evidence; it does not automatically mean complete source parity or production readiness. Keep implementation status, test status, and device validation separate.
 
-- Product, app target, display name, and bundle identifier use Vexel.
-- Native project extension: `.vexelproj`.
-- Native archive document: `vexel.json`.
-- Native format identifier: `vexelproj`, current version 2. Version 1 native documents migrate to version 2 on import.
-- Registered document type: `com.ragestudios.vexel.project`.
-- Native MIME type: `application/vnd.vexel.project+zip`.
-- The old Android document identifier and `project.json` archive entry are recognized only by `VexelProjectImporter`. VexelCore, persistence, and export use only the native Vexel format.
+## 1. Product decisions (fixed)
 
+- Vexel is an **iPhone and iPad application only** (iOS/iPadOS).
+- Native implementation: Swift, SwiftUI, Metal, AVFoundation, and Apple platform frameworks.
+- No Android application, Android UI, Kotlin product architecture, or macOS product target.
+- `IamAizen17/vexel-editor` is a read-only behavioral and file-format reference. Android compatibility is limited to isolated legacy project import where explicitly supported.
+- Native project extension: `.vexelproj`; archive document: `vexel.json`; native format identifier: `vexelproj`, version 2.
+- Apple document type: `com.ragestudios.vexel.project`; bundle identifier: `com.iamAizen17.vexel`.
+- Preserve unknown project data during import/edit/save. Never silently discard unsupported content.
+- Preview and export must eventually use the same deterministic scene evaluation and rendering pipeline.
+- Do not mark a feature complete because a button, panel, registry entry, protocol, or shader stub exists. Require working behavior and appropriate tests.
 
-This file is the implementation handoff and active engineering backlog. “Implemented” means code exists in this branch; it does not imply complete Android parity, successful compilation of the latest commits, or device validation.
+## 2. Product design direction
 
-## Product scope
+### New UI direction: Alight Motion-inspired, Vexel-original
 
-- Product targets are **iPhone and iPad only** (iOS and iPadOS).
-- The app is implemented natively with Swift, SwiftUI, Metal, AVFoundation, and Apple platform APIs.
-- There is no Android application target and no macOS product target.
-- The Android repository is a read-only behavioral and file-format reference. Legacy project import is compatibility input only, not a platform commitment.
-- UI, interaction, rendering, media, persistence, and export must be native to iOS/iPadOS.
+The current UI shown in the November 24 screenshots is the existing baseline only. It is **not** the target design and must not be treated as a design constraint. The next UI should be a substantial redesign, with interaction patterns and editing-workflow inspiration from Alight Motion rather than copying the Android source application's interface.
 
-## Current implementation status
+Design principles:
+- Build an original Vexel interface informed by Alight Motion's mobile motion-editor workflow: direct access to the composition, timeline, layers, keyframes, tools, and property controls.
+- Do not reproduce Alight Motion branding, logos, proprietary icons, exact screen layouts, or pixel-for-pixel assets. Use original Vexel components and visual language.
+- Keep the existing Vexel identity: AMOLED/near-black foundation, restrained teal/mint accent, high-contrast typography, deliberate spacing, and compact professional controls. No purple theme or anime styling.
+- Prioritize the editing canvas and timeline over decorative dashboard cards.
+- Make common editing actions reachable with one or two taps. Avoid oversized cards and excessive empty space in the editor.
+- Design for touch first, with precise gesture targets, clear selection states, undo/redo, and contextual tool panels.
+- iPhone uses a compact, layered workflow; iPad uses the additional width for persistent inspector/tool panels and a more expansive timeline. Both use the same interaction model and project format.
+- Support portrait and landscape orientations where appropriate, safe areas, Dynamic Type, VoiceOver, Reduce Motion, and iPad multitasking.
+- Use real project state and real actions in the UI. No decorative controls that imply functionality that does not exist.
 
-### Application and interface
+### Screens and interaction areas to redesign
 
-- Universal SwiftUI application structure intended for iPhone and iPad.
-- Four-page onboarding flow with skip, language preference, and appearance preference controls.
-- Project home with Projects, Presets, and Settings destinations.
-- Composition creation UI and editor workspace.
-- AMOLED graphite interface with teal/cyan accents and a light appearance palette.
-- Reusable material-backed panels, gradient edge treatments, rounded controls, and press feedback.
-- Spring-based navigation transitions, with Reduce Motion-aware transition and press behavior.
-- Timeline UI with track rows, nested group display, zoom, ruler, playhead, marker affordances, clip move/trim gestures, visibility/lock controls, and keyframe markers.
-- Layer and shape tool panels, text-layer creation UI, effect browser/detail sheet, property panel, graph/curve surfaces, composition settings, and export surface.
-- Saved easing preset storage with a limit of 24 entries.
-- Bundled source effect catalogue: 73 effect IDs across 13 categories.
+1. **Projects/home:** compact project library, search/sort, recent projects, create/import actions, clear project thumbnails and metadata. Reduce the current oversized create card and unused vertical space.
+2. **Preset/create flow:** searchable composition presets, custom dimensions/FPS/duration, and a clear creation confirmation. Presets must populate real composition settings.
+3. **Editor workspace:** composition preview as the visual focus; compact top bar for navigation, project title, undo/redo, workspace controls and export; timeline and layer stack immediately accessible.
+4. **Timeline:** multi-track clips, playhead/time ruler, selection, trim/move, snapping, markers, keyframes, track visibility/lock, horizontal zoom and contextual clip actions. Timeline must remain usable on iPhone.
+5. **Tool/action dock:** contextual actions for adding media, shapes, text, audio, effects and other supported layer types. Tool availability must reflect actual implementation.
+6. **Properties/inspector:** transform, opacity, blend, timing, text, shape, effect and animation controls driven by typed project properties. Prefer contextual panels or sheets on iPhone and persistent inspector on iPad.
+7. **Keyframe/graph editor:** property-specific keyframe navigation, interpolation/easing controls and graph editing.
+8. **Settings and asset/effect browsers:** compact, searchable, grouped interfaces with persistent settings and clear disabled/unsupported states.
 
-### Editing operations connected to workspace state
+### UI implementation constraints
 
-- Add a visual layer, text layer, and 2D shape layer.
-- Duplicate and delete selected layers through canonical commands, including nested selections.
-- Group adjacent top-level layers and split selected top-level layers through canonical commands.
-- Add and remove effect instances from a selected layer's serialized effect stack.
-- Route visibility, lock, timeline move, and trim commits through the actor-owned editing store.
-- Keep undo snapshots for workspace actions while the migration to store-owned undo/redo remains incomplete.
-- Advance the playhead during playback and stop or loop at composition duration.
+- Produce a separate Vexel design system and component architecture; do not port the source app's Compose UI or copy its navigation hierarchy.
+- Keep UI presentation separate from project state and engine behavior.
+- SwiftUI views observe state and dispatch typed editing commands; they do not mutate a second copy of the project.
+- Use reusable components and adaptive layouts, not one monolithic editor view.
+- Keep the renderer and timeline independent of screen layout so the same engine supports iPhone and iPad.
+- Create and review screen concepts/wireframes for home, preset creation, editor portrait, editor landscape, timeline/keyframe editing, and properties before implementing the full redesign.
+- UI redesign must not block the canonical project/editing model work. Build the design system and screen shell against stable view models and command interfaces.
 
-These are now canonical command-backed operations, but they do not make the editor feature-complete. Keyframe data in the workspace still uses timestamps rather than editable animated property values. Transform/property controls, marker and settings mutations, multi-selection, nested group editing, and a single store-owned undo/redo history remain incomplete.
+## 3. Current implementation status
 
-### Project data, persistence, and archive groundwork
+### App and UI baseline
 
-- Native Vexel project extension `.vexelproj`, archive entry `vexel.json`, and native format identifier `vexelproj` v2.
-- Registered Apple document type identifier: `com.ragestudios.vexel.project`. App bundle identifier remains `com.iamAizen17.vexel`.
-- `VexelProjectItem` and timeline tracks are Codable; project metadata and workspace state are persisted under Application Support.
-- `ProjectDocument` remains the generic JSON-backed native envelope. An additive `VexelNativeProject` typed schema now models the root, composition, assets, markers, all Android layer discriminators, transforms, animation tracks, keyframes, easing, loop modes, effects and recursive groups. The app bridge now decodes imported layers and markers through this typed schema and validates the typed round-trip before persistence. The timeline remains a reduced editing projection, not the canonical editable model.
-- `VexelProjectImporter` is the isolated Android compatibility boundary. It migrates the legacy v1-v12 envelope to native Vexel.
-- Android source audit is documented in `docs/ANDROID_V12_COMPATIBILITY.md`, based on Kotlin `Project.kt`, `Layer.kt`, `Content.kt`, `Animatable.kt`, `Easing.kt`, `Serializers.kt`, `KnsprojJson.kt`, `KnsprojArchive.kt`, and `ProjectValidator.kt`.
-- Added the Android repository's Kotlin-generated `tools/tests/fixtures/full-kotlin.json` as `android-v12-kotlin-reference.json`; importer tests assert root migration and representative nested animation/effect/transition data.
-- The editor bridge now maps non-UUID source layer IDs deterministically to UUID v5 identities. Existing UUID-shaped source IDs remain unchanged; the original source ID is retained for serialization.
-- The bridge retains fractional Android Double FPS while the current editor UI exposes integer FPS, unless the user changes the rounded FPS value.
-- Recursive unknown layer fields are retained through the JSON document bridge, including group descendants, but the editor only understands a subset of the source layer/content/animation model.
-- Audio layers retain the `audio` discriminator even if the payload is absent; the bridge supplies an empty audio object for the interim model.
-- Archive code writes native `vexel.json` and referenced assets, and rejects traversal, duplicate paths, symlinks, unsupported entries, excessive entry counts, oversized entries and high compression ratios. Extraction now enforces byte budgets against actual decompressed chunks, not only ZIP metadata.
-- Import uses a staging directory and restores an existing destination after a failed promotion. Failure-injection tests cover promotion rollback and invalid-import isolation.
-- Archive imports expose a structured unsupported-feature report. The home-screen import flow now presents that report in a review sheet before committing the imported project.
-- A source-repository Android video/audio sample archive fixture includes the exact referenced MP4/M4A assets. It follows the Android writer's ZIP layout but was assembled for tests, not exported by the Android app.
+- [x] Universal SwiftUI app target configured for iPhone and iPad.
+- [x] Onboarding, Projects, Presets, and Settings destinations exist.
+- [x] Composition creation and editor workspace surfaces exist.
+- [x] Existing AMOLED graphite and teal/cyan visual system exists.
+- [x] Timeline, layer/tool panels, effect browser, properties, graph, composition settings, and export surfaces exist at varying levels of functionality.
+- [ ] Existing UI is not the approved final design. A substantial Alight Motion-inspired, Vexel-original redesign is required.
+- [ ] Full iPhone/iPad adaptive editor layout and landscape validation remain incomplete.
 
-P0 is materially advanced but not fully closed. Typed coordinate/cutout accessors and effect parameter definitions are implemented; the app bridge and effect catalogue use the typed schema; native v1-to-v2 migration is implemented; and import review is connected. Remaining P0 work is effect-instance parameter validation, auditing semantic checks against more source fixtures, obtaining a direct source-app archive if available, and running the expanded suite on a macOS runner. Do not claim complete Android round-trip compatibility until those checks pass.
+### Project model, persistence, and import
 
-### Engine and package foundations
+- [x] Native Vexel `.vexelproj` identity and v2 document format.
+- [x] Native v1-to-v2 migration.
+- [x] Typed native schema for composition, assets, markers, all 11 source layer discriminators, transforms, animation, keyframes, easing, effects, and recursive groups.
+- [x] JSON-backed unknown-field preservation through nested structures.
+- [x] Typed accessors for layer payloads, vectors, gradients, path points/tangents, cutout data, and seven effect parameter kinds.
+- [x] App persistence bridge decodes typed native projects and validates typed round-trips before persistence.
+- [x] Isolated legacy importer; Android format identifiers are import-only.
+- [x] Structured unsupported-feature report and pre-import review UI.
+- [x] Archive extraction byte budgets, traversal/duplicate/symlink/entry/size/compression-ratio defenses, staged import, rollback and failure-injection coverage.
+- [x] Kotlin-generated Android v12 JSON fixture.
+- [x] Test-assembled video/audio archive fixture with referenced MP4/M4A assets.
+- [ ] Obtain a genuine archive exported by the Android reference app and compare archive entries, CRCs, metadata and referenced assets.
+- [ ] Finish effect-instance parameter value/range validation and audit remaining source semantic-validation edge cases.
+- [ ] Confirm preservation and migration behavior against additional representative source fixtures.
+- [ ] Complete persistent asset lifecycle, cleanup, recovery and full-document project duplication.
 
-- Swift packages exist for VexelCore, VexelArchive, VexelRenderer, VexelShaderCompiler, VexelMedia, VexelAudio, VexelExport, and VexelPlugins.
-- JSON value representation and an initial project document model with structural validation.
-- Initial archive, media, audio, export, and plugin contracts.
-- Initial render graph validation and Metal renderer scaffolding.
-- Initial Metal shader functions for fullscreen copy, brightness/contrast, Gaussian blur, and multi-scale glow combination.
-- Shader translation interfaces and tests.
-- Effect registry verification and engine/shader coverage verification scripts.
-- A GitHub Actions workflow exists for package checks, Xcode project generation, generic iOS archiving, and unsigned IPA artifact packaging. A manual public-repository runner smoke workflow exists on `main`; run it before relying on fresh macOS validation.
+### Editing engine
 
-## Priority implementation backlog
+- [x] Actor-owned `VexelEditingStore` foundation with typed commands, validation, history snapshots, coalescing and parent-cycle protection.
+- [x] Primary layer add/duplicate/delete/split/group and effect-stack operations routed through the store.
+- [x] Timeline move/trim commits and visibility/lock changes routed through the store.
+- [x] Group/ungroup validation and timing/reference safeguards.
+- [ ] Transform/property/keyframe, marker, media and composition-setting mutations routed through the store.
+- [ ] Replace workspace-owned undo/redo snapshots with store-owned history as the sole authority.
+- [ ] Eliminate the reduced timeline projection as an independent mutation authority; it may remain a presentation projection only.
+- [ ] Complete multi-selection, reorder, snapping, ripple edits and nested group editing.
+- [ ] Typed property descriptors, set-value and auto-keyframe behavior.
+- [ ] Full keyframe clipboard/navigation, interpolation, cubic Bézier and cyclic easing, loop and ping-pong behavior.
+- [ ] Constrained deterministic expression evaluation without unrestricted host access.
 
-Work in dependency order. Keep incomplete UI actions visibly disabled rather than presenting nonfunctional controls as implemented.
+### Scene evaluation and rendering
 
-### P0: Stabilize Vexel-native persistence and Android compatibility import
+- [x] Scene evaluator foundation for basic 2D transforms, hierarchy, shape/text data and partial keyframe sampling.
+- [x] Metal device/command queue and render graph validation scaffolding.
+- [x] Initial Metal shader functions for copy, brightness/contrast, Gaussian blur and multi-scale glow combination.
+- [ ] Replace/extend the simplified evaluator with deterministic evaluation of the typed native project at a composition timestamp.
+- [ ] Resolve nested timing, inherited transforms, animated properties, expressions and effect parameters.
+- [ ] Model renderable 2D/3D content, cameras, lights, masks, mattes, transitions, blend modes and other source semantics.
+- [ ] Implement actual Metal render-graph execution, resource lifetime/pooling, caching, compositing and color/alpha handling.
+- [ ] Connect the same scene evaluator and renderer to interactive preview and export.
+- [ ] Integrate shader translation and runtime shader loading with pinned toolchain, diagnostics, validation, caching and uniform mapping.
+- [ ] Add deterministic scene tests and GPU image regression tests.
 
-- [x] Audit the Android v12 models, serializers, archive writer and migration registry against source.
-- [x] Add the Kotlin-generated v12 JSON fixture and an Android repository video/audio sample archive with its real referenced media payloads. The archive is assembled for tests, not exported by the Android app.
-- [x] Add typed accessors for all 11 layer content variants, text/property animators, media/equalizer/cutout metadata, shape fill/stroke/path/trim, 3D materials/text, camera depth-of-field, light properties, masks, mattes, transitions, metadata, motion blur, environment and editor view. Raw JSONValue remains the lossless backing store.
-- [x] Add typed 2D/3D vector tuples, gradient endpoints, path point/tangent accessors, cutout frame/stroke accessors, and typed definitions for the seven effect parameter kinds in the source effect catalogue.
-- [x] Route project open/save bridge conversion through `VexelNativeProject`, including typed layer/marker decoding and schema validation before persistence.
-- [ ] Move editor mutations from the reduced timeline projection onto the typed canonical project model and command store.
-- [x] Add recursive unknown-field preservation tests across nested groups, transforms, animation tracks, effects and root metadata.
-- [x] Add typed discriminator and content-accessor coverage for all 11 Android layer types, plus expression-only animations, loop modes and easing tests.
-- [x] Add source-compatible core duplicate/split operations and tests for nested IDs, parent/matte references, keyframe time offsets, transitions and media in-points.
-- [x] Add an import compatibility report for preserved-but-unimplemented features.
-- [x] Connect the typed schema to the app persistence bridge and show the unsupported-feature report in a pre-import review sheet.
-- [ ] Obtain a direct Android-app-exported `.knsproj` archive and compare its archive entries, CRCs, metadata and referenced assets.
-- [x] Add semantic validation for nested asset references, unique marker/layer IDs, parent and matte sibling references/cycles, group depth, motion blur, media speed/source offsets, equalizer bands, cutout frames/strokes/points, transition durations, font weights, and keyframe ordering.
-- [ ] Finish effect-specific parameter value/range validation and audit remaining source-validator edge cases against Kotlin fixtures.
-- [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
-- [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
-- [x] Test destination rollback failure and verify the retained backup path is recoverable.
-- [x] Add failure-injection coverage for archive export destination replacement; verify the existing archive and temporary-file cleanup.
-- [x] Add native Vexel v1-to-v2 migration and importer/core migration tests.
-- Keep project creation, editing, persistence and export native to Vexel. Android compatibility remains isolated in `VexelProjectImporter`.
+### Effects, media, audio, export
 
-### P1: Canonical editing model and command engine
+- [x] Source effect catalogue contains 73 effect IDs across 13 categories.
+- [ ] Effect catalogue entries must be distinguished from executable effects; parameters and rendering are incomplete.
+- [ ] Port and validate effects only after the render graph and parameter binding are ready.
+- [ ] AVFoundation image/video/audio decoding, random-access seeking, frame cache and proxy workflow.
+- [ ] Asset import, persistent storage, relinking and cleanup.
+- [ ] Realtime preview audio and deterministic 48 kHz stereo mixing.
+- [ ] Metal offscreen rendering and MP4 export through AVAssetWriter.
+- [ ] Export progress, cancellation, codec/color-space validation and supported image/GIF sequence formats.
+- [ ] Captions/SRT, stabilization, cutout, camera workflows and advanced 3D where supported.
 
-- [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.
-- [x] Route primary layer add/duplicate/delete/split/group and effect-stack commands through `VexelEditingStore`.
-- [x] Route timeline move/trim commits and visibility/lock changes through `VexelEditingStore`.
-- [ ] Route transform/keyframe/property edits, markers, media operations, and composition settings through the store.
-- [ ] Replace workspace-owned undo/redo snapshots with store-owned history as the single authority.
-- [x] Add group/ungroup commands with sibling validation, timing preservation, external-reference checks, and guards against dropping group-level properties.
-- [ ] Expand command coverage for multi-selection, snapping, ripple edits, and marker operations.
-- Port timeline reorder, move, trim, split, duplicate, group/ungroup, parenting, multi-selection, snapping, and ripple edits.
-- Implement typed property descriptors and set-value/auto-keyframe behavior.
-- Port animation sampling, keyframe clipboard/navigation, cubic Bézier easing, cyclic easing, loop and ping-pong semantics.
-- Implement deterministic tests for timeline operations, keyframe evaluation, and undo/redo.
-- Implement a constrained deterministic expression evaluator. Do not expose unrestricted JavaScriptCore or host APIs.
-- Implement deterministic scene evaluation from project plus composition time to a renderable frame scene.
+## 4. Prioritized implementation plan
 
-### P2: Rendering and effects
+Priorities are dependency-based. Do not jump to effect parity or advanced media before project state, evaluation and rendering contracts are stable.
 
-- Implement the complete Metal render graph and use the same renderer for preview and export.
-- Complete GLSL-to-SPIR-V-to-MSL translation with a pinned SPIRV-Cross toolchain, diagnostics, shader validation, caching, and uniform mapping.
-- Port and validate all source shaders and all 73 effects, including typed parameters, defaults, ranges, backdrop requirements, and target restrictions.
-- Implement masks, track mattes, transitions, blend modes, motion blur, time slices, shadows, depth of field, HDRI, 3D materials, text extrusion, and GLB model rendering.
-- Load and compile bundled Metal shader resources through the renderer at runtime.
-- Add GPU image regression tests and performance/memory budgets for iPhone-class hardware.
+### P0: Close project integrity and establish a truthful baseline
 
-### P3: Media, audio, captions, and export
+- [ ] Finish effect-instance parameter validation and source semantic-validator audit.
+- [ ] Obtain and test a genuine source-app archive if available; otherwise document the exact compatibility limit.
+- [ ] Keep import compatibility isolated and prove unknown-field preservation through import/edit/save/export round trips.
+- [ ] Audit project duplication, asset references, persistence failure handling and recovery requirements.
+- [ ] Update all docs and status records to match actual code and CI results.
+- [ ] Keep CI green for package tests, XcodeGen generation, simulator build and unsigned IPA archive.
+- [ ] Maintain a clear distinction between successful CI, successful IPA packaging, signed installation and physical-device validation.
 
-- Implement image/video/audio/model/font import and persistent asset management.
-- Implement AVFoundation decoding, frame caching, proxy generation, waveform extraction, and random-access seeking.
-- Implement realtime preview audio and deterministic 48 kHz stereo mixing.
-- Port speech recognition/caption generation and SRT import/export.
-- Implement stabilization, background removal, cutout brush, and real-camera workflows where platform APIs and licensing allow.
-- Implement MP4 export through Metal and AVAssetWriter, including progress, cancellation, resumable jobs, and codec/color-space validation.
-- Implement GIF, image-sequence, and other source export formats where supported.
+### P1: Canonical project/editing state and complete editing interaction
 
-### P4: Product and platform integration
+**P1.1 Canonical editing authority**
+- [ ] Make the typed native project the authoritative editable project state.
+- [ ] Make `VexelEditingStore` the only mutation and undo/redo authority.
+- [ ] Remove duplicate workspace undo/redo stacks and prevent direct mutation of presentation projections.
+- [ ] Route every existing edit action through typed commands: transforms, properties, keyframes, markers, composition settings, media metadata, effects and timeline operations.
+- [ ] Ensure project persistence serializes the authoritative store snapshot.
+- [ ] Add command tests for validation, atomicity, undo/redo, coalescing, nested operations and serialization round trips.
 
-- Complete persistent project grid operations, including true document duplication, deletion cleanup, recovery, presets, and secure import/export.
-- Implement localization, font management, settings persistence, plugin installation/permissions, and third-party license browser.
-- Validate iPhone compact layouts, iPad expanded layouts, rotation, multitasking, accessibility, Dynamic Type, VoiceOver, and Reduce Motion.
-- Add real-device performance, memory, battery, and thermal tests.
+**P1.2 Alight Motion-inspired Vexel UI redesign**
+- [ ] Establish original Vexel design tokens, typography, spacing, iconography, surfaces and motion behavior.
+- [ ] Design home/projects and preset creation screens.
+- [ ] Redesign the editor around preview, timeline, layer selection, contextual tools and property editing.
+- [ ] Define portrait iPhone and landscape/iPad adaptive layouts.
+- [ ] Build reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
+- [ ] Bind every implemented control to the canonical store and expose incomplete capabilities honestly.
+- [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
 
-## Known issues and limitations
+**P1.3 Animation and deterministic scene model**
+- [ ] Implement typed property animation, keyframe sampling, easing, loop/ping-pong and constrained expressions.
+- [ ] Define the complete deterministic frame-scene contract from native project plus composition time.
+- [ ] Implement nested composition/layer timing, hierarchy, 2D/3D transforms, camera/light state, masks, mattes, transitions and evaluated effect parameters.
+- [ ] Add golden tests for representative projects and time samples.
 
-- The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
-- Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge now uses the typed native schema at its persistence boundary, but maps only a subset into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI. Primary layer and timeline commands now use the actor-owned store; transform/keyframe/property, marker, media, and settings paths remain to be connected.
-- `VexelProjectImporter` converts the external format/version envelope and the archive reader performs structural validation. The source video/audio archive fixture is a test-assembled archive based on Android repository examples, not a direct Android app export. This does not establish full Android source schema v12 semantic compatibility.
-- Archive read/write code is connected to UI flows and now has actual-byte-budget and rollback tests. It still requires a direct Android-app-exported fixture and fresh test execution before being treated as production-ready.
-- Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
-- Undo/redo covers current workspace snapshot operations only. Timeline gesture coalescing and all source editing commands are not represented.
-- Playback advances the playhead; it does not render animated scene frames or play audio.
-- Adding an effect stores its identifier only. Effect parameters are not fully serialized or rendered.
-- The effect catalogue is complete at the ID/name/category level, but effect execution and full parameter binding are incomplete.
-- Transform, text, mask, transition, and graph controls are not fully connected to the project model.
-- Media, audio, 3D, camera, captions, elements, plugins, stabilization, cutout, and export remain incomplete or disabled. A media picker surface does not mean media is imported into the project.
-- Metal renderer and shader compiler are scaffolding. Initial shader functions do not represent full source shader parity; GLSL translation is not integrated end-to-end.
-- No Android APK/IPA binary or runtime instrumentation was used for this source audit. Findings are source-level only.
-- Fresh GitHub Actions package validation passed on the current feature branch after the schema, archive-fixture, and editing-store fixes.
-- XcodeGen project generation passed after adding the required base Info.plist source.
-- The first iOS Simulator build found two app compile errors in audio asset URL construction and imported timeline-track initializer ordering. Both fixes are committed; the rerun is pending and must pass before claiming an app build.
-- No IPA archive, simulator runtime test, or physical-device test has been completed.
-- A prior workflow passed package checks and produced an unsigned archive/IPA, but that result predates the latest project/archive integration and does not verify the current branch.
-- An unsigned IPA is not installable without valid signing/provisioning or a compatible sideloading process.
-- GPL-3.0 obligations and third-party/native dependency licenses must be reviewed before distribution.
+### P2: Metal renderer and executable effects
 
-## Verification record
+- [ ] Implement render-graph execution, resource pooling, caching, pass scheduling and compositing.
+- [ ] Implement shape, text, image and video rendering.
+- [ ] Add 3D geometry/material, camera, lighting, depth-of-field and environment rendering.
+- [ ] Implement blend modes, masks, mattes, transitions, motion blur, shadows and time-slice effects.
+- [ ] Integrate shader compilation/translation and runtime diagnostics.
+- [ ] Port effects incrementally, validate parameter defaults/ranges and compare output against source reference frames.
+- [ ] Add GPU image regression tests, memory limits and performance budgets on supported iPhones and iPads.
 
-- Previous successful workflow: run 45282736871, commit 02b83e5f40b29de404b4df91b57b033fd51a0597.
-- That run predates the current project persistence, document bridge, and ZIP archive integration. It is historical evidence only.
-- Latest schema, migration, import-review, semantic-validation, and editing-store changes were inspected through GitHub file contents. Tests were added for typed vectors/cutout payloads/effect schemas, native migrations, nested semantic validation, and actor command history/validation; none of these latest tests have been executed.
-- No fresh package build, test run, Xcode project generation, iOS archive, IPA packaging, simulator test, or physical-device test has been performed for the current branch state.
-- The earlier macOS workflow attempts were not provisioned by GitHub-hosted runners (runner_id 0 and no execution steps). This is an infrastructure execution gap, not a compiler result. The repository is public; standard public GitHub-hosted runners are expected to be available without the private-repository minute quota, but the manual smoke workflow must confirm provisioning.
-- The repository is public, so standard GitHub-hosted runners are expected to be available without private-repository minute quotas. The manual smoke workflow must be run to confirm provisioning; a successful fresh macOS build and real iPhone/iPad validation remain required.
+### P3: Media, audio, and export
+
+- [ ] Complete media import and persistent asset lifecycle.
+- [ ] Implement AVFoundation decoding, proxy generation, waveform extraction, frame caching and seeking.
+- [ ] Implement synchronized preview audio and deterministic 48 kHz stereo mixing.
+- [ ] Implement shared preview/export scene evaluation and Metal rendering.
+- [ ] Implement AVAssetWriter MP4 export with progress, cancellation and codec/color-space validation.
+- [ ] Add captions/SRT and supported image/GIF sequence export.
+
+### P4: Advanced features, hardening, and release
+
+- [ ] Advanced 3D/model workflows, stabilization, cutout and other features after core renderer readiness.
+- [ ] Plugin installation, permissions, sandboxing and license browser.
+- [ ] Full autosave, crash recovery, snapshots, project duplication and asset cleanup.
+- [ ] Localization, font management, settings persistence and accessibility.
+- [ ] iPhone/iPad real-device performance, memory, battery, thermal, orientation and multitasking validation.
+- [ ] GPL-3.0 and third-party dependency license review before distribution.
+- [ ] Signing, provisioning, installation and release pipeline.
+
+## 5. Known limitations (do not misreport)
+
+- The timeline currently uses a reduced UI projection. It is not the canonical project model.
+- The editing store exists and handles several primary operations, but the workspace still has separate undo/redo state and unconnected mutation paths.
+- The current scene evaluator is a partial 2D evaluator, not equivalent to the source scene evaluator.
+- The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
+- The effect catalogue is not proof that 73 effects execute.
+- Playback currently advances the playhead; full animated scene rendering and synchronized audio playback are not established.
+- Imported project data can preserve unsupported fields, but not every source feature is editable or renderable.
+- The test archive is assembled from source-repository assets and is not a genuine archive exported by the Android app.
+- A successful unsigned IPA build does not mean the IPA is signed, installable, or tested on a physical device.
+- GPL-3.0 and third-party dependency obligations require review before distribution.
+
+## 6. Verification record (2026-11-24)
+
+Current feature branch head at review: `98b05b8430d360bad86ab6ddfb3309bbbaa417ff`.
+
+- [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
+- [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
+- [x] IPA artifact: `Vexel-unsigned-IPA`; includes `Vexel-unsigned.ipa` and SHA-256 checksum. Artifact is available from the workflow run.
+- [ ] Signed installation on a physical iPhone/iPad has not been verified in this record.
+- [ ] Runtime interaction, rendering, media, audio and export behavior have not been validated on a physical device.
+- [ ] Do not reuse historical verification claims for a newer commit without checking its workflow runs.
+
+Successful workflow references:
+- CI: https://github.com/IamAizen17/vexel-ios-/actions/runs/45355757013
+- IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
+
+## 7. Required engineering workflow
+
+1. Fetch the latest branch head and inspect the relevant files before editing.
+2. Preserve unrelated user changes and public interfaces unless a migration is intentional and documented.
+3. Compare source behavior with source code and fixtures; do not infer implementation details from UI appearance alone.
+4. Make small, dependency-ordered changes with tests.
+5. Run formatting, package tests, XcodeGen, simulator build and IPA archive where applicable.
+6. Inspect the diff and verify the exact branch and commit before reporting.
+7. Update this file whenever priorities, implementation status, or verification results materially change.
+8. Report what changed, files affected, checks performed, and remaining gaps. Never claim a test, build, device check or feature succeeded unless evidence confirms it.
