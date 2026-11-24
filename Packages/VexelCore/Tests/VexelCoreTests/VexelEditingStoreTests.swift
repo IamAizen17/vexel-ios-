@@ -110,15 +110,15 @@ final class VexelEditingStoreTests: XCTestCase {
 
         try await store.execute(.groupLayers(firstID: "first", secondID: "second", groupID: "group", name: "Scene"))
         var snapshot = await store.snapshot()
-        XCTAssertEqual(snapshot.layers.map(\\.id), ["group"])
+        XCTAssertEqual(snapshot.layers.map(\.id), ["group"])
         XCTAssertEqual(snapshot.layers[0].start, 0)
         XCTAssertEqual(snapshot.layers[0].duration, 7)
-        XCTAssertEqual(snapshot.layers[0].layers.map(\\.id), ["first", "second"])
+        XCTAssertEqual(snapshot.layers[0].layers.map(\.id), ["first", "second"])
         XCTAssertEqual(snapshot.layers[0].layers[1].start, 2)
 
         try await store.execute(.ungroupLayer(id: "group"))
         snapshot = await store.snapshot()
-        XCTAssertEqual(snapshot.layers.map(\\.id), ["first", "second"])
+        XCTAssertEqual(snapshot.layers.map(\.id), ["first", "second"])
         XCTAssertEqual(snapshot.layers[1].start, 2)
         XCTAssertEqual(snapshot.layers[1].duration, 5)
     }
@@ -139,7 +139,7 @@ final class VexelEditingStoreTests: XCTestCase {
             XCTFail("Ungrouping must not discard a group transform.")
         } catch let error as VexelEditingStoreError {
             guard case .invalidOperation = error else {
-                return XCTFail("Unexpected error: \\(error)")
+                return XCTFail("Unexpected error: \(error)")
             }
         }
         let snapshot = await store.snapshot()
