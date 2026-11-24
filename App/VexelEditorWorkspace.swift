@@ -688,7 +688,8 @@ struct VexelEditorWorkspace: View {
 
     private func performEditingCommand(
         _ command: VexelEditingCommand,
-        selecting sourceID: String? = nil
+        selecting sourceID: String? = nil,
+        onFailure: (() -> Void)? = nil
     ) {
         guard let store = editingStore else {
             showingNotice = "The editing engine is unavailable. Reopen the project and try again."
@@ -715,6 +716,7 @@ struct VexelEditorWorkspace: View {
                 canRedoEdits = await store.canRedo
                 onProjectChange(updated)
             } catch {
+                onFailure?()
                 showingNotice = error.localizedDescription
             }
         }
@@ -730,41 +732,6 @@ struct VexelEditorWorkspace: View {
         }
         guard let track = find(project.timelineTracks) else { return nil }
         return track.sourceID ?? track.id.uuidString
-    }
-
-    private func commitEdit(_ mutation: @escaping (inout VexelProjectItem) -> Void) {
-        guard let store = editingStore else {
-            showingNotice = "The editing engine is unavailable. Reopen the project and try again."
-            return
-        }
-        let previousTask = editingCommandTask
-        editingCommandTask = Task { @MainActor in
-            await previousTask?.value
-            var candidate = project
-            mutation(&candidate)
-            candidate.layerNames = flattenTrackNames(candidate.timelineTracks)
-            candidate.modified = Date()
-            candidate.synchronizeDocument()
-
-            do {
-                let nativeProject = try VexelNativeProject(document: candidate.makeProjectDocument())
-                try await store.execute(.replaceSnapshot(nativeProject))
-                let committedSnapshot = await store.snapshot()
-                let document = try committedSnapshot.projectDocument()
-                var updated = VexelProjectItem(document: document)
-                updated.id = candidate.id
-                updated.assetsDirectory = candidate.assetsDirectory
-                updated.modified = candidate.modified
-                updated.layerNames = flattenTrackNames(updated.timelineTracks)
-                project = updated
-                layerNames = updated.layerNames
-                canUndoEdits = await store.canUndo
-                canRedoEdits = await store.canRedo
-                onProjectChange(updated)
-            } catch {
-                showingNotice = "The edit could not be committed: \(error.localizedDescription)"
-            }
-        }
     }
 
     private func undoEdit() {
@@ -1073,12 +1040,19 @@ struct VexelEditorWorkspace: View {
                     duration = min(loadedDuration.seconds, max(0.1, project.duration - currentTime))
                 }
             }
-            let track = makeImportedTrack(asset, start: currentTime, duration: duration)
-            var candidate = project
-            try candidate.registerAsset(asset)
-            candidate.timelineTracks.append(track)
-            commitEdit { $0 = candidate }
-            selectedTrackID = track.id
+            let layer = makeImportedLayer(asset, start: currentTime, duration: duration)
+            let record = VexelAsset(
+                id: asset.id,
+                type: VexelAssetType(rawValue: asset.type),
+                path: asset.path,
+                name: asset.name,
+                mimeType: asset.mimeType
+            )
+            performEditingCommand(
+                .importMedia(asset: record, layer: layer),
+                selecting: asset.id,
+                onFailure: { try? FileManager.default.removeItem(at: asset.fileURL) }
+            )
             showingNotice = "Imported \(asset.name) into the project and added it to the timeline."
         } catch {
             if let importedAsset { try? FileManager.default.removeItem(at: importedAsset.fileURL) }
@@ -1107,12 +1081,19 @@ struct VexelEditorWorkspace: View {
                loadedDuration.seconds.isFinite, loadedDuration.seconds > 0 {
                 duration = min(loadedDuration.seconds, max(0.1, project.duration - currentTime))
             }
-            let track = makeImportedTrack(asset, start: currentTime, duration: duration)
-            var candidate = project
-            try candidate.registerAsset(asset)
-            candidate.timelineTracks.append(track)
-            commitEdit { $0 = candidate }
-            selectedTrackID = track.id
+            let layer = makeImportedLayer(asset, start: currentTime, duration: duration)
+            let record = VexelAsset(
+                id: asset.id,
+                type: VexelAssetType(rawValue: asset.type),
+                path: asset.path,
+                name: asset.name,
+                mimeType: asset.mimeType
+            )
+            performEditingCommand(
+                .importMedia(asset: record, layer: layer),
+                selecting: asset.id,
+                onFailure: { try? FileManager.default.removeItem(at: asset.fileURL) }
+            )
             showingNotice = "Imported \(asset.name) into the project and added an audio track."
         } catch {
             if let importedAsset { try? FileManager.default.removeItem(at: importedAsset.fileURL) }
@@ -1120,40 +1101,28 @@ struct VexelEditorWorkspace: View {
         }
     }
 
-    private func makeImportedTrack(
+    private func makeImportedLayer(
         _ asset: VexelProjectStore.ImportedAsset,
         start: Double,
         duration: Double
-    ) -> VexelTimelineTrack {
-        let transform: JSONValue = .object([
-            "anchor": .array([.number(0), .number(0)]),
-            "position": .array([.number(0), .number(0)]),
-            "scale": .array([.number(1), .number(1)]),
-            "rotation": .number(0),
-            "opacity": .number(1)
+    ) -> VexelLayer {
+        let transform = VexelTransform(properties: [
+            "anchor": .constant(.array([.number(0), .number(0)])),
+            "position": .constant(.array([.number(0), .number(0)])),
+            "scale": .constant(.array([.number(1), .number(1)])),
+            "rotation": .constant(.number(0)),
+            "opacity": .constant(.number(1))
         ])
-        let contentKey = asset.type == "image" ? "image" : asset.type
-        let layer = JSONValue.object([
-            "id": .string(asset.id),
-            "type": .string(asset.type),
-            "name": .string(asset.name),
-            "start": .number(start),
-            "duration": .number(duration),
-            "visible": .bool(true),
-            "locked": .bool(false),
-            "transform": transform,
-            contentKey: .object(["asset": .string(asset.id)])
-        ])
-        let sourceJSON = (try? JSONEncoder().encode(layer)).flatMap { String(data: $0, encoding: .utf8) }
-        return VexelTimelineTrack(
-            id: UUID(uuidString: asset.id) ?? UUID(),
+        return VexelLayer(
+            id: asset.id,
+            type: VexelLayerType(rawValue: asset.type),
             name: asset.name,
             start: start,
             duration: duration,
-            kind: asset.type == "audio" ? .audio : .visual,
-            sourceID: asset.id,
-            sourceType: asset.type,
-            sourceJSON: sourceJSON
+            visible: true,
+            locked: false,
+            transform: transform,
+            content: .object(["asset": .string(asset.id)])
         )
     }
 

@@ -361,6 +361,65 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
     }
 
+    func testMediaImportCommandAddsAssetAndLayerAtomicallyAndSupportsUndo() async throws {
+        let store = try makeStore()
+        let asset = VexelAsset(
+            id: "asset-image",
+            type: .image,
+            path: "assets/asset-image.png",
+            name: "image.png",
+            mimeType: "image/png"
+        )
+        let layer = VexelLayer(
+            id: "asset-image",
+            type: .image,
+            name: "image.png",
+            start: 0,
+            duration: 8,
+            content: .object(["asset": .string("asset-image")])
+        )
+
+        try await store.execute(.importMedia(asset: asset, layer: layer))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.assets, [asset])
+        XCTAssertEqual(snapshot.layers.map(\.id), ["asset-image"])
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertTrue(snapshot.assets.isEmpty)
+        XCTAssertTrue(snapshot.layers.isEmpty)
+    }
+
+    func testMediaImportRejectsUnsafeAssetPathsWithoutPartialMutation() async throws {
+        let store = try makeStore()
+        let asset = VexelAsset(
+            id: "asset-image",
+            type: .image,
+            path: "assets/../outside.png",
+            name: "image.png",
+            mimeType: "image/png"
+        )
+        let layer = VexelLayer(
+            id: "asset-image",
+            type: .image,
+            name: "image.png",
+            start: 0,
+            duration: 8,
+            content: .object(["asset": .string("asset-image")])
+        )
+
+        do {
+            try await store.execute(.importMedia(asset: asset, layer: layer))
+            XCTFail("Unsafe asset paths must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
+        }
+        let snapshot = await store.snapshot()
+        XCTAssertTrue(snapshot.assets.isEmpty)
+        XCTAssertTrue(snapshot.layers.isEmpty)
+    }
+
     func testProjectSettingsUpdateIsAtomicAndUndoable() async throws {
         let store = try makeStore()
         try await store.execute(.updateProjectSettings(

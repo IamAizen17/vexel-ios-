@@ -16,6 +16,7 @@ public enum VexelEditingCommand: Sendable {
     case setComposition(width: Int, height: Int, fps: Double, duration: Double)
     case updateProjectSettings(title: String, width: Int, height: Int, fps: Double, duration: Double)
     case reorderLayers(containerID: String?, orderedIDs: [String])
+    case importMedia(asset: VexelAsset, layer: VexelLayer)
     case addLayer(VexelLayer, containerID: String?, index: Int?)
     case removeLayer(id: String)
     case duplicateLayer(id: String, newID: String)
@@ -152,6 +153,26 @@ public actor VexelEditingStore {
             project.composition.height = height
             project.composition.fps = fps
             project.composition.duration = duration
+
+        case .importMedia(let asset, let layer):
+            let pathComponents = asset.path.split(separator: "/", omittingEmptySubsequences: false)
+            guard ["image", "video", "audio"].contains(asset.type.rawValue),
+                  asset.type.rawValue == layer.type.rawValue,
+                  asset.id == layer.id,
+                  !asset.id.isEmpty,
+                  pathComponents.count == 2,
+                  pathComponents[0] == "assets",
+                  !pathComponents[1].isEmpty,
+                  pathComponents[1] != ".", pathComponents[1] != "..",
+                  !project.assets.contains(where: { $0.id == asset.id }),
+                  !allLayerIDs(in: project.layers).contains(layer.id) else {
+                throw VexelEditingStoreError.invalidOperation("Imported media must have a unique identifier, a supported matching layer type and a safe project-relative asset path.")
+            }
+            guard layer.content?.objectValue?["asset"]?.stringValue == asset.id else {
+                throw VexelEditingStoreError.invalidOperation("Imported media layer must reference its registered asset.")
+            }
+            project.assets.append(asset)
+            try insert(layer, into: &project.layers, containerID: nil, index: 0)
 
         case .addLayer(let layer, let containerID, let index):
             let ids = allLayerIDs(in: project.layers)
