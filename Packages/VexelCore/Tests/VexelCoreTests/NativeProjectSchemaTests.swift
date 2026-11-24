@@ -53,7 +53,8 @@ final class NativeProjectSchemaTests: XCTestCase {
                   "expression": "time * 2",
                   "futureAnimation": {"kept": 1}
                 },
-                "opacity": 1
+                "opacity": 1,
+                "futureTransform": {"custom": true}
               },
               "shape": {"kind": "rectangle", "futureShape": "kept"},
               "effects": [{"type": "blur", "enabled": true, "radius": 12, "futureEffect": [1, 2]}],
