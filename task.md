@@ -162,6 +162,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Establish `VexelEditingStore` as the owner of the typed `VexelNativeProject` snapshot and undo/redo history.
 - [x] Remove duplicate workspace undo/redo stacks.
 - [x] Keep composition-settings and timeline edits in local drafts; commit changes through the store.
+- [x] Commit project settings atomically through a typed command and persist timeline reorder/marker draft changes through typed store commands.
 - [x] Route project rename, composition settings, timeline edits, marker edits, media registration, visibility/lock, duplicate/delete/split/group and effect operations through store commits.
 - [x] Serialize store snapshots back to the project library after successful commands.
 - [x] Add command tests for invalid-operation atomicity, undo/redo, coalescing, nested operations, grouping, effect parameters, snapshot replacement, typed markers and keyframes.
@@ -173,7 +174,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Add typed text content/font commands for content, family, weight, italic, size, line height, letter spacing and alignment; preserve nested unknown fields and animated font-size/letter-spacing metadata.
 - [x] Connect the compact and wide text inspectors to typed text commands; keep unsupported text animator controls disabled.
 - [x] Keep unsupported mask, transition and text animator controls disabled or clearly marked.
-- [ ] Replace remaining generic snapshot-replacement commits with dedicated typed commands and verify all edit surfaces, including text and media-specific properties.
+- [ ] Replace the remaining media-import generic snapshot-replacement commits with an atomic typed import command; verify all edit surfaces.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
@@ -226,7 +227,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 5. Known limitations (do not misreport)
 
-- The timeline remains a reduced UI projection over the canonical typed native project. Some edits still use validated snapshot replacement rather than dedicated typed commands.
+- The timeline remains a reduced UI projection over the canonical typed native project. Timeline reorder, marker, timing, visibility and lock changes now commit through typed commands; media import still uses a validated snapshot-replacement command.
 - The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. Text animators, masks, transitions and several advanced editing surfaces remain unconnected.
 - The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes, nested groups and negative source layer/group starts. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
@@ -239,7 +240,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 ## 6. Verification record (2026-11-24)
 
-Current feature branch code head before this task-status update: `fedde0b83c2510d427717b6c2197ff234e2a5228`. Latest P1 CI run `45382982351` is validating typed transform/text editing, 2D/3D inspector integration, scene evaluation for negative starts, adaptive home/preset UI, app tests and simulator build. Earlier test-only issues were corrected before this run.
+Current feature branch code head before this task-status update: `7c4a0167d28a94617756038550fce6c4c313b821`. Latest P1 CI run `45383631921` is validating typed project-settings and timeline-order commands alongside text/transform editing, negative-start scene evaluation, adaptive home/preset UI, app tests and simulator build.
 
 - [x] iOS CI run #35, run ID `45355757013`: successful. The job log reports 243 tests with zero failures, package/build validation and simulator-target build.
 - [x] IPA workflow run #574, run ID `45356750586`: successful. Xcode archive, unsigned IPA packaging, ZIP integrity check and artifact upload completed.
