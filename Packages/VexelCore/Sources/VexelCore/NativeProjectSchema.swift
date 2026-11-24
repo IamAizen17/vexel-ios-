@@ -451,8 +451,16 @@ public struct VexelTransform: Codable, Equatable, Sendable {
         var values: [String: VexelAnimatableValue] = [:]
         var extras: [String: JSONValue] = [:]
         for key in c.allKeys {
-            if let value = try? c.decode(VexelAnimatableValue.self, forKey: key) { values[key.stringValue] = value }
-            else { extras[key.stringValue] = try c.decode(JSONValue.self, forKey: key) }
+            do {
+                values[key.stringValue] = try c.decode(VexelAnimatableValue.self, forKey: key)
+            } catch {
+                let raw = try c.decode(JSONValue.self, forKey: key)
+                let object = raw.objectValue
+                let isAnimation = object?["keyframes"]?.arrayValue != nil ||
+                    object?["expression"]?.stringValue != nil
+                if isAnimation { throw error }
+                extras[key.stringValue] = raw
+            }
         }
         properties = values; unknownFields = extras
     }
@@ -518,8 +526,8 @@ public struct VexelAnimationTrack: Codable, Equatable, Sendable {
             throw DecodingError.dataCorruptedError(forKey: .init("value"), in: c, debugDescription: "Expression-only animation requires a static value.")
         }
         if keyframes.count > 1 {
-            for index in 1..<keyframes.count where keyframes[index].time < keyframes[index - 1].time {
-                throw DecodingError.dataCorruptedError(forKey: keyframesKey, in: c, debugDescription: "Keyframes must be sorted by time.")
+            for index in 1..<keyframes.count where keyframes[index].time <= keyframes[index - 1].time {
+                throw DecodingError.dataCorruptedError(forKey: keyframesKey, in: c, debugDescription: "Keyframe times must be strictly increasing.")
             }
         }
         unknownFields = try VexelNativeProject.decodeExtra(c, known: Set(Keys.allCases.map(\.rawValue)))
