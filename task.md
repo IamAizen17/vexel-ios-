@@ -19,6 +19,14 @@ Related pull request: https://github.com/IamAizen17/vexel-ios-/pull/2
 
 This file is the implementation handoff and active engineering backlog. “Implemented” means code exists in this branch; it does not imply complete Android parity, successful compilation of the latest commits, or device validation.
 
+## Product scope
+
+- Product targets are **iPhone and iPad only** (iOS and iPadOS).
+- The app is implemented natively with Swift, SwiftUI, Metal, AVFoundation, and Apple platform APIs.
+- There is no Android application target and no macOS product target.
+- The Android repository is a read-only behavioral and file-format reference. Legacy project import is compatibility input only, not a platform commitment.
+- UI, interaction, rendering, media, persistence, and export must be native to iOS/iPadOS.
+
 ## Current implementation status
 
 ### Application and interface
@@ -38,16 +46,14 @@ This file is the implementation handoff and active engineering backlog. “Imple
 ### Editing operations connected to workspace state
 
 - Add a visual layer, text layer, and 2D shape layer.
-- Duplicate and delete selected top-level layers.
-- Group the selected top-level layer with its adjacent sibling.
-- Split a selected top-level layer at the playhead.
-- Add a keyframe timestamp to the selected track at the current frame.
-- Select a layer and toggle visibility or lock state.
-- Add and remove effect IDs from a selected layer's effect stack.
-- Undo and redo using in-memory workspace snapshots.
+- Duplicate and delete selected layers through canonical commands, including nested selections.
+- Group adjacent top-level layers and split selected top-level layers through canonical commands.
+- Add and remove effect instances from a selected layer's serialized effect stack.
+- Route visibility, lock, timeline move, and trim commits through the actor-owned editing store.
+- Keep undo snapshots for workspace actions while the migration to store-owned undo/redo remains incomplete.
 - Advance the playhead during playback and stop or loop at composition duration.
 
-These are initial workspace operations. They are not yet backed by a complete canonical editing engine. Source-compatible duplicate/split helpers and core tests now exist in VexelCore, but the SwiftUI workspace operations are not yet routed through those helpers. Keyframe data in the workspace still uses timestamps rather than editable animated property values, and nested-track selection/editing remains incomplete.
+These are now canonical command-backed operations, but they do not make the editor feature-complete. Keyframe data in the workspace still uses timestamps rather than editable animated property values. Transform/property controls, marker and settings mutations, multi-selection, nested group editing, and a single store-owned undo/redo history remain incomplete.
 
 ### Project data, persistence, and archive groundwork
 
@@ -110,7 +116,10 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 ### P1: Canonical editing model and command engine
 
 - [x] Add an actor-owned canonical `VexelEditingStore` foundation with typed commands, project validation, undo/redo snapshots, coalescing, deterministic duplicate/split IDs, nested insertion/removal/move, property updates, and parent-cycle protection.
-- [ ] Route all SwiftUI workspace and timeline mutations through `VexelEditingStore`; remove view-local mutations and workspace-owned undo stacks.
+- [x] Route primary layer add/duplicate/delete/split/group and effect-stack commands through `VexelEditingStore`.
+- [x] Route timeline move/trim commits and visibility/lock changes through `VexelEditingStore`.
+- [ ] Route transform/keyframe/property edits, markers, media operations, and composition settings through the store.
+- [ ] Replace workspace-owned undo/redo snapshots with store-owned history as the single authority.
 - [x] Add group/ungroup commands with sibling validation, timing preservation, external-reference checks, and guards against dropping group-level properties.
 - [ ] Expand command coverage for multi-selection, snapping, ripple edits, and marker operations.
 - Port timeline reorder, move, trim, split, duplicate, group/ungroup, parenting, multi-selection, snapping, and ripple edits.
@@ -150,7 +159,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge now uses the typed native schema at its persistence boundary, but maps only a subset into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI. The new actor-owned command store is not yet connected to the SwiftUI workspace.
+- The project/document bridge now uses the typed native schema at its persistence boundary, but maps only a subset into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI. Primary layer and timeline commands now use the actor-owned store; transform/keyframe/property, marker, media, and settings paths remain to be connected.
 - `VexelProjectImporter` converts the external format/version envelope and the archive reader performs structural validation. The source video/audio archive fixture is a test-assembled archive based on Android repository examples, not a direct Android app export. This does not establish full Android source schema v12 semantic compatibility.
 - Archive read/write code is connected to UI flows and now has actual-byte-budget and rollback tests. It still requires a direct Android-app-exported fixture and fresh test execution before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
@@ -162,7 +171,10 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - Media, audio, 3D, camera, captions, elements, plugins, stabilization, cutout, and export remain incomplete or disabled. A media picker surface does not mean media is imported into the project.
 - Metal renderer and shader compiler are scaffolding. Initial shader functions do not represent full source shader parity; GLSL translation is not integrated end-to-end.
 - No Android APK/IPA binary or runtime instrumentation was used for this source audit. Findings are source-level only.
-- Latest changes have not been compiled or tested in a fresh workflow. A manual public-repository Actions smoke workflow exists on `main` for Ubuntu and macOS runner provisioning, but it has not yet been triggered. Do not claim current branch compilation or package tests until a fresh validation run succeeds.
+- Fresh GitHub Actions package validation passed on the current feature branch after the schema, archive-fixture, and editing-store fixes.
+- XcodeGen project generation passed after adding the required base Info.plist source.
+- The first iOS Simulator build found two app compile errors in audio asset URL construction and imported timeline-track initializer ordering. Both fixes are committed; the rerun is pending and must pass before claiming an app build.
+- No IPA archive, simulator runtime test, or physical-device test has been completed.
 - A prior workflow passed package checks and produced an unsigned archive/IPA, but that result predates the latest project/archive integration and does not verify the current branch.
 - An unsigned IPA is not installable without valid signing/provisioning or a compatible sideloading process.
 - GPL-3.0 obligations and third-party/native dependency licenses must be reviewed before distribution.
