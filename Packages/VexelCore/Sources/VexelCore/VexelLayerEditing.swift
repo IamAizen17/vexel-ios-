@@ -61,8 +61,8 @@ public enum VexelLayerEditing {
         result.transitionIn = layer.transitionIn.map { shift($0, by: -delta) }
         result.transitionOut = layer.transitionOut.map { shift($0, by: -delta) }
         result.content = layer.content.map { shift($0, by: -delta) }
-        result.motionBlur = layer.motionBlur.map { shift($0, by: -delta) }
-        result.label = layer.label.map { shift($0, by: -delta) }
+        result.motionBlur = layer.motionBlur
+        result.label = layer.label
         result.unknownFields = layer.unknownFields.mapValues { shift($0, by: -delta) }
         result.layers = layer.layers.map { child in
             var copy = child
