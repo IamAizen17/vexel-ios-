@@ -7,6 +7,8 @@ public enum VexelEditingCommand: Sendable {
     case removeLayer(id: String)
     case duplicateLayer(id: String, newID: String)
     case splitLayer(id: String, localTime: Double, newID: String)
+    case groupLayers(firstID: String, secondID: String, groupID: String, name: String)
+    case ungroupLayer(id: String)
     case moveLayer(id: String, toContainerID: String?, index: Int?)
     case renameLayer(id: String, name: String)
     case setLayerVisibility(id: String, visible: Bool)
@@ -191,6 +193,98 @@ public actor VexelEditingStore {
             try insert(split.first, into: &project.layers, containerID: containerID, index: index)
             try insert(split.second, into: &project.layers, containerID: containerID, index: index.map { $0 + 1 })
 
+        case .groupLayers(let firstID, let secondID, let groupID, let name):
+            guard !allLayerIDs(in: project.layers).contains(groupID) else {
+                throw VexelEditingStoreError.duplicateIdentifier(groupID)
+            }
+            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, name.count <= 256 else {
+                throw VexelEditingStoreError.invalidOperation("Group names must contain 1 to 256 characters.")
+            }
+            guard let first = findLayer(firstID, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(firstID)
+            }
+            guard let second = findLayer(secondID, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(secondID)
+            }
+            let container = containerID(of: firstID, in: project.layers)
+            guard container == containerID(of: secondID, in: project.layers),
+                  let firstIndex = siblingIndex(of: firstID, in: project.layers),
+                  let secondIndex = siblingIndex(of: secondID, in: project.layers),
+                  secondIndex == firstIndex + 1 else {
+                throw VexelEditingStoreError.invalidOperation("Only adjacent sibling layers can be grouped.")
+            }
+            let childIDs: Set<String> = [firstID, secondID]
+            for child in [first, second] {
+                if let parent = child.parent, !childIDs.contains(parent) {
+                    throw VexelEditingStoreError.invalidOperation("Grouped layers cannot retain parent references outside the new group.")
+                }
+                if let matteID = child.matte?.objectValue?["layer"]?.stringValue, !childIDs.contains(matteID) {
+                    throw VexelEditingStoreError.invalidOperation("Grouped layers cannot retain matte references outside the new group.")
+                }
+            }
+            guard !hasExternalReferences(to: childIDs, in: project.layers, excluding: childIDs) else {
+                throw VexelEditingStoreError.invalidOperation("Other layers reference one of the selected layers.")
+            }
+            let groupStart = min(first.start ?? 0, second.start ?? 0)
+            let groupEnd = max((first.start ?? 0) + (first.duration ?? 0), (second.start ?? 0) + (second.duration ?? 0))
+            guard groupEnd > groupStart else {
+                throw VexelEditingStoreError.invalidOperation("The selected layers do not have a valid combined duration.")
+            }
+            var children = [first, second]
+            for index in children.indices {
+                children[index].start = (children[index].start ?? 0) - groupStart
+            }
+            let group = VexelLayer(
+                id: groupID,
+                type: .group,
+                name: name,
+                start: groupStart,
+                duration: groupEnd - groupStart,
+                layers: children
+            )
+            let inserted = updateContainer(container, in: &project.layers) { siblings in
+                siblings.removeSubrange(firstIndex...secondIndex)
+                siblings.insert(group, at: firstIndex)
+            }
+            guard inserted else {
+                throw VexelEditingStoreError.containerNotFound(container ?? firstID)
+            }
+
+        case .ungroupLayer(let id):
+            guard let group = findLayer(id, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(id)
+            }
+            guard group.type == .group else {
+                throw VexelEditingStoreError.invalidOperation("Only group layers can be ungrouped.")
+            }
+            let groupIDs = allLayerIDs(in: [group])
+            guard !hasExternalReferences(to: [id], in: project.layers, excluding: groupIDs),
+                  group.parent == nil, group.matte == nil else {
+                throw VexelEditingStoreError.invalidOperation("The group has external parent, matte, or layer references.")
+            }
+            guard group.transform == nil, group.transform3D == nil, group.effects.isEmpty,
+                  group.masks.isEmpty, group.transitionIn == nil, group.transitionOut == nil,
+                  group.blendMode == nil, group.motionBlur == nil, group.unknownFields.isEmpty else {
+                throw VexelEditingStoreError.invalidOperation("Ungrouping would discard group-level properties.")
+            }
+            let container = containerID(of: id, in: project.layers)
+            guard let index = siblingIndex(of: id, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(id)
+            }
+            var promoted = group.layers
+            for childIndex in promoted.indices {
+                promoted[childIndex].start = (promoted[childIndex].start ?? 0) + (group.start ?? 0)
+                if group.visible == false { promoted[childIndex].visible = false }
+                if group.locked == true { promoted[childIndex].locked = true }
+            }
+            let replaced = updateContainer(container, in: &project.layers) { siblings in
+                siblings.remove(at: index)
+                siblings.insert(contentsOf: promoted, at: index)
+            }
+            guard replaced else {
+                throw VexelEditingStoreError.containerNotFound(container ?? id)
+            }
+
         case .moveLayer(let id, let toContainerID, let index):
             guard let source = findLayer(id, in: project.layers) else {
                 throw VexelEditingStoreError.layerNotFound(id)
@@ -320,6 +414,21 @@ public actor VexelEditingStore {
         }
     }
 
+    private static func updateContainer(
+        _ containerID: String?,
+        in layers: inout [VexelLayer],
+        _ update: (inout [VexelLayer]) -> Void
+    ) -> Bool {
+        guard let containerID else {
+            update(&layers)
+            return true
+        }
+        return updateLayer(containerID, in: &layers) { group in
+            guard group.type == .group else { return }
+            update(&group.layers)
+        }
+    }
+
     private static func updateLayer(
         _ id: String,
         in layers: inout [VexelLayer],
@@ -355,17 +464,6 @@ public actor VexelEditingStore {
             }
         }
         return nil
-    }
-
-    private static func insert(_ layer: VexelLayer, after id: String, in layers: inout [VexelLayer]) -> Bool {
-        for index in layers.indices {
-            if layers[index].id == id {
-                layers.insert(layer, at: index + 1)
-                return true
-            }
-            if insert(layer, after: id, in: &layers[index].layers) { return true }
-        }
-        return false
     }
 
     private static func containerID(of id: String, in layers: [VexelLayer], parentID: String? = nil) -> String? {
