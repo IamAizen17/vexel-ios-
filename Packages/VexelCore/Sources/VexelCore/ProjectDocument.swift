@@ -328,8 +328,8 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                     issues.append(ProjectIssue(severity: .error, path: "\(location).parent", message: "A layer cannot parent itself."))
                 } else if let parent = siblings[parentID] {
                     let parentType = parent["type"]?.stringValue ?? "unknown"
-                    let childIs3D = ["object3d", "model3d", "camera", "light"].contains(type)
-                    let parentIs3D = ["object3d", "model3d", "camera", "light"].contains(parentType)
+                    let childIs3D = Self.is3DLayer(type: type, fields: layer)
+                    let parentIs3D = Self.is3DLayer(type: parentType, fields: parent)
                     if childIs3D != parentIs3D || ["audio", "camera", "light"].contains(parentType) {
                         issues.append(ProjectIssue(severity: .error, path: "\(location).parent", message: "Parent and child layer types are incompatible."))
                     }
@@ -343,8 +343,8 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                     issues.append(ProjectIssue(severity: .error, path: "\(location).matte.layer", message: "A layer cannot use itself as a matte."))
                 } else if let matteLayer = siblings[matteID] {
                     let matteType = matteLayer["type"]?.stringValue ?? "unknown"
-                    if !["text", "shape", "image", "video"].contains(type) ||
-                       !["text", "shape", "image", "video"].contains(matteType) {
+                    if !["text", "shape", "image", "video", "group"].contains(type) ||
+                       !["text", "shape", "image", "video", "group", "object3d", "model3d"].contains(matteType) {
                         issues.append(ProjectIssue(severity: .error, path: "\(location).matte", message: "Track mattes require 2D visual layers."))
                     }
                     if matteLayer["matte"]?.objectValue?["layer"]?.stringValue == id {
@@ -421,6 +421,13 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             }
             _ = layer
         }
+    }
+
+    private static func is3DLayer(type: String, fields: [String: JSONValue]) -> Bool {
+        if type == "null" {
+            return fields["null"]?.objectValue?["threeD"]?.boolValue ?? false
+        }
+        return ["object3d", "model3d", "camera", "light"].contains(type)
     }
 
     private func validateCutout(
