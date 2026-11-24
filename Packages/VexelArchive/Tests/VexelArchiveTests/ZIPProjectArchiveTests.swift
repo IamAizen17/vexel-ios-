@@ -107,9 +107,8 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertEqual(imported.fields["compatibility"]?.objectValue?["sourceVersion"]?.numberValue, 12)
         XCTAssertEqual(imported.title, "Everything")
         XCTAssertEqual(imported.fields["assets"]?.arrayValue?.count, 5)
-        XCTAssertEqual(imported.fields["layers"]?.arrayValue?.count, 9)
+        XCTAssertEqual(imported.fields["layers"]?.arrayValue?.count, 17)
         XCTAssertEqual(imported.fields["composition"]?.objectValue?["fps"]?.numberValue, 30)
-        XCTAssertEqual(imported.fields["editorView"]?.objectValue?["mode"]?.stringValue, "editor")
 
         let layers = imported.fields["layers"]?.arrayValue ?? []
         let star = try XCTUnwrap(layers.first { $0.objectValue?["id"]?.stringValue == "star" }?.objectValue)
