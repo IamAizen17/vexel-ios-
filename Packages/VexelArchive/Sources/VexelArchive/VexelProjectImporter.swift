@@ -1,5 +1,18 @@
 import Foundation
 
+
+public struct VexelUnsupportedFeature: Equatable, Sendable {
+    public let path: String
+    public let feature: String
+    public let reason: String
+
+    public init(path: String, feature: String, reason: String) {
+        self.path = path
+        self.feature = feature
+        self.reason = reason
+    }
+}
+
 public enum VexelProjectImporter {
     static let legacyAndroidFormatIdentifier = "knsproj"
     private static let maximumAndroidCompatibilityVersion = 12
@@ -52,6 +65,78 @@ public enum VexelProjectImporter {
             ))
         }
         return imported
+    }
+
+
+    public static func compatibilityReport(for project: ProjectDocument) -> [VexelUnsupportedFeature] {
+        var result: [VexelUnsupportedFeature] = []
+        let composition = project.fields["composition"]?.objectValue ?? [:]
+        for key in ["motionBlur", "lighting", "environment"] where composition[key] != nil {
+            result.append(VexelUnsupportedFeature(
+                path: "composition.\\(key)",
+                feature: key,
+                reason: "This feature is preserved in the project document but is not implemented by the current iOS rendering pipeline."
+            ))
+        }
+
+        func inspect(_ layers: [JSONValue], path: String) {
+            for (index, value) in layers.enumerated() {
+                guard let layer = value.objectValue else { continue }
+                let location = "\\(path)[\\(index)]"
+                let type = layer["type"]?.stringValue ?? "unknown"
+                if ["video", "audio", "object3d", "model3d", "camera", "light"].contains(type) {
+                    result.append(VexelUnsupportedFeature(
+                        path: "\\(location).type",
+                        feature: type,
+                        reason: "The layer is retained for round-trip compatibility but its playback or rendering implementation is incomplete."
+                    ))
+                }
+                for key in ["masks", "matte", "transitionIn", "transitionOut"] where layer[key] != nil {
+                    result.append(VexelUnsupportedFeature(
+                        path: "\\(location).\\(key)",
+                        feature: key,
+                        reason: "The serialized feature is preserved, but the corresponding editor/render operation is not implemented."
+                    ))
+                }
+                if let effects = layer["effects"]?.arrayValue {
+                    for (effectIndex, effect) in effects.enumerated() {
+                        let effectType = effect.objectValue?["type"]?.stringValue ?? "unknown"
+                        result.append(VexelUnsupportedFeature(
+                            path: "\\(location).effects[\\(effectIndex)]",
+                            feature: "effect:\\(effectType)",
+                            reason: "Effect parameters are preserved, but this effect is not yet connected to the iOS render graph."
+                        ))
+                    }
+                }
+                func findExpressions(_ value: JSONValue, at valuePath: String) {
+                    switch value {
+                    case .object(let object):
+                        for (key, child) in object {
+                            let childPath = "\\(valuePath).\\(key)"
+                            if key == "expression", child.stringValue != nil {
+                                result.append(VexelUnsupportedFeature(
+                                    path: childPath,
+                                    feature: "expression",
+                                    reason: "Android Rhino expressions are preserved but are not evaluated by the restricted iOS expression engine."
+                                ))
+                            } else {
+                                findExpressions(child, at: childPath)
+                            }
+                        }
+                    case .array(let values):
+                        for (childIndex, child) in values.enumerated() {
+                            findExpressions(child, at: "\\(valuePath)[\\(childIndex)]")
+                        }
+                    case .string, .number, .bool, .null:
+                        break
+                    }
+                }
+                findExpressions(.object(layer), at: location)
+                inspect(layer["layers"]?.arrayValue ?? [], path: "\\(location).layers")
+            }
+        }
+        inspect(project.fields["layers"]?.arrayValue ?? [], path: "layers")
+        return result
     }
 
     private static func migrateKNSFields(
