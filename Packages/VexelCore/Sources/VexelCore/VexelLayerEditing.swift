@@ -39,8 +39,7 @@ public enum VexelLayerEditing {
 
     private static func trimStart(_ layer: VexelLayer, by requestedDelta: Double) -> VexelLayer {
         var delta = min(requestedDelta, (layer.duration ?? requestedDelta) - minimumDuration)
-        let mediaKey = layer.type == .video ? "video" : (layer.type == .audio ? "audio" : nil)
-        if let mediaKey,
+        if (layer.type == .video || layer.type == .audio),
            let media = layer.content?.objectValue,
            let sourceStart = media["sourceStart"]?.numberValue,
            (media["speed"]?.numberValue ?? 1) > 0 {
@@ -72,7 +71,8 @@ public enum VexelLayerEditing {
         result.start = (layer.start ?? 0) + delta
         result.duration = (layer.duration ?? 0) - delta
 
-        if let mediaKey, var media = result.content?.objectValue,
+        if (layer.type == .video || layer.type == .audio),
+           var media = result.content?.objectValue,
            let sourceStart = media["sourceStart"]?.numberValue {
             let speed = media["speed"]?.numberValue ?? 1
             media["sourceStart"] = .number(max(0, sourceStart + delta * speed))

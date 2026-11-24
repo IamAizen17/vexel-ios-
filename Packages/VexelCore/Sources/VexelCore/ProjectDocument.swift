@@ -368,6 +368,13 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                     continue
                 }
 
+                if let enabled = effect["enabled"], case .bool = enabled {
+                    // The enabled flag is valid.
+                } else if effect["enabled"] != nil {
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).enabled",
+                        message: "Effect enabled flag must be a boolean."))
+                }
+
                 let parameters = Dictionary(uniqueKeysWithValues: definition.parameters.map { ($0.name, $0) })
                 for (name, rawValue) in effect where name != "type" && name != "enabled" {
                     let parameterPath = "\(location).\(name)"
