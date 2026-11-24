@@ -401,6 +401,7 @@ final class VexelEditingStoreTests: XCTestCase {
 
         let didRedo = await store.redo()
         XCTAssertTrue(didRedo)
+        snapshot = await store.snapshot()
         XCTAssertEqual(snapshot.layers[0].transform?.properties["opacity"], .constant(.number(0.65)))
     }
 
