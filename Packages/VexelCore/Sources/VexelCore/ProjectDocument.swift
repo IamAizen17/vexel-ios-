@@ -199,21 +199,21 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         var markerIDs = Set<String>()
         if let markers = fields["markers"]?.arrayValue {
             for (index, marker) in markers.enumerated() {
-                let path = "markers[\\(index)]"
+                let path = "markers[\(index)]"
                 guard let object = marker.objectValue else {
                     issues.append(ProjectIssue(severity: .error, path: path, message: "Marker must be an object."))
                     continue
                 }
                 guard let id = object["id"]?.stringValue, !id.isEmpty else {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(path).id", message: "Marker ID is required."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(path).id", message: "Marker ID is required."))
                     continue
                 }
                 if !markerIDs.insert(id).inserted {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(path).id", message: "Marker IDs must be unique."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(path).id", message: "Marker IDs must be unique."))
                 }
                 let time = object["time"]?.numberValue ?? -1
                 if !(0...3600).contains(time) {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(path).time", message: "Marker time must be between 0 and 3600 seconds."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(path).time", message: "Marker time must be between 0 and 3600 seconds."))
                 }
             }
         }
@@ -314,44 +314,44 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
 
         for (index, value) in layers.enumerated() {
             guard let layer = value.objectValue else { continue }
-            let location = "\\(path)[\\(index)]"
+            let location = "\(path)[\(index)]"
             let id = layer["id"]?.stringValue ?? ""
             let type = layer["type"]?.stringValue ?? "unknown"
             let children = layer["layers"]?.arrayValue ?? []
 
             if !children.isEmpty && type != "group" {
-                issues.append(ProjectIssue(severity: .error, path: "\\(location).layers", message: "Only group layers may contain child layers."))
+                issues.append(ProjectIssue(severity: .error, path: "\(location).layers", message: "Only group layers may contain child layers."))
             }
 
             if let parentID = layer["parent"]?.stringValue {
                 if parentID == id {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).parent", message: "A layer cannot parent itself."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).parent", message: "A layer cannot parent itself."))
                 } else if let parent = siblings[parentID] {
                     let parentType = parent["type"]?.stringValue ?? "unknown"
                     let childIs3D = ["object3d", "model3d", "camera", "light"].contains(type)
                     let parentIs3D = ["object3d", "model3d", "camera", "light"].contains(parentType)
                     if childIs3D != parentIs3D || ["audio", "camera", "light"].contains(parentType) {
-                        issues.append(ProjectIssue(severity: .error, path: "\\(location).parent", message: "Parent and child layer types are incompatible."))
+                        issues.append(ProjectIssue(severity: .error, path: "\(location).parent", message: "Parent and child layer types are incompatible."))
                     }
                 } else {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).parent", message: "Parent must identify a sibling layer in the same group."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).parent", message: "Parent must identify a sibling layer in the same group."))
                 }
             }
 
             if let matteID = layer["matte"]?.objectValue?["layer"]?.stringValue {
                 if matteID == id {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).matte.layer", message: "A layer cannot use itself as a matte."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).matte.layer", message: "A layer cannot use itself as a matte."))
                 } else if let matteLayer = siblings[matteID] {
                     let matteType = matteLayer["type"]?.stringValue ?? "unknown"
                     if !["text", "shape", "image", "video"].contains(type) ||
                        !["text", "shape", "image", "video"].contains(matteType) {
-                        issues.append(ProjectIssue(severity: .error, path: "\\(location).matte", message: "Track mattes require 2D visual layers."))
+                        issues.append(ProjectIssue(severity: .error, path: "\(location).matte", message: "Track mattes require 2D visual layers."))
                     }
                     if matteLayer["matte"]?.objectValue?["layer"]?.stringValue == id {
-                        issues.append(ProjectIssue(severity: .error, path: "\\(location).matte.layer", message: "Two layers cannot be each other's matte."))
+                        issues.append(ProjectIssue(severity: .error, path: "\(location).matte.layer", message: "Two layers cannot be each other's matte."))
                     }
                 } else {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).matte.layer", message: "Matte source must identify a sibling layer in the same group."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).matte.layer", message: "Matte source must identify a sibling layer in the same group."))
                 }
             }
 
@@ -359,7 +359,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 if let transition = layer[transitionKey]?.objectValue,
                    let transitionDuration = transition["duration"]?.numberValue,
                    transitionDuration <= 0 {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(transitionKey).duration", message: "Transition duration must be greater than zero."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).\(transitionKey).duration", message: "Transition duration must be greater than zero."))
                 }
             }
 
@@ -367,7 +367,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                let font = text["font"]?.objectValue,
                let weight = font["weight"]?.numberValue,
                !(100...900).contains(weight) {
-                issues.append(ProjectIssue(severity: .error, path: "\\(location).text.font.weight", message: "Font weight must be between 100 and 900."))
+                issues.append(ProjectIssue(severity: .error, path: "\(location).text.font.weight", message: "Font weight must be between 100 and 900."))
             }
 
             for mediaKey in ["video", "audio"] {
@@ -375,17 +375,17 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                 let speed = media["speed"]?.numberValue ?? 1
                 let sourceStart = media["sourceStart"]?.numberValue ?? 0
                 if speed <= 0 {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).speed", message: "Media playback speed must be greater than zero."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).speed", message: "Media playback speed must be greater than zero."))
                 }
                 if sourceStart < 0 {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).sourceStart", message: "Media source start must be non-negative."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).sourceStart", message: "Media source start must be non-negative."))
                 }
                 if mediaKey == "video", let cutout = media["cutout"]?.objectValue {
-                    validateCutout(cutout, path: "\\(location).video.cutout", issues: &issues)
+                    validateCutout(cutout, path: "\(location).video.cutout", issues: &issues)
                 }
                 if let bands = media["eq"]?.arrayValue {
                     if bands.count > 8 {
-                        issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).eq", message: "At most eight equalizer bands are supported."))
+                        issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).eq", message: "At most eight equalizer bands are supported."))
                     }
                     for (bandIndex, bandValue) in bands.enumerated() {
                         guard let band = bandValue.objectValue else { continue }
@@ -393,7 +393,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                         let gain = band["gain"]?.numberValue ?? 0
                         let q = band["q"]?.numberValue ?? 0
                         if !(20...20000).contains(frequency) || !(-24...24).contains(gain) || !(0.1...10).contains(q) {
-                            issues.append(ProjectIssue(severity: .error, path: "\\(location).\\(mediaKey).eq[\\(bandIndex)]", message: "Equalizer frequency, gain, and Q are outside supported ranges."))
+                            issues.append(ProjectIssue(severity: .error, path: "\(location).\(mediaKey).eq[\(bandIndex)]", message: "Equalizer frequency, gain, and Q are outside supported ranges."))
                         }
                     }
                 }
@@ -402,11 +402,11 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             if let light = layer["light"]?.objectValue,
                let softness = light["shadowSoftness"]?.numberValue,
                !(0...8).contains(softness) {
-                issues.append(ProjectIssue(severity: .error, path: "\\(location).light.shadowSoftness", message: "Shadow softness must be between 0 and 8."))
+                issues.append(ProjectIssue(severity: .error, path: "\(location).light.shadowSoftness", message: "Shadow softness must be between 0 and 8."))
             }
 
             validateKeyframeOrdering(.object(layer), path: location, issues: &issues)
-            validateLayerSemantics(children, path: "\\(location).layers", depth: depth + 1, issues: &issues)
+            validateLayerSemantics(children, path: "\(location).layers", depth: depth + 1, issues: &issues)
         }
 
         for (id, layer) in siblings {
@@ -414,7 +414,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             var visited = Set<String>()
             while let currentID = cursor, let current = siblings[currentID] {
                 if !visited.insert(currentID).inserted {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(path).\\(id).parent", message: "Parent chain contains a cycle."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(path).\(id).parent", message: "Parent chain contains a cycle."))
                     break
                 }
                 cursor = current["parent"]?.stringValue
@@ -435,33 +435,33 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         }
         let frames = cutout["frames"]?.arrayValue ?? []
         if frames.count > 240 {
-            issues.append(ProjectIssue(severity: .error, path: "\\(path).frames", message: "A cutout recipe may contain at most 240 painted frames."))
+            issues.append(ProjectIssue(severity: .error, path: "\(path).frames", message: "A cutout recipe may contain at most 240 painted frames."))
         }
         for (frameIndex, frameValue) in frames.enumerated() {
             guard let frame = frameValue.objectValue else { continue }
-            let framePath = "\\(path).frames[\\(frameIndex)]"
+            let framePath = "\(path).frames[\(frameIndex)]"
             let time = frame["time"]?.numberValue ?? -1
             if time < 0 || time > duration {
-                issues.append(ProjectIssue(severity: .error, path: "\\(framePath).time", message: "Painted frame time must be within the cutout duration."))
+                issues.append(ProjectIssue(severity: .error, path: "\(framePath).time", message: "Painted frame time must be within the cutout duration."))
             }
             let strokes = frame["strokes"]?.arrayValue ?? []
             if strokes.count > 64 {
-                issues.append(ProjectIssue(severity: .error, path: "\\(framePath).strokes", message: "A painted frame may contain at most 64 strokes."))
+                issues.append(ProjectIssue(severity: .error, path: "\(framePath).strokes", message: "A painted frame may contain at most 64 strokes."))
             }
             for (strokeIndex, strokeValue) in strokes.enumerated() {
                 guard let stroke = strokeValue.objectValue else { continue }
-                let strokePath = "\\(framePath).strokes[\\(strokeIndex)]"
+                let strokePath = "\(framePath).strokes[\(strokeIndex)]"
                 let mode = stroke["mode"]?.stringValue ?? "add"
                 if mode != "add" && mode != "remove" {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).mode", message: "Cutout stroke mode must be add or remove."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(strokePath).mode", message: "Cutout stroke mode must be add or remove."))
                 }
                 let size = stroke["size"]?.numberValue ?? 0.06
                 if !(0.005...0.5).contains(size) {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).size", message: "Cutout brush size must be between 0.005 and 0.5."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(strokePath).size", message: "Cutout brush size must be between 0.005 and 0.5."))
                 }
                 let points = stroke["points"]?.arrayValue ?? []
                 if points.isEmpty || points.count > 2000 {
-                    issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).points", message: "A stroke must contain between 1 and 2000 points."))
+                    issues.append(ProjectIssue(severity: .error, path: "\(strokePath).points", message: "A stroke must contain between 1 and 2000 points."))
                 }
                 for (pointIndex, point) in points.enumerated() {
                     let coordinates = point.arrayValue ?? []
@@ -470,7 +470,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
                            guard let number = value.numberValue else { return true }
                            return !(0...1).contains(number)
                        }) {
-                        issues.append(ProjectIssue(severity: .error, path: "\\(strokePath).points[\\(pointIndex)]", message: "Stroke points must be normalized [x, y] coordinates between 0 and 1."))
+                        issues.append(ProjectIssue(severity: .error, path: "\(strokePath).points[\(pointIndex)]", message: "Stroke points must be normalized [x, y] coordinates between 0 and 1."))
                     }
                 }
             }
@@ -481,17 +481,17 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
         switch value {
         case .object(let object):
             for (key, child) in object {
-                let childPath = "\\(path).\\(key)"
+                let childPath = "\(path).\(key)"
                 if key == "keyframes", let frames = child.arrayValue {
                     var previous: Double?
                     for (index, frame) in frames.enumerated() {
                         let time = frame.objectValue?["time"]?.numberValue
                         guard let time else {
-                            issues.append(ProjectIssue(severity: .error, path: "\\(childPath)[\\(index)].time", message: "Keyframe time is required."))
+                            issues.append(ProjectIssue(severity: .error, path: "\(childPath)[\(index)].time", message: "Keyframe time is required."))
                             continue
                         }
                         if let previous, time - previous < 0.000001 {
-                            issues.append(ProjectIssue(severity: .error, path: "\\(childPath)[\\(index)].time", message: "Keyframe times must be strictly increasing."))
+                            issues.append(ProjectIssue(severity: .error, path: "\(childPath)[\(index)].time", message: "Keyframe times must be strictly increasing."))
                         }
                         previous = time
                     }
@@ -501,7 +501,7 @@ public struct ProjectDocument: Codable, Equatable, Sendable {
             }
         case .array(let values):
             for (index, child) in values.enumerated() {
-                validateKeyframeOrdering(child, path: "\\(path)[\\(index)]", issues: &issues)
+                validateKeyframeOrdering(child, path: "\(path)[\(index)]", issues: &issues)
             }
         case .string, .number, .bool, .null:
             break
