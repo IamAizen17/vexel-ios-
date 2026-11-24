@@ -550,13 +550,18 @@ public enum VexelEasing: Codable, Equatable, Sendable {
             if let points = object["cubicBezier"]?.arrayValue, points.count == 4,
                let x1 = points[0].numberValue, let y1 = points[1].numberValue,
                let x2 = points[2].numberValue, let y2 = points[3].numberValue {
+                guard (0...1).contains(x1), (0...1).contains(x2) else {
+                    throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Cubic Bézier x control points must be within 0...1."))
+                }
                 self = .cubicBezier(x1: x1, y1: y1, x2: x2, y2: y2)
             } else if let cyclic = object["cyclic"]?.objectValue {
-                self = .cyclic(
-                    offset: cyclic["offset"]?.numberValue ?? 0,
-                    cycles: cyclic["cycles"]?.numberValue ?? 3.5,
-                    phase: cyclic["phase"]?.numberValue ?? 0
-                )
+                let offset = cyclic["offset"]?.numberValue ?? 0
+                let cycles = cyclic["cycles"]?.numberValue ?? 3.5
+                let phase = cyclic["phase"]?.numberValue ?? 0
+                guard (-1...1).contains(offset), (0.5...64).contains(cycles), (-1...1).contains(phase) else {
+                    throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Cyclic easing requires offset and phase within -1...1 and cycles within 0.5...64."))
+                }
+                self = .cyclic(offset: offset, cycles: cycles, phase: phase)
             } else {
                 self = .unknown(value)
             }
