@@ -458,47 +458,102 @@ struct VexelHomeView: View {
 
     private var projectsPage: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Your workspace").font(.system(size: 23, weight: .bold, design: .rounded)).foregroundStyle(VexelPalette.text)
-                        Text("\(projects.count) compositions").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
+                        Text("Your workspace")
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
+                            .foregroundStyle(VexelPalette.text)
+                        Text("\(projects.count) compositions")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(VexelPalette.secondary)
                     }
                     Spacer()
                     Button { showingImporter = true } label: {
                         Label("Import", systemImage: "square.and.arrow.down")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(VexelPalette.soft)
-                            .padding(.horizontal, 12).frame(height: 34)
+                            .padding(.horizontal, 12).frame(height: 36)
                             .background(VexelPalette.field, in: Capsule())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.import")
                 }
 
                 Button { showingNewProject = true } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: "plus").font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(Color.black).frame(width: 42, height: 42)
-                            .background(VexelPalette.accent, in: RoundedRectangle(cornerRadius: 12))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Create composition").font(.system(size: 14, weight: .bold)).foregroundStyle(VexelPalette.text)
-                            Text("Start from a blank canvas or preset").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(LinearGradient(
+                                colors: [VexelPalette.card, VexelPalette.preview],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                        HStack(spacing: 14) {
+                            VStack(alignment: .leading, spacing: 9) {
+                                Text("NEW COMPOSITION")
+                                    .font(.system(size: 8, weight: .black))
+                                    .tracking(1.8)
+                                    .foregroundStyle(VexelPalette.accent)
+                                Text("Make something
+move.")
+                                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                                    .multilineTextAlignment(.leading)
+                                    .foregroundStyle(VexelPalette.text)
+                                HStack(spacing: 6) {
+                                    Text("Start creating")
+                                    Image(systemName: "arrow.up.right")
+                                }
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color.black)
+                                .padding(.horizontal, 12).frame(height: 30)
+                                .background(VexelPalette.accent, in: Capsule())
+                            }
+                            Spacer(minLength: 0)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(VexelPalette.field.opacity(0.8))
+                                    .frame(width: 100, height: 116)
+                                    .rotationEffect(.degrees(8))
+                                RoundedRectangle(cornerRadius: 11)
+                                    .fill(VexelPalette.preview)
+                                    .frame(width: 86, height: 104)
+                                    .overlay {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 5)
+                                                .stroke(VexelPalette.accent.opacity(0.8), lineWidth: 1.2)
+                                                .frame(width: 50, height: 68)
+                                            Circle().fill(VexelPalette.accent)
+                                                .frame(width: 16, height: 16)
+                                                .offset(x: 12, y: -18)
+                                            Image(systemName: "waveform.path")
+                                                .font(.system(size: 19, weight: .medium))
+                                                .foregroundStyle(VexelPalette.soft)
+                                        }
+                                    }
+                            }
                         }
-                        Spacer()
-                        Image(systemName: "arrow.up.right").foregroundStyle(VexelPalette.secondary)
+                        .padding(18)
                     }
-                    .padding(14)
-                    .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(VexelPalette.line, lineWidth: 1))
+                    .frame(minHeight: 154)
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(VexelPalette.line, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("home.createProject.featured")
 
-                VexelSectionLabel(title: "Recent projects", trailing: "SORT: RECENT")
+                HStack {
+                    VexelSectionLabel(title: "Recent projects", trailing: "LATEST FIRST")
+                    Spacer()
+                    Text("PROJECT LIBRARY")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .tracking(0.8)
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+
                 if projects.isEmpty {
                     VexelEmptyState(symbol: "square.stack.3d.up", title: "No projects yet", detail: "Create a composition to start building your first animation.")
                         .frame(height: 220)
                 } else {
-                    LazyVStack(spacing: 10) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 270), spacing: 12)], spacing: 12) {
                         ForEach(projects) { project in
                             ProjectCard(project: project, onOpen: { onOpen(project) }, onDuplicate: {
                                 do {
@@ -527,7 +582,8 @@ struct VexelHomeView: View {
                 }
             }
             .padding(.horizontal, 18)
-            .padding(.bottom, 22)
+            .padding(.top, 4)
+            .padding(.bottom, 24)
         }
     }
 
@@ -535,37 +591,65 @@ struct VexelHomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Start with a preset").font(.system(size: 23, weight: .bold, design: .rounded)).foregroundStyle(VexelPalette.text)
-                    Text("Choose a canvas format and frame rate.").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
+                    Text("Start with a preset")
+                        .font(.system(size: 25, weight: .bold, design: .rounded))
+                        .foregroundStyle(VexelPalette.text)
+                    Text("Choose a canvas format and frame rate.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(VexelPalette.secondary)
                 }
-                ForEach(ProjectPreset.all) { preset in
-                    Button {
-                        let project = VexelProjectItem(title: preset.name, width: preset.width, height: preset.height, fps: preset.fps, duration: preset.duration)
-                        projects.insert(project, at: 0)
-                        onOpen(project)
-                    } label: {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 9).fill(VexelPalette.field)
-                                RoundedRectangle(cornerRadius: 3).stroke(VexelPalette.accent.opacity(0.8), lineWidth: 1.2)
-                                    .frame(width: preset.width > preset.height ? 43 : 24, height: preset.width > preset.height ? 24 : 39)
+                VexelSectionLabel(title: "CANVAS FORMATS", trailing: "\(ProjectPreset.all.count) PRESETS")
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 154), spacing: 12)], spacing: 12) {
+                    ForEach(ProjectPreset.all) { preset in
+                        Button {
+                            let project = VexelProjectItem(title: preset.name, width: preset.width, height: preset.height, fps: preset.fps, duration: preset.duration)
+                            projects.insert(project, at: 0)
+                            onOpen(project)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 10) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12).fill(VexelPalette.preview)
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(VexelPalette.field)
+                                        .frame(width: preset.width > preset.height ? 92 : (preset.width == preset.height ? 70 : 48),
+                                               height: preset.width > preset.height ? 52 : (preset.width == preset.height ? 70 : 82))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .stroke(VexelPalette.accent, lineWidth: 1.2)
+                                                .padding(5)
+                                        }
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(VexelPalette.accent)
+                                }
+                                .frame(height: 126)
+                                Text(preset.name)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(VexelPalette.text)
+                                    .lineLimit(1)
+                                Text("\(preset.width) × \(preset.height)")
+                                    .font(.system(size: 9, design: .monospaced))
+                                    .foregroundStyle(VexelPalette.secondary)
+                                HStack {
+                                    Text("\(preset.fps) FPS · \(Int(preset.duration)) sec")
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .foregroundStyle(VexelPalette.accent)
+                                }
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(VexelPalette.soft)
                             }
-                            .frame(width: 60, height: 60)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(preset.name).font(.system(size: 13, weight: .bold)).foregroundStyle(VexelPalette.text)
-                                Text("\(preset.width) × \(preset.height) · \(preset.fps) FPS · \(Int(preset.duration)) sec")
-                                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right").foregroundStyle(VexelPalette.accent)
+                            .padding(11)
+                            .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 15))
+                            .overlay(RoundedRectangle(cornerRadius: 15).stroke(VexelPalette.line, lineWidth: 1))
                         }
-                        .padding(12)
-                        .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 14))
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("preset.\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(18)
+            .padding(.bottom, 24)
         }
     }
 
@@ -598,40 +682,94 @@ private struct ProjectCard: View {
     let onDelete: () -> Void
     let onExport: () -> Void
 
+    private var stageSize: CGSize {
+        if project.width > project.height { return CGSize(width: 108, height: 62) }
+        if project.width == project.height { return CGSize(width: 78, height: 78) }
+        return CGSize(width: 58, height: 88)
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 11) {
             Button(action: onOpen) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10).fill(VexelPalette.preview)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(VexelPalette.field)
-                        .frame(width: project.width > project.height ? 48 : 28, height: project.width > project.height ? 28 : 48)
-                        .overlay(Text("V").font(.system(size: 12, weight: .black)).foregroundStyle(VexelPalette.accent))
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 12).fill(VexelPalette.preview)
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("VEXEL PROJECT")
+                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                            Spacer()
+                            Text(project.modified.formatted(date: .abbreviated, time: .omitted).uppercased())
+                                .font(.system(size: 7, weight: .semibold, design: .monospaced))
+                        }
+                        .foregroundStyle(VexelPalette.secondary)
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(VexelPalette.field)
+                                .frame(width: stageSize.width, height: stageSize.height)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .stroke(VexelPalette.accent.opacity(0.85), lineWidth: 1)
+                                        .padding(6)
+                                    Text("V")
+                                        .font(.system(size: 17, weight: .black, design: .rounded))
+                                        .foregroundStyle(VexelPalette.accent)
+                                }
+                            Spacer()
+                        }
+                        Spacer()
+                        HStack(spacing: 5) {
+                            Circle().fill(VexelPalette.accent).frame(width: 5, height: 5)
+                            Text("EDITABLE COMPOSITION")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .tracking(0.8)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 9, weight: .bold))
+                        }
+                        .foregroundStyle(VexelPalette.soft)
+                    }
+                    .padding(12)
                 }
-                .frame(width: 66, height: 66)
+                .frame(height: 154)
             }
             .buttonStyle(.plain)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(project.title).font(.system(size: 13, weight: .bold)).foregroundStyle(VexelPalette.text).lineLimit(1)
-                Text("\(project.width) × \(project.height) · \(project.fps) FPS")
-                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                Text(project.modified.formatted(date: .abbreviated, time: .shortened))
-                    .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+            .accessibilityIdentifier("project.open.\(project.id.uuidString)")
+
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(project.title)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(VexelPalette.text)
+                        .lineLimit(1)
+                    Text("\(project.width) × \(project.height) · \(project.fps) FPS")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+                Spacer(minLength: 0)
+                Menu {
+                    Button(action: onOpen) { Label("Open", systemImage: "arrow.up.right.square") }
+                    Button(action: onDuplicate) { Label("Duplicate", systemImage: "plus.square.on.square") }
+                    Button(action: onExport) { Label("Export project", systemImage: "square.and.arrow.up") }
+                    Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(VexelPalette.secondary)
+                        .frame(width: 32, height: 34)
+                        .background(VexelPalette.field, in: Circle())
+                }
+                .accessibilityIdentifier("project.actions.\(project.id.uuidString)")
             }
-            Spacer(minLength: 0)
-            Menu {
-                Button(action: onOpen) { Label("Open", systemImage: "arrow.up.right.square") }
-                Button(action: onDuplicate) { Label("Duplicate", systemImage: "plus.square.on.square") }
-                Button(action: onExport) { Label("Export project", systemImage: "square.and.arrow.up") }
-                Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
-            } label: {
-                Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(VexelPalette.secondary).frame(width: 34, height: 44)
-            }
+            Text("Modified \(project.modified.formatted(date: .abbreviated, time: .shortened))")
+                .font(.system(size: 9))
+                .foregroundStyle(VexelPalette.secondary)
         }
-        .padding(10)
-        .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(VexelPalette.line.opacity(0.7), lineWidth: 1))
+        .padding(11)
+        .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 17))
+        .overlay(RoundedRectangle(cornerRadius: 17).stroke(VexelPalette.line, lineWidth: 1))
     }
 }
 
