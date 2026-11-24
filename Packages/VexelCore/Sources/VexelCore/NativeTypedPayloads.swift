@@ -14,6 +14,12 @@ public struct VexelObjectFields: Equatable, Sendable {
 
     public func string(_ key: String) -> String? { values[key]?.stringValue }
     public func number(_ key: String) -> Double? { values[key]?.numberValue }
+    public func integer(_ key: String) -> Int? {
+        guard let value = number(key), value.isFinite,
+              value >= Double(Int.min), value <= Double(Int.max),
+              value.rounded(.towardZero) == value else { return nil }
+        return Int(value)
+    }
     public func bool(_ key: String) -> Bool? {
         guard case .bool(let value)? = values[key] else { return nil }
         return value
@@ -45,7 +51,7 @@ public struct VexelFontContent: Equatable, Sendable {
     public var fields: VexelObjectFields
     public init(fields: VexelObjectFields) { self.fields = fields }
     public var family: String? { fields.string("family") }
-    public var weight: Int? { fields.number("weight").map { Int($0) } }
+    public var weight: Int? { fields.integer("weight") }
     public var italic: Bool? { fields.bool("italic") }
     public var asset: String? { fields.string("asset") }
 }
@@ -376,7 +382,7 @@ public struct VexelMotionBlurSettings: Equatable, Sendable {
     public init(fields: VexelObjectFields) { self.fields = fields }
     public var enabled: Bool? { fields.bool("enabled") }
     public var shutterAngle: Double? { fields.number("shutterAngle") }
-    public var samples: Int? { fields.number("samples").map(Int.init) }
+    public var samples: Int? { fields.integer("samples") }
 }
 
 public struct VexelEnvironmentSettings: Equatable, Sendable {
