@@ -164,13 +164,15 @@ public actor VexelEditingStore {
             guard let source = findLayer(id, in: project.layers) else {
                 throw VexelEditingStoreError.layerNotFound(id)
             }
+            var sequence = 0
             guard let split = VexelLayerEditing.split(
                 source,
                 at: localTime,
                 takenIDs: allLayerIDs(in: project.layers),
                 newID: newID,
                 idFactory: { type in
-                    VexelStableIdentifier.uuid(forSourceID: "\(newID):\(type.rawValue)").uuidString
+                    sequence += 1
+                    return VexelStableIdentifier.uuid(forSourceID: "\(newID):\(sequence):\(type.rawValue)").uuidString
                 }
             ) else {
                 throw VexelEditingStoreError.invalidOperation("The split point must leave at least one frame on both sides of the layer.")
@@ -232,6 +234,12 @@ public actor VexelEditingStore {
             guard !property.isEmpty, property.count <= 64 else {
                 throw VexelEditingStoreError.invalidOperation("Transform property names must contain 1 to 64 characters.")
             }
+            guard let target = findLayer(id, in: project.layers) else {
+                throw VexelEditingStoreError.layerNotFound(id)
+            }
+            guard is3D == is3D(target.type) else {
+                throw VexelEditingStoreError.invalidOperation("The selected transform space does not match the layer type.")
+            }
             guard updateLayer(id, in: &project.layers, { layer in
                 var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
                 transform.properties[property] = value
@@ -268,8 +276,9 @@ public actor VexelEditingStore {
                 throw VexelEditingStoreError.invalidOperation("Parent and child layer types are incompatible.")
             }
             var ancestorID: String? = parentID
+            var visited = Set<String>()
             while let currentID = ancestorID {
-                guard currentID != id else {
+                guard currentID != id, visited.insert(currentID).inserted else {
                     throw VexelEditingStoreError.invalidOperation("Parenting would create a hierarchy cycle.")
                 }
                 ancestorID = findLayer(currentID, in: project.layers)?.parent
