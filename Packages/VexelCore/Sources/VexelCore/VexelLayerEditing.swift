@@ -30,7 +30,7 @@ public enum VexelLayerEditing {
         let trimmed = trimStart(layer, by: localTime)
         let second = reassignIDs(
             trimmed,
-            takenIDs: takenIDs.union([newID]),
+            takenIDs: takenIDs,
             rootID: newID,
             idFactory: idFactory
         ).withTransitionIn(nil).withName(layer.name)
