@@ -52,7 +52,17 @@ final class VexelEditingStoreTests: XCTestCase {
                 "speed": .number(1)
             ])
         )
-        let store = try makeStore(layers: [source])
+        var document = ProjectDocument.starter(title: "Media editing")
+        document.fields["assets"] = .array([
+            .object([
+                "id": .string("video-asset"),
+                "type": .string("video"),
+                "path": .string("assets/video.mp4")
+            ])
+        ])
+        var native = try VexelNativeProject(document: document)
+        native.layers = [source]
+        let store = try VexelEditingStore(project: native)
         try await store.execute(.duplicateLayer(id: "clip", newID: "clip-copy"))
         try await store.execute(.splitLayer(id: "clip", localTime: 2, newID: "clip-second"))
 
