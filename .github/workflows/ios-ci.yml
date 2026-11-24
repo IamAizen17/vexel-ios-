@@ -7,17 +7,6 @@ on:
       - feat/modular-engine-architecture
     paths:
       - .github/workflows/ios-ci.yml
-      - App/VexelEditorWorkspace.swift
-      - App/VexelToolPanels.swift
-      - App/VexelAdvancedPanels.swift
-      - AppUITests/VexelNavigationUITests.swift
-      - Packages/VexelCore/Sources/VexelCore/VexelEditingStore.swift
-      - Packages/VexelCore/Tests/VexelCoreTests/VexelEditingStoreTests.swift
-  push:
-    branches:
-      - feat/modular-engine-architecture
-    paths:
-      - .github/workflows/ios-ci.yml
       - project.yml
       - App/VexelNavigation.swift
       - App/VexelEditorWorkspace.swift
