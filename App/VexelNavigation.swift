@@ -214,6 +214,86 @@ struct VexelOnboardingView: View {
     }
 }
 
+private struct PendingVexelImport: Identifiable {
+    let id = UUID()
+    let project: VexelProjectItem
+    let assetsURL: URL
+    let sourceName: String
+    let unsupportedFeatures: [VexelUnsupportedFeature]
+}
+
+private struct VexelImportReviewSheet: View {
+    let pending: PendingVexelImport
+    let onCancel: () -> Void
+    let onImport: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(pending.project.title)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(VexelPalette.text)
+                    Text("\(pending.project.width) × \(pending.project.height) · \(pending.project.fps) FPS · \(pending.project.timelineTracks.count) top-level tracks")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: pending.unsupportedFeatures.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(pending.unsupportedFeatures.isEmpty ? VexelPalette.accent : VexelPalette.amber)
+                    Text(pending.unsupportedFeatures.isEmpty
+                         ? "No known unsupported features detected."
+                         : "\(pending.unsupportedFeatures.count) features are preserved but are not fully supported by the current editor.")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(VexelPalette.text)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 12))
+
+                if !pending.unsupportedFeatures.isEmpty {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(pending.unsupportedFeatures.enumerated()), id: \.offset) { _, feature in
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(feature.feature)
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(VexelPalette.text)
+                                    Text(feature.path)
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundStyle(VexelPalette.accent)
+                                    Text(feature.reason)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(VexelPalette.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                                .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 9))
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.bordered)
+                    Button("Import project", action: onImport)
+                        .buttonStyle(.borderedProminent)
+                        .tint(VexelPalette.accent)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(18)
+            .background(VexelPalette.background)
+            .navigationTitle("Import review")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
 struct VexelHomeView: View {
     @Binding var projects: [VexelProjectItem]
     let onOpen: (VexelProjectItem) -> Void
@@ -223,6 +303,7 @@ struct VexelHomeView: View {
     @State private var showingPlugins = false
     @State private var deletingProject: VexelProjectItem?
     @State private var showingImporter = false
+    @State private var pendingImport: PendingVexelImport?
     @State private var notice: String?
     @State private var sharingProjectURL: URL?
 
@@ -270,22 +351,42 @@ struct VexelHomeView: View {
                     var imported = VexelProjectItem(document: payload.project)
                     imported.id = projectID
                     imported.assetsDirectory = assetsURL.path
-                    var updatedProjects = projects
-                    updatedProjects.insert(imported, at: 0)
-                    do {
-                        try VexelProjectStore.save(updatedProjects)
-                    } catch {
-                        try? VexelProjectStore.deleteAssets(for: imported)
-                        throw error
-                    }
-                    projects = updatedProjects
-                    notice = "Imported \(imported.title) from \(url.lastPathComponent)."
+                    pendingImport = PendingVexelImport(
+                        project: imported,
+                        assetsURL: assetsURL,
+                        sourceName: url.lastPathComponent,
+                        unsupportedFeatures: VexelProjectImporter.compatibilityReport(for: payload.project)
+                    )
                 } catch {
                     notice = "Import failed: \(error.localizedDescription)"
                 }
             case .failure(let error):
                 notice = error.localizedDescription
             }
+        }
+        .sheet(item: $pendingImport) { pending in
+            VexelImportReviewSheet(
+                pending: pending,
+                onCancel: {
+                    try? VexelProjectStore.deleteAssets(for: pending.project)
+                    pendingImport = nil
+                },
+                onImport: {
+                    var updatedProjects = projects
+                    updatedProjects.insert(pending.project, at: 0)
+                    do {
+                        try VexelProjectStore.save(updatedProjects)
+                        projects = updatedProjects
+                        notice = "Imported \(pending.project.title) from \(pending.sourceName)."
+                    } catch {
+                        try? VexelProjectStore.deleteAssets(for: pending.project)
+                        notice = "Import failed: \(error.localizedDescription)"
+                    }
+                    pendingImport = nil
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: Binding(get: { sharingProjectURL != nil }, set: { if !$0 { sharingProjectURL = nil } })) {
             VStack(spacing: 16) {
