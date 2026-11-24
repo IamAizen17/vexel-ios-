@@ -405,6 +405,47 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.layers[0].transform?.properties["opacity"], .constant(.number(0.65)))
     }
 
+    func testTransformValueEditPreservesExistingAnimationTrackMetadata() async throws {
+        let animation = VexelAnimationTrack(
+            keyframes: [
+                VexelKeyframe(time: 0, value: .array([.number(0), .number(0)])),
+                VexelKeyframe(time: 4, value: .array([.number(40), .number(20)]))
+            ],
+            value: .array([.number(0), .number(0)]),
+            loop: .pingPong,
+            expression: "time",
+            expressionEnabled: false,
+            unknownFields: ["futureTrackFlag": .bool(true)]
+        )
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            transform: VexelTransform(properties: ["position": .animated(animation)]),
+            content: .object(["kind": .string("rectangle")])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTransformValue(
+            id: "shape",
+            property: "position",
+            value: .constant(.array([.number(100), .number(50)])),
+            is3D: false
+        ))
+
+        let snapshot = await store.snapshot()
+        guard case .animated(let updated)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Editing the base value must not replace an animated property.")
+        }
+        XCTAssertEqual(updated.value, .array([.number(100), .number(50)]))
+        XCTAssertEqual(updated.keyframes, animation.keyframes)
+        XCTAssertEqual(updated.loop, .pingPong)
+        XCTAssertEqual(updated.expression, "time")
+        XCTAssertEqual(updated.expressionEnabled, false)
+        XCTAssertEqual(updated.unknownFields["futureTrackFlag"], .bool(true))
+    }
+
     func testTransformInspectorPreservesThreeDimensionalComponents() async throws {
         let layer = VexelLayer(
             id: "object",

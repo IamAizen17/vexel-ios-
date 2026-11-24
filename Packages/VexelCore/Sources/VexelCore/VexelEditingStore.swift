@@ -366,7 +366,13 @@ public actor VexelEditingStore {
             }
             guard updateLayer(id, in: &project.layers, { layer in
                 var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
-                transform.properties[property] = value
+                if case .animated(var animation)? = transform.properties[property],
+                   case .constant(let baseValue) = value {
+                    animation.value = baseValue
+                    transform.properties[property] = .animated(animation)
+                } else {
+                    transform.properties[property] = value
+                }
                 if is3D {
                     layer.transform3D = transform
                 } else {
