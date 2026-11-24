@@ -564,10 +564,11 @@ public enum VexelRotoMode: Equatable, Sendable, Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        switch try container.decode(String.self) {
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
         case "add": self = .add
         case "remove": self = .remove
-        default: self = .unknown(try container.decode(String.self))
+        default: self = .unknown(rawValue)
         }
     }
 
