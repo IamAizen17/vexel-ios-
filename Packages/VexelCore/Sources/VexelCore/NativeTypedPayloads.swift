@@ -437,18 +437,18 @@ public extension VexelLayer {
             guard let values = content?.objectValue else { return nil }
             let fields = VexelObjectFields(values)
             switch type {
-            case .text: .text(VexelTextContent(fields: fields))
-            case .shape: .shape(VexelShapeContent(fields: fields))
-            case .image: .image(VexelImageContent(fields: fields))
-            case .video: .video(VexelMediaContent(fields: fields))
-            case .audio: .audio(VexelMediaContent(fields: fields))
-            case .group: .group
-            case .object3D: .object3D(VexelObject3DContent(fields: fields))
-            case .model3D: .model3D(VexelModel3DContent(fields: fields))
-            case .camera: .camera(VexelCameraContent(fields: fields))
-            case .light: .light(VexelLightContent(fields: fields))
-            case .null: .null(VexelNullContent(fields: fields))
-            case .unknown: nil
+            case .text: return .text(VexelTextContent(fields: fields))
+            case .shape: return .shape(VexelShapeContent(fields: fields))
+            case .image: return .image(VexelImageContent(fields: fields))
+            case .video: return .video(VexelMediaContent(fields: fields))
+            case .audio: return .audio(VexelMediaContent(fields: fields))
+            case .group: return .group
+            case .object3D: return .object3D(VexelObject3DContent(fields: fields))
+            case .model3D: return .model3D(VexelModel3DContent(fields: fields))
+            case .camera: return .camera(VexelCameraContent(fields: fields))
+            case .light: return .light(VexelLightContent(fields: fields))
+            case .null: return .null(VexelNullContent(fields: fields))
+            case .unknown: return nil
             }
         }
         set {
