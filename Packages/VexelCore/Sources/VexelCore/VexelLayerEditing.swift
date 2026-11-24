@@ -98,7 +98,6 @@ public enum VexelLayerEditing {
                 var shifted = frame
                 shifted.time += delta
                 shifted.value = shift(frame.value, by: delta)
-                shifted.easing = frame.easing.map { shift($0, by: delta) }
                 shifted.unknownFields = frame.unknownFields.mapValues { shift($0, by: delta) }
                 return shifted
             }
