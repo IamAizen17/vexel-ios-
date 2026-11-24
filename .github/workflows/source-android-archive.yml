@@ -2,6 +2,9 @@ name: Generate Source Android Compatibility Archive
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/modular-engine-architecture
 
 permissions:
   contents: read
