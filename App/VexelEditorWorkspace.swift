@@ -172,11 +172,7 @@ struct VexelEditorWorkspace: View {
         .sheet(isPresented: $showMediaJob) { VexelMediaJobSheet(title: "Media analysis").presentationDetents([.medium, .large]) }
         .sheet(item: $editingMarker) { marker in
             VexelMarkerSheet(marker: marker) { updated in
-                if let index = project.markers.firstIndex(where: { $0.id == updated.id }) {
-                    commitEdit { candidate in candidate.markers[index] = updated }
-                } else {
-                    commitEdit { candidate in candidate.markers.append(updated) }
-                }
+                saveMarker(updated)
             }
             .presentationDetents([.medium, .large])
         }
@@ -707,22 +703,69 @@ struct VexelEditorWorkspace: View {
     }
 
     private func addKeyframeAtPlayhead() {
-        guard let selectedTrackID else {
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString else {
             showingNotice = "Select a timeline layer before adding a keyframe."
             return
         }
         let rate = Double(max(project.fps, 1))
         let frameTime = (currentTime * rate).rounded() / rate
-        commitEdit { candidate in
-            let found = updateTrack(id: selectedTrackID, in: &candidate.timelineTracks) { track in
-                guard frameTime >= track.start, frameTime <= track.start + track.duration else { return }
-                let localTime = frameTime - track.start
-                if !track.keyframes.contains(where: { abs($0 - localTime) < 0.0001 }) {
-                    track.keyframes.append(localTime)
-                    track.keyframes.sort()
+        let localTime = frameTime - track.start
+        guard localTime >= 0, localTime <= track.duration else {
+            showingNotice = "Move the playhead inside the selected layer before adding a keyframe."
+            return
+        }
+
+        do {
+            let document = try project.makeProjectDocument()
+            let native = try VexelNativeProject(document: document)
+            func findLayer(_ layers: [VexelLayer]) -> VexelLayer? {
+                for layer in layers {
+                    if layer.id == sourceID { return layer }
+                    if let nested = findLayer(layer.layers) { return nested }
                 }
+                return nil
             }
-            if !found { showingNotice = "The selected layer could not be found." }
+            guard let layer = findLayer(native.layers) else {
+                showingNotice = "The selected layer could not be resolved in the native project."
+                return
+            }
+            let is3D = track.kind == .rendered3D
+            let existing = (is3D ? layer.transform3D : layer.transform)?.properties["position"]
+            let value: JSONValue
+            switch existing {
+            case .some(.constant(let constant)):
+                value = constant
+            case .some(.animated(let animation)):
+                value = animation.keyframes.last(where: { $0.time <= localTime })?.value
+                    ?? animation.value
+                    ?? .array(is3D ? [.number(0), .number(0), .number(0)] : [.number(0), .number(0)])
+            case .none:
+                value = .array(is3D ? [.number(0), .number(0), .number(0)] : [.number(0), .number(0)])
+            }
+            performEditingCommand(.setKeyframe(
+                layerID: sourceID,
+                property: "position",
+                keyframe: VexelKeyframe(time: localTime, value: value),
+                is3D: is3D
+            ))
+        } catch {
+            showingNotice = "The selected layer could not be evaluated: \(error.localizedDescription)"
+        }
+    }
+
+    private func saveMarker(_ marker: VexelMarker) {
+        do {
+            let native = try VexelNativeProject(document: project.makeProjectDocument())
+            let markerID = marker.sourceID ?? marker.id.uuidString
+            var value = native.markers.first(where: { $0.id == markerID })
+                ?? VexelMarkerData(id: markerID, time: marker.time)
+            value.time = marker.time
+            value.name = marker.name
+            value.color = marker.color
+            performEditingCommand(.upsertMarker(value))
+        } catch {
+            showingNotice = "The marker could not be saved: \(error.localizedDescription)"
         }
     }
 
