@@ -45,7 +45,7 @@ public struct VexelFontContent: Equatable, Sendable {
     public var fields: VexelObjectFields
     public init(fields: VexelObjectFields) { self.fields = fields }
     public var family: String? { fields.string("family") }
-    public var weight: Double? { fields.number("weight") }
+    public var weight: Int? { fields.number("weight").map { Int($0) } }
     public var italic: Bool? { fields.bool("italic") }
     public var asset: String? { fields.string("asset") }
 }
@@ -101,12 +101,93 @@ public struct VexelMediaContent: Equatable, Sendable {
     public var cutout: VexelObjectFields? { fields.object("cutout") }
 }
 
+
+public struct VexelMaterialContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var metallic: VexelAnimatableValue? { fields.animatable("metallic") }
+    public var roughness: VexelAnimatableValue? { fields.animatable("roughness") }
+    public var emissive: VexelAnimatableValue? { fields.animatable("emissive") }
+    public var texture: String? { fields.string("texture") }
+    public var shading: String? { fields.string("shading") }
+}
+
+public struct VexelText3DContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var content: String? { fields.string("content") }
+    public var font: VexelFontContent? { fields.object("font").map { VexelFontContent(fields: $0) } }
+    public var fontSize: Double? { fields.number("fontSize") }
+    public var depth: Double? { fields.number("depth") }
+    public var bevel: Double? { fields.number("bevel") }
+    public var align: String? { fields.string("align") }
+    public var lineHeight: Double? { fields.number("lineHeight") }
+}
+
+public struct VexelDepthOfFieldContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var focusDistance: VexelAnimatableValue? { fields.animatable("focusDistance") }
+    public var range: VexelAnimatableValue? { fields.animatable("range") }
+    public var blur: VexelAnimatableValue? { fields.animatable("blur") }
+}
+
+public struct VexelTextAnimatorContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var mode: String? { fields.string("mode") }
+    public var unit: String? { fields.string("unit") }
+    public var start: Double? { fields.number("start") }
+    public var stagger: Double? { fields.number("stagger") }
+    public var unitDuration: Double? { fields.number("unitDuration") }
+    public var easing: VexelEasing? {
+        guard let value = fields["easing"], let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelEasing.self, from: data)
+    }
+    public var amount: Double? { fields.number("amount") }
+    public var order: String? { fields.string("order") }
+}
+
+public struct VexelTextPropertyAnimatorContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var name: String? { fields.string("name") }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var unit: String? { fields.string("unit") }
+    public var position: VexelAnimatableValue? { fields.animatable("position") }
+    public var scale: VexelAnimatableValue? { fields.animatable("scale") }
+    public var rotation: VexelAnimatableValue? { fields.animatable("rotation") }
+    public var opacity: VexelAnimatableValue? { fields.animatable("opacity") }
+    public var amount: VexelAnimatableValue? { fields.animatable("amount") }
+}
+
+public struct VexelEqualizerBandContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var frequency: Double? { fields.number("frequency") }
+    public var gain: Double? { fields.number("gain") }
+    public var q: Double? { fields.number("q") }
+}
+
+public struct VexelCutoutBrushContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var source: String? { fields.string("source") }
+    public var sourceStart: Double? { fields.number("sourceStart") }
+    public var duration: Double? { fields.number("duration") }
+    public var frames: [JSONValue]? { fields.array("frames") }
+}
+
 public struct VexelObject3DContent: Equatable, Sendable {
     public var fields: VexelObjectFields
     public init(fields: VexelObjectFields) { self.fields = fields }
     public var primitive: String? { fields.string("primitive") }
     public var size: VexelAnimatableValue? { fields.animatable("size") }
-    public var material: VexelObjectFields? { fields.object("material") }
+    public var material: VexelMaterialContent? { fields.object("material").map { VexelMaterialContent(fields: $0) } }
     public var text: VexelObjectFields? { fields.object("text") }
 }
 
@@ -126,7 +207,7 @@ public struct VexelCameraContent: Equatable, Sendable {
     public var rotation: VexelAnimatableValue? { fields.animatable("rotation") }
     public var aim: String? { fields.string("aim") }
     public var fieldOfView: VexelAnimatableValue? { fields.animatable("fov") }
-    public var depthOfField: VexelObjectFields? { fields.object("dof") }
+    public var depthOfField: VexelDepthOfFieldContent? { fields.object("dof").map { VexelDepthOfFieldContent(fields: $0) } }
 }
 
 public struct VexelLightContent: Equatable, Sendable {
