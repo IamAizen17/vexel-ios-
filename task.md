@@ -12,7 +12,7 @@ Related pull request: https://github.com/IamAizen17/vexel-ios-/pull/2
 - Native project extension: `.vexelproj`.
 - Native archive document: `vexel.json`.
 - Native format identifier: `vexelproj`, version 1.
-- Registered document type: `com.iamAizen17.vexel.project`.
+- Registered document type: `com.ragestudios.vexel.project`.
 - Native MIME type: `application/vnd.vexel.project+zip`.
 - The old Android document identifier and `project.json` archive entry are recognized only by `VexelProjectImporter`. VexelCore, persistence, and export use only the native Vexel format.
 
