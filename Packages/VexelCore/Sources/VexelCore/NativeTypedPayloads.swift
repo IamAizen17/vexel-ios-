@@ -486,3 +486,170 @@ public extension VexelLayer {
         set { transitionOut = newValue.map { .object($0.fields.values) } }
     }
 }
+
+
+public struct VexelVector2: Codable, Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 2D vector requires two coordinates."))
+        }
+        x = try container.decode(Double.self)
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 2D vector requires two coordinates."))
+        }
+        y = try container.decode(Double.self)
+        guard container.isAtEnd, x.isFinite, y.isFinite else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 2D vector must contain exactly two finite coordinates."))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(x)
+        try container.encode(y)
+    }
+}
+
+public struct VexelVector3: Codable, Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+    public var z: Double
+
+    public init(x: Double, y: Double, z: Double) {
+        self.x = x
+        self.y = y
+        self.z = z
+    }
+
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector requires three coordinates."))
+        }
+        x = try container.decode(Double.self)
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector requires three coordinates."))
+        }
+        y = try container.decode(Double.self)
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector requires three coordinates."))
+        }
+        z = try container.decode(Double.self)
+        guard container.isAtEnd, x.isFinite, y.isFinite, z.isFinite else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector must contain exactly three finite coordinates."))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(x)
+        try container.encode(y)
+        try container.encode(z)
+    }
+}
+
+public enum VexelRotoMode: String, Codable, Sendable {
+    case add
+    case remove
+    case unknown
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        switch try container.decode(String.self) {
+        case "add": self = .add
+        case "remove": self = .remove
+        default: self = .unknown
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .add: try container.encode("add")
+        case .remove: try container.encode("remove")
+        case .unknown: try container.encode("unknown")
+        }
+    }
+}
+
+public struct VexelCutoutStrokeContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+
+    public init(fields: VexelObjectFields) {
+        self.fields = fields
+    }
+
+    public var mode: VexelRotoMode? {
+        guard let raw = fields.string("mode") else { return nil }
+        switch raw {
+        case "add": return .add
+        case "remove": return .remove
+        default: return .unknown
+        }
+    }
+
+    public var size: Double? { fields.number("size") }
+
+    public var points: [VexelVector2]? {
+        fields.array("points")?.compactMap { value in
+            guard let data = try? JSONEncoder().encode(value) else { return nil }
+            return try? JSONDecoder().decode(VexelVector2.self, from: data)
+        }
+    }
+}
+
+public struct VexelCutoutFrameContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+
+    public init(fields: VexelObjectFields) {
+        self.fields = fields
+    }
+
+    public var time: Double? { fields.number("time") }
+
+    public var strokes: [VexelCutoutStrokeContent]? {
+        fields.array("strokes")?.compactMap { $0.objectValue.map { VexelCutoutStrokeContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+public extension VexelObjectFields {
+    func vector2(_ key: String) -> VexelVector2? {
+        guard let value = values[key],
+              let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelVector2.self, from: data)
+    }
+
+    func vector3(_ key: String) -> VexelVector3? {
+        guard let value = values[key],
+              let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelVector3.self, from: data)
+    }
+}
+
+public extension VexelGradientContent {
+    var startPoint: VexelVector2? { fields.vector2("start") }
+    var endPoint: VexelVector2? { fields.vector2("end") }
+}
+
+public extension VexelPathPointContent {
+    var typedPoint: VexelVector2? { fields.vector2("point") }
+    var typedInTangent: VexelVector2? { fields.vector2("in") }
+    var typedOutTangent: VexelVector2? { fields.vector2("out") }
+}
+
+public extension VexelCutoutBrushContent {
+    var typedFrames: [VexelCutoutFrameContent]? {
+        get {
+            frames?.compactMap { $0.objectValue.map { VexelCutoutFrameContent(fields: VexelObjectFields($0)) } }
+        }
+    }
+}
