@@ -1020,7 +1020,8 @@ private struct CompositionSettingsSheet: View {
             }
             .scrollContentBackground(.hidden).background(VexelPalette.background)
             .navigationTitle("Composition settings").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-        }    }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { onSave(project); dismiss() } } }
+        }
+    }
 }
 
