@@ -136,7 +136,7 @@ final class VexelLayerEditingTests: XCTestCase {
             newID: "group-second",
             idFactory: { _ in
                 nextID += 1
-                return "nested-copy-\\(nextID)"
+                return "nested-copy-\(nextID)"
             }
         ))
 
