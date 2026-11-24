@@ -218,7 +218,11 @@ final class ZIPProjectArchiveTests: XCTestCase {
 
         var fields = ProjectDocument.starter(title: "Asset round trip").fields
         fields["assets"] = .array([
-            .object(["id": .string("image-1"), "path": .string("assets/image.bin")])
+            .object([
+                "id": .string("image-1"),
+                "type": .string("image"),
+                "path": .string("assets/image.bin")
+            ])
         ])
         let project = ProjectDocument(fields: fields)
         let firstArchive = directory.appendingPathComponent("first.vexelproj")
