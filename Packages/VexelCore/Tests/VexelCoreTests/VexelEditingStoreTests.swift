@@ -292,7 +292,8 @@ final class VexelEditingStoreTests: XCTestCase {
         }
         XCTAssertEqual(restored.keyframes.count, 1)
 
-        XCTAssertTrue(await store.undo())
+        let didUndoKeyframe = await store.undo()
+        XCTAssertTrue(didUndoKeyframe)
         snapshot = await store.snapshot()
         guard case .animated(let undone)? = snapshot.layers[0].transform?.properties["position"] else {
             return XCTFail("Expected keyframe undo to restore the previous track.")
@@ -316,9 +317,12 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.markers[1].unknownFields["futureMarkerData"], .string("preserve"))
 
         try await store.execute(.removeMarker(id: "marker-a"))
-        XCTAssertEqual((await store.snapshot()).markers.map(\.id), ["marker-b"])
-        XCTAssertTrue(await store.undo())
-        XCTAssertEqual((await store.snapshot()).markers.map(\.id), ["marker-b", "marker-a"])
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b"])
+        let didUndoRemoval = await store.undo()
+        XCTAssertTrue(didUndoRemoval)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
     }
 
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
