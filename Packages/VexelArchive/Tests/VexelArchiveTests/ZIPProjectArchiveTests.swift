@@ -354,6 +354,7 @@ final class ZIPProjectArchiveTests: XCTestCase {
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "video" })
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "effect:gaussianBlur" })
         XCTAssertTrue(imported.compatibilityReport.contains { $0.feature == "expression" })
+        XCTAssertFalse(imported.compatibilityReport.contains { $0.feature.hasPrefix("unknown-layer:") })
     }
 
 
