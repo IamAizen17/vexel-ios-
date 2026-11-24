@@ -96,7 +96,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 - [x] Add an import compatibility report for preserved-but-unimplemented features.
 - [x] Connect the typed schema to the app persistence bridge and show the unsupported-feature report in a pre-import review sheet.
 - [ ] Obtain a direct Android-app-exported `.knsproj` archive and compare its archive entries, CRCs, metadata and referenced assets.
-- [ ] Complete v12 semantic validation, including full nested hierarchy/reference checks, cutout limits, effect parameter ranges, and numeric bounds.
+- [x] Add semantic validation for nested asset references, unique marker/layer IDs, parent and matte sibling references/cycles, group depth, motion blur, media speed/source offsets, equalizer bands, cutout frames/strokes/points, transition durations, font weights, and keyframe ordering.\n- [ ] Finish effect-specific parameter value/range validation and audit remaining source-validator edge cases against Kotlin fixtures.
 - [x] Add actual decompressed-byte budgets, overflow checks, per-entry limits and compression-ratio checks.
 - [x] Add failure-injection tests for destination promotion rollback and invalid-import isolation.
 - [x] Test destination rollback failure and verify the retained backup path is recoverable.
@@ -145,7 +145,7 @@ Work in dependency order. Keep incomplete UI actions visibly disabled rather tha
 
 - The editor's `VexelProjectItem` and timeline tracks remain an interim UI model, not the canonical VexelCore project model.
 - Persistence currently saves the project index and serialized editor state. It is not a complete autosave/recovery/snapshot system, and imported media asset lifecycle/cleanup is incomplete.
-- The project/document bridge now uses the typed native schema at its persistence boundary, but maps only a subset into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI.
+- The project/document bridge now uses the typed native schema at its persistence boundary, but maps only a subset into the interim UI track model. Animated property values are preserved in the document but are not editable as complete typed values in the UI. The new actor-owned command store is not yet connected to the SwiftUI workspace.
 - `VexelProjectImporter` converts the external format/version envelope and the archive reader performs structural validation. The source video/audio archive fixture is a test-assembled archive based on Android repository examples, not a direct Android app export. This does not establish full Android source schema v12 semantic compatibility.
 - Archive read/write code is connected to UI flows and now has actual-byte-budget and rollback tests. It still requires a direct Android-app-exported fixture and fresh test execution before being treated as production-ready.
 - Project duplication currently creates a new blank project with copied composition settings instead of cloning the full document and assets.
