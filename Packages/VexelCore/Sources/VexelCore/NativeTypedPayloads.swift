@@ -61,12 +61,74 @@ public struct VexelTextContent: Equatable, Sendable {
     public var lineHeight: Double? { fields.number("lineHeight") }
     public var letterSpacing: VexelAnimatableValue? { fields.animatable("letterSpacing") }
     public var maxWidth: Double? { fields.number("maxWidth") }
-    public var stroke: VexelObjectFields? { fields.object("stroke") }
+    public var stroke: VexelStrokeContent? { fields.object("stroke").map { VexelStrokeContent(fields: $0) } }
     public var animators: [VexelTextAnimatorContent]? {
         fields.array("animators")?.compactMap { $0.objectValue.map { VexelTextAnimatorContent(fields: VexelObjectFields($0)) } }
     }
     public var propertyAnimators: [VexelTextPropertyAnimatorContent]? {
         fields.array("propertyAnimators")?.compactMap { $0.objectValue.map { VexelTextPropertyAnimatorContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+
+public struct VexelGradientStopContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var offset: Double? { fields.number("offset") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+}
+
+public struct VexelGradientContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var start: JSONValue? { fields["start"] }
+    public var end: JSONValue? { fields["end"] }
+    public var stops: [VexelGradientStopContent]? {
+        fields.array("stops")?.compactMap { $0.objectValue.map { VexelGradientStopContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+public struct VexelFillContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var gradient: VexelGradientContent? { fields.object("gradient").map { VexelGradientContent(fields: $0) } }
+}
+
+public struct VexelStrokeContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var width: VexelAnimatableValue? { fields.animatable("width") }
+    public var cap: String? { fields.string("cap") }
+    public var join: String? { fields.string("join") }
+}
+
+public struct VexelTrimContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var start: VexelAnimatableValue? { fields.animatable("start") }
+    public var end: VexelAnimatableValue? { fields.animatable("end") }
+    public var offset: VexelAnimatableValue? { fields.animatable("offset") }
+}
+
+public struct VexelPathPointContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var point: JSONValue? { fields["point"] }
+    public var inTangent: JSONValue? { fields["in"] }
+    public var outTangent: JSONValue? { fields["out"] }
+}
+
+public struct VexelPathContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var closed: Bool? { fields.bool("closed") }
+    public var points: [VexelPathPointContent]? {
+        fields.array("points")?.compactMap { $0.objectValue.map { VexelPathPointContent(fields: VexelObjectFields($0)) } }
     }
 }
 
