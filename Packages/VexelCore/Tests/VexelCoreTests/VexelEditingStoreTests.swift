@@ -1,0 +1,134 @@
+import XCTest
+@testable import VexelCore
+
+final class VexelEditingStoreTests: XCTestCase {
+    func testAddUndoRedoAndCoalescedEdits() async throws {
+        let store = try makeStore()
+        let shape = VexelLayer(
+            id: "shape",
+            type: .shape,
+            name: "Rectangle",
+            start: 0,
+            duration: 4,
+            content: .object(["kind": .string("rectangle")])
+        )
+
+        try await store.execute(.addLayer(shape, containerID: nil, index: nil))
+        try await store.execute(.renameLayer(id: "shape", name: "First"), coalescingKey: "rename:shape")
+        try await store.execute(.renameLayer(id: "shape", name: "Final"), coalescingKey: "rename:shape")
+
+        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Final")
+        XCTAssertTrue(await store.canUndo)
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Rectangle")
+
+        let didRedo = await store.redo()
+        XCTAssertTrue(didRedo)
+        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Final")
+
+        _ = await store.undo()
+        try await store.execute(.renameLayer(id: "shape", name: "Replacement"))
+        XCTAssertFalse(await store.canRedo)
+        XCTAssertEqual((await store.snapshot()).layers.first?.name, "Replacement")
+    }
+
+    func testDuplicateAndSplitUseCoreLayerEditingSemantics() async throws {
+        let source = VexelLayer(
+            id: "clip",
+            type: .video,
+            name: "Clip",
+            start: 1,
+            duration: 8,
+            content: .object([
+                "asset": .string("video-asset"),
+                "sourceStart": .number(0),
+                "speed": .number(1)
+            ])
+        )
+        let store = try makeStore(layers: [source])
+        try await store.execute(.duplicateLayer(id: "clip", newID: "clip-copy"))
+        try await store.execute(.splitLayer(id: "clip", localTime: 2, newID: "clip-second"))
+
+        let layers = (await store.snapshot()).layers
+        XCTAssertEqual(layers.map(\.id), ["clip", "clip-second", "clip-copy"])
+        XCTAssertEqual(layers[0].duration, 2)
+        XCTAssertEqual(layers[1].start, 3)
+        XCTAssertEqual(layers[1].duration, 6)
+        XCTAssertEqual(layers[2].name, "Clip copy")
+    }
+
+    func testNestedInsertionAndParentCycleProtection() async throws {
+        let group = VexelLayer(
+            id: "group",
+            type: .group,
+            name: "Scene",
+            start: 0,
+            duration: 8,
+            layers: [
+                VexelLayer(id: "first", type: .shape, start: 0, duration: 8),
+                VexelLayer(id: "second", type: .shape, start: 0, duration: 8)
+            ]
+        )
+        let store = try makeStore(layers: [group])
+
+        try await store.execute(.setParent(id: "first", parentID: "second"))
+        do {
+            try await store.execute(.setParent(id: "second", parentID: "first"))
+            XCTFail("A parent cycle must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].layers[0].parent, "second")
+        XCTAssertNil(snapshot.layers[0].layers[1].parent)
+    }
+
+    func testGroupCannotMoveIntoItsOwnDescendant() async throws {
+        let group = VexelLayer(
+            id: "group",
+            type: .group,
+            start: 0,
+            duration: 8,
+            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 8)]
+        )
+        let store = try makeStore(layers: [group])
+
+        do {
+            try await store.execute(.moveLayer(id: "group", toContainerID: "child", index: nil))
+            XCTFail("A group cannot move inside one of its descendants.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+        XCTAssertEqual((await store.snapshot()).layers.first?.id, "group")
+    }
+
+    func testFailedCommandDoesNotMutateProjectOrCreateUndoEntry() async throws {
+        let store = try makeStore()
+        let before = await store.snapshot()
+
+        do {
+            try await store.execute(.setComposition(width: 0, height: 1920, fps: 30, duration: 10))
+            XCTFail("Invalid composition settings must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        XCTAssertEqual(await store.snapshot(), before)
+        XCTAssertFalse(await store.canUndo)
+    }
+
+    private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
+        var document = ProjectDocument.starter(title: "Editing store")
+        var native = try VexelNativeProject(document: document)
+        native.layers = layers
+        return try VexelEditingStore(project: native)
+    }
+}
