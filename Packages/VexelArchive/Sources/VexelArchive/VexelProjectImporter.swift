@@ -22,14 +22,15 @@ public enum VexelProjectImporter {
         let sourceFormat = source.fields["format"]?.stringValue
 
         if sourceFormat == ProjectDocument.format {
-            let issues = source.validate().filter { $0.severity == .error }
+            let migrated = try source.migratedToCurrentVersion()
+            let issues = migrated.validate().filter { $0.severity == .error }
             guard issues.isEmpty else {
                 throw DecodingError.dataCorrupted(.init(
                     codingPath: [],
                     debugDescription: issues.map { "\($0.path): \($0.message)" }.joined(separator: "\n")
                 ))
             }
-            return source
+            return migrated
         }
 
         guard sourceFormat == legacyAndroidFormatIdentifier else {
