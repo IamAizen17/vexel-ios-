@@ -15,7 +15,7 @@ public struct VexelObjectFields: Equatable, Sendable {
     public func string(_ key: String) -> String? { values[key]?.stringValue }
     public func number(_ key: String) -> Double? { values[key]?.numberValue }
     public func bool(_ key: String) -> Bool? {
-        guard case .bool(let value) = values[key] else { return nil }
+        guard case .bool(let value)? = values[key] else { return nil }
         return value
     }
     public func object(_ key: String) -> VexelObjectFields? {
@@ -51,7 +51,7 @@ public struct VexelTextContent: Equatable, Sendable {
     public var fields: VexelObjectFields
     public init(fields: VexelObjectFields) { self.fields = fields }
     public var content: String? { fields.string("content") }
-    public var font: VexelFontContent? { fields.object("font").map(VexelFontContent.init(fields:)) }
+    public var font: VexelFontContent? { fields.object("font").map { VexelFontContent(fields: $0) } }
     public var fontSize: VexelAnimatableValue? { fields.animatable("fontSize") }
     public var color: VexelAnimatableValue? { fields.animatable("color") }
     public var align: String? { fields.string("align") }
