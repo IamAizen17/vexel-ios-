@@ -20,14 +20,6 @@ final class VexelProjectImporterTests: XCTestCase {
                 ])
             ])
         ])
-        project.fields["assets"] = .array([
-            .object([
-                "id": .string("asset-1"),
-                "type": .string("video"),
-                "path": .string("assets/video.mp4")
-            ])
-        ])
-
         let imported = try VexelProjectImporter.importDocument(from: project.encoded())
         let effects = try XCTUnwrap(imported.fields["layers"]?.arrayValue?.first?.objectValue?["effects"]?.arrayValue)
         XCTAssertEqual(effects.compactMap { $0.objectValue?["type"]?.stringValue }, [
@@ -86,6 +78,13 @@ final class VexelProjectImporterTests: XCTestCase {
                         "frames": .array([])
                     ])
                 ])
+            ])
+        ])
+        project.fields["assets"] = .array([
+            .object([
+                "id": .string("asset-1"),
+                "type": .string("video"),
+                "path": .string("assets/video.mp4")
             ])
         ])
 
