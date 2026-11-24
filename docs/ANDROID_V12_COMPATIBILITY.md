@@ -69,17 +69,26 @@ The authoritative migration registry is `Migrations` in `KnsprojJson.kt`. It run
 
 The iOS importer currently implements the nontrivial v1, v6 and v11 transformations recursively. The remaining version steps are optional-field additions and are currently represented by the version advancement. Migration behavior must remain fixture-tested.
 
-## Source fixture
+## Native Swift schema and source fixtures
 
-`Packages/VexelArchive/Tests/VexelArchiveTests/Fixtures/android-v12-kotlin-reference.json` is copied from the Android repository's `tools/tests/fixtures/full-kotlin.json`. It is an actual Kotlin-side v12 test fixture, not a hand-authored iOS fixture. Its archive assets are not included in that JSON fixture; archive tests that need payload bytes must package explicit asset files.
+- `Packages/VexelCore/Sources/VexelCore/NativeProjectSchema.swift` adds a typed native envelope, composition, assets, markers, layer discriminators, transforms, animatable tracks, keyframes, loop modes, easing encodings, effects and recursive groups.
+- All 11 Android layer discriminators are decoded explicitly. Type-specific content is retained under the discriminator-named key; nested content payloads that are not yet fully modelled remain lossless `JSONValue` data.
+- Unknown fields are retained at the root, composition, asset, marker, layer, transform, animation-track, keyframe and effect levels.
+- `VexelLayerEditing` ports the source duplicate and split identity/reference/timing rules, including fresh descendant IDs, internal parent/matte remapping, keyframe time shifts, transition edge clearing and media sourceStart adjustment.
+- `VexelProjectImporter.compatibilityReport(for:)` and `ProjectArchivePayload.compatibilityReport` report known preserved-but-unimplemented features.
+
+`android-v12-kotlin-reference.json` is copied from the Android repository's Kotlin-generated `tools/tests/fixtures/full-kotlin.json`.
+
+`android-video-audio-reference.knsproj` contains the Android repository's checked-in `video-audio` example document plus the exact referenced MP4 and M4A asset blobs from that same source revision. Its ZIP layout follows `KnsprojArchive.kt` (`project.json` and `assets/*`). The fixture is assembled for this test suite; it is **not** an archive captured from an Android app export. A direct app-exported archive is still needed to close that final provenance gap.
 
 ## Known gaps in the current iOS bridge
 
-- The editor UI exposes integer FPS although the source model supports fractional Double FPS. The bridge now retains the original fractional value unless the user changes the rounded UI FPS.
-- Arbitrary source string IDs are mapped deterministically to UUID v5 values for editor identity. The original source ID remains in the document bridge and is written back for an unchanged layer. Duplicates and split-right segments receive new native IDs.
-- The generic document representation preserves unknown JSON recursively, but the editor bridge still only understands a subset of type-specific layer payloads and animation semantics.
-- The current source fixture test validates importer conversion and representative structures. A genuine Android-generated ZIP archive with all real referenced assets is still required to prove archive-level interoperability.
-- A full typed native Vexel schema, exhaustive feature support matrix, and explicit unsupported-feature reporting are still outstanding.
+- The editor UI exposes integer FPS although the source model supports fractional Double FPS. The bridge retains the original fractional value unless the user changes the rounded UI FPS.
+- Arbitrary source string IDs are mapped deterministically to UUID v5 values for editor identity. The original source ID remains in the document bridge. The core duplicate/split operations generate fresh IDs for copied layers and descendants.
+- The typed schema is an additive model layer. The app's current persistence bridge still uses the generic `ProjectDocument` envelope and the interim UI track model.
+- Type-specific payloads, masks, mattes, transitions, lighting/environment, 3D content and advanced text animation are not yet fully represented by dedicated Swift property models. Their JSON is preserved.
+- The compatibility report is available to import callers; a user-facing import review screen is not yet connected.
+- The archive fixture has real source-repository media payloads and exercises extraction, but it was assembled for tests rather than exported by the Android app itself.
 
 ## Compatibility policy
 
