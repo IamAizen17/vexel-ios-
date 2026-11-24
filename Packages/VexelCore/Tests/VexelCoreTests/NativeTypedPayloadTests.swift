@@ -65,6 +65,8 @@ final class NativeTypedPayloadTests: XCTestCase {
         XCTAssertEqual(stroke.size, 0.06)
         XCTAssertEqual(stroke.points, [VexelVector2(x: 0.2, y: 0.3), VexelVector2(x: 0.4, y: 0.5)])
         XCTAssertEqual(stroke.fields.bool("futureStrokeField"), true)
+        let unknownMode = VexelCutoutStrokeContent(fields: VexelObjectFields(["mode": .string("erase")]))
+        XCTAssertEqual(unknownMode.mode, .unknown("erase"))
     }
 
     func testEffectCatalogDecodesEveryParameterKindAndPreservesUnknownKinds() throws {
