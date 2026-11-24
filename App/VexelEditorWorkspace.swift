@@ -823,7 +823,6 @@ struct VexelEditorWorkspace: View {
                 mimeType: contentType.preferredMIMEType
             )
             importedAsset = asset
-            try project.registerAsset(asset)
 
             var duration = max(0.1, project.duration - currentTime)
             if kind == "video" {
@@ -834,10 +833,11 @@ struct VexelEditorWorkspace: View {
                 }
             }
             let track = makeImportedTrack(asset, start: currentTime, duration: duration)
-            commitEdit { candidate in
-                candidate.timelineTracks.append(track)
-                selectedTrackID = track.id
-            }
+            var candidate = project
+            try candidate.registerAsset(asset)
+            candidate.timelineTracks.append(track)
+            commitEdit { $0 = candidate }
+            selectedTrackID = track.id
             showingNotice = "Imported \(asset.name) into the project and added it to the timeline."
         } catch {
             if let importedAsset { try? FileManager.default.removeItem(at: importedAsset.fileURL) }
@@ -860,7 +860,6 @@ struct VexelEditorWorkspace: View {
                 mimeType: mimeType
             )
             importedAsset = asset
-            try project.registerAsset(asset)
             var duration = max(0.1, project.duration - currentTime)
             let mediaAsset = AVURLAsset(url: asset.fileURL)
             if let loadedDuration = try? await mediaAsset.load(.duration),
@@ -868,10 +867,11 @@ struct VexelEditorWorkspace: View {
                 duration = min(loadedDuration.seconds, max(0.1, project.duration - currentTime))
             }
             let track = makeImportedTrack(asset, start: currentTime, duration: duration)
-            commitEdit { candidate in
-                candidate.timelineTracks.append(track)
-                selectedTrackID = track.id
-            }
+            var candidate = project
+            try candidate.registerAsset(asset)
+            candidate.timelineTracks.append(track)
+            commitEdit { $0 = candidate }
+            selectedTrackID = track.id
             showingNotice = "Imported \(asset.name) into the project and added an audio track."
         } catch {
             if let importedAsset { try? FileManager.default.removeItem(at: importedAsset.fileURL) }
