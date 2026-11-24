@@ -868,9 +868,9 @@ struct VexelEditorWorkspace: View {
         return VexelTimelineTrack(
             id: UUID(uuidString: asset.id) ?? UUID(),
             name: asset.name,
-            kind: asset.type == "audio" ? .audio : .visual,
             start: start,
             duration: duration,
+            kind: asset.type == "audio" ? .audio : .visual,
             sourceID: asset.id,
             sourceType: asset.type,
             sourceJSON: sourceJSON
