@@ -165,9 +165,13 @@ public struct VexelComposition: Codable, Equatable, Sendable {
     }
 }
 
-public enum VexelAssetType: String, Codable, CaseIterable, Sendable {\n    case image, video, audio, model, font\n}\n\npublic struct VexelAsset: Codable, Equatable, Sendable {
+public enum VexelAssetType: String, Codable, CaseIterable, Sendable {
+    case image, video, audio, model, font
+}
+
+public struct VexelAsset: Codable, Equatable, Sendable {
     public var id: String
-    public var type: String
+    public var type: VexelAssetType
     public var path: String
     public var name: String?
     public var mimeType: String?
@@ -235,7 +239,11 @@ public struct VexelMarkerData: Codable, Equatable, Sendable {
     }
 }
 
-public enum VexelBlendMode: String, Codable, Sendable {\n    case normal, add, multiply, screen\n}\n\npublic struct VexelLayer: Codable, Equatable, Sendable {
+public enum VexelBlendMode: String, Codable, Sendable {
+    case normal, add, multiply, screen
+}
+
+public struct VexelLayer: Codable, Equatable, Sendable {
     public var id: String
     public var type: VexelLayerType
     public var name: String?
