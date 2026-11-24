@@ -123,7 +123,8 @@ final class NativeProjectSchemaTests: XCTestCase {
                 "loop": "pingpong",
                 "expression": "time",
                 "expressionEnabled": false
-              }
+              },
+              "opacity": {"value": 0.5, "expression": "time * 0.1", "expressionEnabled": false}
             }
           }]
         }
@@ -137,6 +138,13 @@ final class NativeProjectSchemaTests: XCTestCase {
         XCTAssertEqual(track.expression, "time")
         XCTAssertEqual(track.expressionEnabled, false)
         XCTAssertEqual(track.keyframes.first?.easing, .cyclic(offset: 0.2, cycles: 3.5, phase: 0.1))
+        guard case .animated(let expressionTrack)? = schema.layers.first?.transform?.properties["opacity"] else {
+            return XCTFail("Expected expression-only animation to remain animated.")
+        }
+        XCTAssertTrue(expressionTrack.keyframes.isEmpty)
+        XCTAssertEqual(expressionTrack.value, .number(0.5))
+        XCTAssertEqual(expressionTrack.expression, "time * 0.1")
+        XCTAssertEqual(expressionTrack.expressionEnabled, false)
 
         let roundTrip = try JSONDecoder().decode(
             VexelNativeProject.self,
