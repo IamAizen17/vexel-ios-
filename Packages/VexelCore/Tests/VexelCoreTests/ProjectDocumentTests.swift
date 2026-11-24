@@ -227,7 +227,7 @@ final class ProjectDocumentTests: XCTestCase {
         XCTAssertTrue(paths.contains("composition.motionBlur.shutterAngle"))
         XCTAssertTrue(paths.contains("markers[1].id"))
         XCTAssertTrue(paths.contains("markers[1].time"))
-        XCTAssertTrue(paths.contains("layers.first.parent") || paths.contains("layers.first"))
+        XCTAssertTrue(paths.contains("layers.first.parent"))
         XCTAssertTrue(project.validate().contains { $0.message.contains("cycle") })
     }
 
