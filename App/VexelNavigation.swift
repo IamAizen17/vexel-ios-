@@ -449,6 +449,7 @@ struct VexelHomeView: View {
             Spacer()
             VexelIconButton(symbol: "bell") { notice = "Notifications will be available when project sync is implemented." }
             VexelIconButton(symbol: "plus", active: true) { showingNewProject = true }
+                .accessibilityIdentifier("home.createProject")
         }
         .padding(.horizontal, 18)
         .padding(.top, 12)
@@ -581,6 +582,7 @@ struct VexelHomeView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("home.tab.\\(item.rawValue.lowercased())")
             }
         }
         .padding(.top, 7)
@@ -662,7 +664,7 @@ private struct NewProjectSheet: View {
         NavigationStack {
             Form {
                 Section("Composition") {
-                    TextField("Project name", text: $title)
+                    TextField("Project name", text: $title).accessibilityIdentifier("newProject.name")
                     HStack {
                         numericField("Width", value: $width)
                         numericField("Height", value: $height)
@@ -682,6 +684,7 @@ private struct NewProjectSheet: View {
                         Button(preset.name) {
                             width = Double(preset.width); height = Double(preset.height); fps = Double(preset.fps); duration = preset.duration
                         }
+                        .accessibilityIdentifier("preset.\\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
                     }
                 }
             }
@@ -695,6 +698,7 @@ private struct NewProjectSheet: View {
                     Button("Create") {
                         onCreate(VexelProjectItem(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Composition" : title, width: Int(width), height: Int(height), fps: Int(fps), duration: duration))
                     }
+                    .accessibilityIdentifier("newProject.create")
                 }
             }
         }
