@@ -13,7 +13,7 @@ struct VexelCompositionDefaults: Codable, Equatable {
         (16...8192).contains(height) &&
         (1...120).contains(fps) &&
         duration.isFinite &&
-        (1...120).contains(duration)
+        (1...3600).contains(duration)
     }
 
     static func load(from defaults: UserDefaults = .standard) -> VexelCompositionDefaults {

@@ -31,7 +31,15 @@ final class VexelCompositionDefaultsTests: XCTestCase {
 
     func testCustomFrameRateSettingsCanBePersisted() {
         let defaults = makeDefaults()
-        let expected = VexelCompositionDefaults(width: 1920, height: 1080, fps: 29, duration: 30)
+        let expected = VexelCompositionDefaults(width: 1920, height: 1080, fps: 29, duration: 300)
+        expected.save(to: defaults)
+
+        XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), expected)
+    }
+
+    func testLongCompositionDurationCanBePersisted() {
+        let defaults = makeDefaults()
+        let expected = VexelCompositionDefaults(width: 1080, height: 1920, fps: 30, duration: 1800)
         expected.save(to: defaults)
 
         XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), expected)

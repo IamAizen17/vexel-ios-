@@ -34,7 +34,7 @@ struct VexelNewCompositionSheet: View {
         width.isFinite && height.isFinite && duration.isFinite &&
         width >= 16 && width <= 8192 && width.rounded() == width &&
         height >= 16 && height <= 8192 && height.rounded() == height &&
-        duration >= 1 && duration <= 120 && fps >= 1 && fps <= 120 && fps.rounded() == fps
+        duration >= 1 && duration <= 3600 && fps >= 1 && fps <= 120 && fps.rounded() == fps
     }
 
     var body: some View {
@@ -141,18 +141,18 @@ struct VexelNewCompositionSheet: View {
                             Spacer()
                             Text("\(Int(duration)) SEC").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(VexelPalette.accent)
                         }
-                        Slider(value: $duration, in: 1...120, step: 1)
+                        Slider(value: $duration, in: 1...3600, step: 1)
                             .tint(VexelPalette.accent)
                             .accessibilityIdentifier("newProject.duration")
                         HStack {
                             Text("1 SECOND")
                             Spacer()
-                            Text("120 SECONDS")
+                            Text("3600 SECONDS")
                         }.font(.system(size: 8, weight: .medium, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle").foregroundStyle(VexelPalette.accent)
-                        Text("Maximum canvas dimension: 8192 px. Duration: 1–120 seconds.").font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+                        Text("Maximum canvas dimension: 8192 px. Duration: 1–3600 seconds.").font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                     }
                 }
                 .padding(18).padding(.bottom, 12)
