@@ -247,7 +247,14 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - A successful unsigned IPA build does not mean the IPA is signed, installable, or tested on a physical device.
 - GPL-3.0 and third-party dependency obligations require review before distribution.
 
-## 6. Verification record (2026-11-24)
+## 6. Verification record (2026-11-25)
+
+Current P1.A implementation branch: `feat/p1a-editor-redesign-v7`. Current branch head: `73941ef60c0eb8613a29f174512773c0174b5be5` (documentation-only follow-up after the CI-trigger commit `4b01c16cb56f63e2b11588331ee0b7e1b309e908`).
+
+- [x] Effect-registry/engine-port manifest consistency check on the current branch: 73 effect IDs, 13 categories, 81 shader records and 73 matching effect records; no duplicate IDs, category/target drift, invalid statuses or missing declared MSL function names.
+- [x] Local Swift 6.2 Linux typecheck and isolated SwiftPM test run for the new `VexelCompositionDefaults` implementation: 4 tests passed (default loading, save/restore, invalid-value rejection and reset). This is a focused helper test, not the complete iOS app test target.
+- [ ] Full repository CI run `45653155451` was triggered on code commit `4b01c16cb56f63e2b11588331ee0b7e1b309e908`; it remained queued during this review. Await the macOS runner result before treating the full package, XcodeGen, simulator and UI test suite as verified.
+- [ ] Current branch iOS app compilation, simulator UI tests and physical-device interaction remain unverified until the queued CI completes and the user's device testing is finished.
 
 Current feature branch code head before this task-status update: `2766c22b7b4eb1516ec633bcb9c5ec0640dce24b`. Latest P1 CI run `45384324780` is validating typed project-settings, timeline reorder, atomic media import, text/transform editing, negative-start scene evaluation, adaptive home/preset UI, app tests and simulator build.
 
