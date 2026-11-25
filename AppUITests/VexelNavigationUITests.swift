@@ -382,4 +382,23 @@ final class VexelNavigationUITests: XCTestCase {
     }
 
 
+    func testGraphEditorPlotsNumericKeyframesForSelectedProperty() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+
+        app.buttons["timeline.graph"].tap()
+        let addKeyframe = app.buttons["keyframe.add"]
+        XCTAssertTrue(addKeyframe.waitForExistence(timeout: 5))
+        addKeyframe.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["keyframe.valueGraph"].waitForExistence(timeout: 5))
+    }
+
 }

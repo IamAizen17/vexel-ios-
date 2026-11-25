@@ -980,6 +980,92 @@ struct VexelGraphEditor: View {
         selectedKeyframes.contains { abs($0.time - playheadTime) < 0.000001 }
     }
 
+    private var graphPoints: [(time: Double, value: Double)] {
+        selectedKeyframes.compactMap { keyframe in
+            guard keyframe.time.isFinite else { return nil }
+            let value = keyframe.value.numberValue ?? keyframe.value.arrayValue?.first?.numberValue
+            guard let value, value.isFinite else { return nil }
+            return (time: keyframe.time, value: value)
+        }
+        .sorted { $0.time < $1.time }
+    }
+
+    private var valueGraph: some View {
+        VexelPanel(padding: 12) {
+            VStack(alignment: .leading, spacing: 9) {
+                VexelSectionLabel(title: "VALUE GRAPH", trailing: "FIRST COMPONENT")
+                if graphPoints.isEmpty {
+                    Text("Add a numeric keyframe to plot this property.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(VexelPalette.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 132, alignment: .center)
+                } else {
+                    Canvas { context, size in
+                        let points = graphPoints
+                        let inset: CGFloat = 14
+                        let plot = CGRect(
+                            x: inset,
+                            y: inset,
+                            width: max(1, size.width - inset * 2),
+                            height: max(1, size.height - inset * 2)
+                        )
+                        let firstTime = points.first?.time ?? 0
+                        let lastTime = points.last?.time ?? firstTime
+                        let timeSpan = max(lastTime - firstTime, 1)
+                        let minTime = firstTime - (timeSpan - (lastTime - firstTime)) * 0.5
+                        let maxTime = minTime + timeSpan
+                        let minValue = points.map(\.value).min() ?? 0
+                        let maxValue = points.map(\.value).max() ?? 1
+                        let valueSpan = max(maxValue - minValue, 0.001)
+                        let lowerValue = minValue - valueSpan * 0.12
+                        let upperValue = maxValue + valueSpan * 0.12
+                        let visibleValueSpan = max(upperValue - lowerValue, 0.001)
+
+                        for index in 0...4 {
+                            let y = plot.minY + CGFloat(index) / 4 * plot.height
+                            var grid = Path()
+                            grid.move(to: CGPoint(x: plot.minX, y: y))
+                            grid.addLine(to: CGPoint(x: plot.maxX, y: y))
+                            context.stroke(grid, with: .color(VexelPalette.line.opacity(0.55)), lineWidth: 1)
+                        }
+
+                        let coordinates = points.map { point in
+                            CGPoint(
+                                x: plot.minX + CGFloat((point.time - minTime) / max(maxTime - minTime, 0.001)) * plot.width,
+                                y: plot.maxY - CGFloat((point.value - lowerValue) / visibleValueSpan) * plot.height
+                            )
+                        }
+
+                        if let first = coordinates.first {
+                            var curve = Path()
+                            curve.move(to: first)
+                            for coordinate in coordinates.dropFirst() {
+                                curve.addLine(to: coordinate)
+                            }
+                            context.stroke(curve, with: .color(VexelPalette.accent), lineWidth: 2)
+
+                            for coordinate in coordinates {
+                                let dot = CGRect(x: coordinate.x - 4, y: coordinate.y - 4, width: 8, height: 8)
+                                context.fill(Path(ellipseIn: dot), with: .color(VexelPalette.accent))
+                            }
+                        }
+
+                        if playheadTime >= minTime && playheadTime <= maxTime {
+                            let x = plot.minX + CGFloat((playheadTime - minTime) / max(maxTime - minTime, 0.001)) * plot.width
+                            var playhead = Path()
+                            playhead.move(to: CGPoint(x: x, y: plot.minY))
+                            playhead.addLine(to: CGPoint(x: x, y: plot.maxY))
+                            context.stroke(playhead, with: .color(VexelPalette.secondary), lineWidth: 1)
+                        }
+                    }
+                    .frame(height: 140)
+                    .accessibilityLabel("Keyframe value graph")
+                    .accessibilityIdentifier("keyframe.valueGraph")
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
@@ -1011,6 +1097,8 @@ struct VexelGraphEditor: View {
                     }
                     .padding(12)
                     .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 10))
+
+                    valueGraph
 
                     VexelSectionLabel(title: "KEYFRAMES · \(selectedKeyframes.count)")
                     if selectedKeyframes.isEmpty {

@@ -198,7 +198,8 @@ Implementation note: the editor redesign is implemented on feat/p1a-editor-redes
 - [x] Display a real HH:MM:SS:FF preview timecode and test that it follows transport position.
 - [x] Mark interpolation and export as unavailable until their runtime pipelines are connected; disable placeholder actions.
 - [x] Disable mask, track-matte, transition and unbound composition-inspector controls until their backing store/renderer commands are implemented.
-- [x] Add UI regression tests for timeline clip selection, layer visibility, ruler scrubbing, clip trimming, editor preview/playback/inspector availability and compact landscape layout.
+- [x] Add a keyframe value-graph preview for the selected property's first numeric component.
+- [x] Add UI regression tests for timeline clip selection, layer visibility, ruler scrubbing, clip trimming, keyframe graph display, editor preview/playback/inspector availability and compact landscape layout.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, clip selection, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings only after a successful in-editor settings command, and restore custom FPS values in the next creation flow.
 - [x] Add UI coverage for in-editor FPS changes becoming the next composition defaults.
