@@ -362,6 +362,7 @@ struct VexelEditorWorkspace: View {
             VexelToolSheet(
                 tool: tool,
                 tracks: timelineDraftTracks,
+                layerNames: $layerNames,
                 selectedLayerName: selectedTimelineTrack?.name,
                 selectedLayerKind: selectedTimelineTrack?.kind,
                 onAction: { action in handleToolAction(action, for: tool) },

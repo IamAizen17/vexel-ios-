@@ -22,6 +22,7 @@ private enum VexelAdvancedEditorPage: Identifiable {
 struct VexelToolSheet: View {
     let tool: VexelEditorTool
     let tracks: [VexelTimelineTrack]
+    @Binding var layerNames: [String]
     let selectedLayerName: String?
     let selectedLayerKind: VexelTimelineTrack.Kind?
     let onAction: (String) -> Void
