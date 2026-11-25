@@ -750,30 +750,55 @@ struct VexelEditorWorkspace: View {
 
     private var toolBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: isCompactLandscape ? 3 : 4) {
+            HStack(spacing: isCompactLandscape ? 5 : 8) {
                 ForEach(VexelEditorTool.allCases.filter(\.isAvailable)) { tool in
                     Button {
                         activeDockTool = tool
                         selectedTool = tool
                     } label: {
-                        VStack(spacing: 5) {
-                            Image(systemName: tool.symbol).font(.system(size: isCompactLandscape ? 14 : 16, weight: .medium))
-                            Text(tool.rawValue).font(.system(size: isCompactLandscape ? 7 : 8, weight: .semibold))
+                        VStack(spacing: isCompactLandscape ? 0 : 4) {
+                            Image(systemName: tool.symbol)
+                                .font(.system(size: isCompactLandscape ? 17 : 19, weight: .medium))
+                                .frame(width: isCompactLandscape ? 42 : 46, height: isCompactLandscape ? 38 : 42)
+                            if !isCompactLandscape {
+                                Text(tool.rawValue)
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .lineLimit(1)
+                            }
                         }
-                        .foregroundStyle(activeDockTool == tool ? VexelPalette.accent : VexelPalette.soft)
-                        .frame(width: isCompactLandscape ? 50 : 57, height: isCompactLandscape ? 36 : 54)
-                        .background(activeDockTool == tool ? VexelPalette.accent.opacity(0.12) : VexelPalette.field.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
-                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(activeDockTool == tool ? VexelPalette.accent.opacity(0.55) : VexelPalette.line.opacity(0.35), lineWidth: 1))
+                        .foregroundStyle(activeDockTool == tool ? VexelPalette.accent : VexelPalette.text)
+                        .frame(minWidth: isCompactLandscape ? 44 : 54, minHeight: isCompactLandscape ? 42 : 62)
+                        .background {
+                            if activeDockTool == tool {
+                                Capsule().fill(VexelPalette.accent.opacity(0.16))
+                            }
+                        }
+                        .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityIdentifier("editor.tool.\(tool.rawValue.lowercased())")
+                    .accessibilityLabel(tool.rawValue)
+                    .accessibilityIdentifier("editor.tool.\\(tool.rawValue.lowercased())")
                     .disabled(!tool.isAvailable)
                     .opacity(tool.isAvailable ? 1 : 0.38)
                 }
             }
-            .padding(.horizontal, 8).padding(.vertical, isCompactLandscape ? 3 : 8)
+            .padding(.horizontal, 10)
+            .padding(.vertical, isCompactLandscape ? 4 : 7)
         }
-        .background(VexelPalette.bar)
+        .background {
+            if #available(iOS 26.0, *) {
+                Capsule().fill(.clear).glassEffect(.regular, in: Capsule())
+            } else {
+                Capsule().fill(.ultraThinMaterial)
+            }
+        }
+        .overlay {
+            Capsule().strokeBorder(VexelPalette.line.opacity(0.42), lineWidth: 0.7)
+        }
+        .padding(.horizontal, isCompactLandscape ? 6 : 14)
+        .padding(.top, 6)
+        .padding(.bottom, isCompactLandscape ? 2 : 8)
+        .accessibilityIdentifier("editor.tool.dock")
     }
 
     private var inspectorPanel: some View {
