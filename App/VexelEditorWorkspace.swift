@@ -777,7 +777,7 @@ struct VexelEditorWorkspace: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(tool.rawValue)
-                    .accessibilityIdentifier("editor.tool.\\(tool.rawValue.lowercased())")
+                    .accessibilityIdentifier("editor.tool.\(tool.rawValue.lowercased())")
                     .disabled(!tool.isAvailable)
                     .opacity(tool.isAvailable ? 1 : 0.38)
                 }
