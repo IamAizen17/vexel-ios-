@@ -85,6 +85,44 @@ struct VexelEditorWorkspace: View {
         return find(project.timelineTracks)
     }
 
+    private var selectedNativeLayer: VexelLayer? {
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              let native = try? VexelNativeProject(document: project.makeProjectDocument()) else { return nil }
+        func find(_ layers: [VexelLayer]) -> VexelLayer? {
+            for layer in layers {
+                if layer.id == sourceID { return layer }
+                if let nested = find(layer.layers) { return nested }
+            }
+            return nil
+        }
+        return find(native.layers)
+    }
+
+    private var selectedPropertyDescriptors: [VexelPropertyDescriptor] {
+        guard let layer = selectedNativeLayer else { return [] }
+        return VexelPropertyCatalog.descriptors(for: layer)
+    }
+
+    private var selectedKeyframesByProperty: [String: [VexelKeyframe]] {
+        guard let layer = selectedNativeLayer else { return [:] }
+        return Dictionary(uniqueKeysWithValues: selectedPropertyDescriptors.map { descriptor in
+            let frames: [VexelKeyframe]
+            if case .animated(let animation)? = descriptor.value(in: layer) {
+                frames = animation.keyframes
+            } else {
+                frames = []
+            }
+            return (descriptor.id, frames)
+        })
+    }
+
+    private var keyframeLocalPlayheadTime: Double {
+        guard let track = selectedTimelineTrack else { return 0 }
+        let rate = Double(max(project.fps, 1))
+        return (currentTime * rate).rounded() / rate - track.start
+    }
+
     private var availablePropertyTabs: [String] {
         guard let kind = selectedTimelineTrack?.kind else { return ["Composition"] }
         var tabs = ["Transform"]
@@ -302,7 +340,16 @@ struct VexelEditorWorkspace: View {
             .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showSavedVersions) { VexelSavedVersionsSheet().presentationDetents([.medium, .large]) }
-        .sheet(isPresented: $showGraph) { VexelGraphEditor() .presentationDetents([.large]) }
+        .sheet(isPresented: $showGraph) {
+            VexelGraphEditor(
+                descriptors: selectedPropertyDescriptors,
+                keyframesByProperty: selectedKeyframesByProperty,
+                playheadTime: keyframeLocalPlayheadTime,
+                onAddKeyframe: { addKeyframeAtPlayhead(propertyID: $0) },
+                onRemoveKeyframe: { removeKeyframeAtPlayhead(propertyID: $0) }
+            )
+            .presentationDetents([.large])
+        }
         .sheet(isPresented: $showCurve) { VexelCurveEditor() .presentationDetents([.large]) }
         .sheet(isPresented: $showProperties) {
             VexelPropertiesSheet(
@@ -867,10 +914,17 @@ struct VexelEditorWorkspace: View {
         performEditingCommand(.removeLayer(id: sourceID))
     }
 
-    private func addKeyframeAtPlayhead() {
+    private func addKeyframeAtPlayhead(propertyID requestedPropertyID: String? = nil) {
         guard let track = selectedTimelineTrack,
-              let sourceID = track.sourceID ?? selectedTrackID?.uuidString else {
-            showingNotice = "Select a timeline layer before adding a keyframe."
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              let layer = selectedNativeLayer else {
+            showingNotice = "Select a supported layer before adding a keyframe."
+            return
+        }
+        let propertyID = requestedPropertyID ?? (track.kind == .rendered3D ? "position3D" : "position")
+        guard let descriptor = VexelPropertyCatalog.descriptor(for: propertyID),
+              descriptor.supports(layer) else {
+            showingNotice = "That property is not supported by the selected layer."
             return
         }
         let rate = Double(max(project.fps, 1))
@@ -880,43 +934,43 @@ struct VexelEditorWorkspace: View {
             showingNotice = "Move the playhead inside the selected layer before adding a keyframe."
             return
         }
-
-        do {
-            let document = try project.makeProjectDocument()
-            let native = try VexelNativeProject(document: document)
-            func findLayer(_ layers: [VexelLayer]) -> VexelLayer? {
-                for layer in layers {
-                    if layer.id == sourceID { return layer }
-                    if let nested = findLayer(layer.layers) { return nested }
-                }
-                return nil
-            }
-            guard let layer = findLayer(native.layers) else {
-                showingNotice = "The selected layer could not be resolved in the native project."
-                return
-            }
-            let is3D = track.kind == .rendered3D
-            let existing = (is3D ? layer.transform3D : layer.transform)?.properties["position"]
-            let value: JSONValue
-            switch existing {
-            case .some(.constant(let constant)):
-                value = constant
-            case .some(.animated(let animation)):
-                value = animation.keyframes.last(where: { $0.time <= localTime })?.value
-                    ?? animation.value
-                    ?? .array(is3D ? [.number(0), .number(0), .number(0)] : [.number(0), .number(0)])
-            case .none:
-                value = .array(is3D ? [.number(0), .number(0), .number(0)] : [.number(0), .number(0)])
-            }
-            performEditingCommand(.setKeyframe(
-                layerID: sourceID,
-                property: "position",
-                keyframe: VexelKeyframe(time: localTime, value: value),
-                is3D: is3D
-            ))
-        } catch {
-            showingNotice = "The selected layer could not be evaluated: \(error.localizedDescription)"
+        let value: JSONValue
+        switch descriptor.value(in: layer) {
+        case .some(.constant(let current)):
+            value = current
+        case .some(.animated(let animation)):
+            value = animation.keyframes.last(where: { $0.time <= localTime })?.value
+                ?? animation.value
+                ?? descriptor.defaultValue
+        case .none:
+            value = descriptor.defaultValue
         }
+        performEditingCommand(.setPropertyKeyframe(
+            layerID: sourceID,
+            propertyID: propertyID,
+            keyframe: VexelKeyframe(time: localTime, value: value)
+        ))
+    }
+
+    private func removeKeyframeAtPlayhead(propertyID: String) {
+        guard let track = selectedTimelineTrack,
+              let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
+              let layer = selectedNativeLayer,
+              let descriptor = VexelPropertyCatalog.descriptor(for: propertyID),
+              case .animated(let animation)? = descriptor.value(in: layer) else {
+            showingNotice = "The selected property has no keyframes to remove."
+            return
+        }
+        let localTime = keyframeLocalPlayheadTime
+        guard animation.keyframes.contains(where: { abs($0.time - localTime) < 0.000001 }) else {
+            showingNotice = "There is no keyframe at the playhead for this property."
+            return
+        }
+        performEditingCommand(.removePropertyKeyframe(
+            layerID: sourceID,
+            propertyID: propertyID,
+            time: localTime
+        ))
     }
 
     private func saveMarker(_ marker: VexelMarker) {

@@ -179,7 +179,8 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Add a reusable typed property descriptor catalog for supported 2D/3D transforms, text animation values, shape geometry, media volume and 3D material values.
 - [x] Add descriptor-driven base-value, auto-keyframe, keyframe upsert and keyframe removal commands with value/range/time validation and unknown-field preservation.
 - [x] Add store regression coverage for descriptor discovery, text/shape/media/3D property edits, auto-keyframe behavior, metadata preservation and invalid edits.
-- [ ] Connect descriptor-driven keyframe controls to the visible editor timeline/graph UI and add UI-level keyframe editing tests.
+- [x] Connect descriptor-driven keyframe add/remove workflows to the graph/keyframe editor and route them through the canonical editing store.
+- [x] Broaden edit-surface UI coverage across position, anchor, scale, rotation, opacity and keyframe add/remove.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
@@ -233,7 +234,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 ## 5. Known limitations (do not misreport)
 
 - The timeline remains a reduced UI projection over the canonical typed native project. Timeline reorder, marker, timing, visibility and lock changes use typed commands. Media import now uses one atomic typed asset-and-layer command; the workspace no longer replaces the complete project snapshot for edits.
-- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. The core now exposes descriptor-driven keyframe operations for supported transforms, text animation values, shape geometry, media volume and 3D material values; timeline/graph UI integration is still pending. Text animators, masks and transitions remain unconnected.
+- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. Descriptor-driven keyframe add/remove is connected to the keyframe editor for supported transforms, text, shape, media, camera, light and material properties. Text animators, masks and transitions remain unconnected.
 - The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes, nested groups and negative source layer/group starts. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
 - The effect catalogue is not proof that 73 effects execute.

@@ -1,4 +1,5 @@
 import SwiftUI
+import VexelCore
 
 private enum VexelAdvancedEditorPage: Identifiable {
     case audio, captions, camera, realCamera, cutout, expression, speech
@@ -862,50 +863,131 @@ struct VexelPropertiesPanel: View {
 
 struct VexelGraphEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedProperty = "Position X"
-    @State private var smooth = true
+    let descriptors: [VexelPropertyDescriptor]
+    let keyframesByProperty: [String: [VexelKeyframe]]
+    let playheadTime: Double
+    let onAddKeyframe: (String) -> Void
+    let onRemoveKeyframe: (String) -> Void
+    @State private var selectedPropertyID: String
+
+    init(
+        descriptors: [VexelPropertyDescriptor],
+        keyframesByProperty: [String: [VexelKeyframe]],
+        playheadTime: Double,
+        onAddKeyframe: @escaping (String) -> Void,
+        onRemoveKeyframe: @escaping (String) -> Void
+    ) {
+        self.descriptors = descriptors
+        self.keyframesByProperty = keyframesByProperty
+        self.playheadTime = playheadTime
+        self.onAddKeyframe = onAddKeyframe
+        self.onRemoveKeyframe = onRemoveKeyframe
+        _selectedPropertyID = State(initialValue: descriptors.first?.id ?? "")
+    }
+
+    private var selectedKeyframes: [VexelKeyframe] {
+        keyframesByProperty[selectedPropertyID] ?? []
+    }
+
+    private var hasKeyframeAtPlayhead: Bool {
+        selectedKeyframes.contains { abs($0.time - playheadTime) < 0.000001 }
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 14) {
-                Picker("Property", selection: $selectedProperty) {
-                    ForEach(["Position X", "Position Y", "Scale", "Rotation", "Opacity"], id: \.self) { Text($0).tag($0) }
-                }.pickerStyle(.menu).tint(VexelPalette.accent)
-                GeometryReader { proxy in
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12).fill(VexelPalette.preview)
-                        Path { path in
-                            for x in 0...8 {
-                                let px = CGFloat(x) * proxy.size.width / 8
-                                path.move(to: CGPoint(x: px, y: 0)); path.addLine(to: CGPoint(x: px, y: proxy.size.height))
-                            }
-                            for y in 0...5 {
-                                let py = CGFloat(y) * proxy.size.height / 5
-                                path.move(to: CGPoint(x: 0, y: py)); path.addLine(to: CGPoint(x: proxy.size.width, y: py))
-                            }
-                        }.stroke(VexelPalette.line, lineWidth: 0.7)
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: proxy.size.height * 0.82))
-                            path.addCurve(to: CGPoint(x: proxy.size.width, y: proxy.size.height * 0.18), control1: CGPoint(x: proxy.size.width * 0.25, y: proxy.size.height * 0.82), control2: CGPoint(x: proxy.size.width * 0.65, y: proxy.size.height * 0.18))
-                        }.stroke(VexelPalette.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                        ForEach(0..<4, id: \.self) { i in
-                            Circle().fill(VexelPalette.amber).frame(width: 9, height: 9).position(x: proxy.size.width * CGFloat(i) / 3, y: proxy.size.height * (0.82 - CGFloat(i) / 3 * 0.64))
+            VStack(alignment: .leading, spacing: 16) {
+                if descriptors.isEmpty {
+                    Spacer()
+                    Text("Select a supported layer to manage its keyframes.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(VexelPalette.secondary)
+                        .frame(maxWidth: .infinity)
+                    Spacer()
+                } else {
+                    Picker("Property", selection: $selectedPropertyID) {
+                        ForEach(descriptors) { descriptor in
+                            Text(descriptor.title).tag(descriptor.id)
                         }
                     }
-                }
-                .frame(minHeight: 220)
-                VexelPanel {
-                    Toggle("Smooth interpolation", isOn: $smooth).tint(VexelPalette.accent)
+                    .pickerStyle(.menu)
+                    .tint(VexelPalette.accent)
+                    .accessibilityIdentifier("keyframe.property")
+
                     HStack {
-                        VexelActionButton(title: "Add keyframe", systemImage: "diamond.fill", prominent: true) {}
-                        VexelActionButton(title: "Fit graph", systemImage: "arrow.up.left.and.arrow.down.right") {}
+                        Text("PLAYHEAD")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(VexelPalette.secondary)
+                        Spacer()
+                        Text(String(format: "%.3f s", playheadTime))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(VexelPalette.text)
                     }
+                    .padding(12)
+                    .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 10))
+
+                    VexelSectionLabel(title: "KEYFRAMES · \(selectedKeyframes.count)")
+                    if selectedKeyframes.isEmpty {
+                        Text("No keyframes on this property yet.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(VexelPalette.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                            .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                ForEach(Array(selectedKeyframes.enumerated()), id: \.offset) { entry in
+                                    HStack {
+                                        Image(systemName: "diamond.fill")
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(VexelPalette.accent)
+                                        Text("Keyframe \(entry.offset + 1)")
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundStyle(VexelPalette.text)
+                                        Spacer()
+                                        Text(String(format: "%.3f s", entry.element.time))
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundStyle(VexelPalette.secondary)
+                                            .accessibilityIdentifier("keyframe.time.\(String(format: "%.3f", entry.element.time))")
+                                    }
+                                    .padding(11)
+                                    .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
+                                }
+                            }
+                        }
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            onAddKeyframe(selectedPropertyID)
+                        } label: {
+                            Label("Add at playhead", systemImage: "diamond.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(VexelPalette.accent)
+                        .accessibilityIdentifier("keyframe.add")
+
+                        Button {
+                            onRemoveKeyframe(selectedPropertyID)
+                        } label: {
+                            Label("Remove", systemImage: "minus")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(!hasKeyframeAtPlayhead)
+                        .accessibilityIdentifier("keyframe.remove")
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer()
             }
-            .padding(16).background(VexelPalette.background)
-            .navigationTitle("Graph editor").navigationBarTitleDisplayMode(.inline)
+            .padding(16)
+            .background(VexelPalette.background)
+            .navigationTitle("Keyframe editor")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
-        }    }
+        }
+    }
 }
 
 struct VexelCurveEditor: View {

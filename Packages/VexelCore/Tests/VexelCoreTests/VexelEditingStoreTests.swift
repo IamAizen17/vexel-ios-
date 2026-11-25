@@ -694,11 +694,13 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(shapeFields.string("futureShapeField"), "keep")
         XCTAssertEqual(shapeFields.object("size")?.string("futureSizeField"), "keep")
         let textFields = VexelObjectFields(snapshot.layers[1].content?.objectValue ?? [:])
-        XCTAssertEqual(textFields.animatable("fontSize")?.keyframes.first?.time, 2)
+        guard case .animated(let textFontSizeTrack)? = textFields.animatable("fontSize") else { return XCTFail("Text font size keyframe must be stored as an animation track.") }
+        XCTAssertEqual(textFontSizeTrack.keyframes.first?.time, 2)
         let audioFields = VexelObjectFields(snapshot.layers[2].content?.objectValue ?? [:])
         XCTAssertEqual(audioFields.animatable("volume"), .constant(.number(0.8)))
         XCTAssertEqual(VexelObjectFields(snapshot.layers[3].content?.objectValue ?? [:]).animatable("fov"), .constant(.number(72)))
-        XCTAssertEqual(VexelObjectFields(snapshot.layers[4].content?.objectValue ?? [:]).animatable("intensity")?.keyframes.first?.value, .number(2.5))
+        guard case .animated(let lightIntensityTrack)? = VexelObjectFields(snapshot.layers[4].content?.objectValue ?? [:]).animatable("intensity") else { return XCTFail("Light intensity keyframe must be stored as an animation track.") }
+        XCTAssertEqual(lightIntensityTrack.keyframes.first?.value, .number(2.5))
         let material = VexelObjectFields(snapshot.layers[5].content?.objectValue ?? [:]).object("material")
         XCTAssertEqual(material?.animatable("metallic"), .constant(.number(0.75)))
         XCTAssertEqual(material?.string("futureMaterialField"), "keep")
