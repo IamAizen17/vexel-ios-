@@ -94,16 +94,16 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         switch storage {
         case .transform(let is3D):
             var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
-            if case .animated(var animation)? = transform.properties[id] {
+            if case .animated(var animation)? = transform.properties[storageKey] {
                 animation.value = value
-                transform.properties[id] = .animated(animation)
+                transform.properties[storageKey] = .animated(animation)
             } else {
-                transform.properties[id] = .constant(value)
+                transform.properties[storageKey] = .constant(value)
             }
             if is3D { layer.transform3D = transform } else { layer.transform = transform }
         case .content:
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
-            if case .animated(var animation)? = fields.animatable(id) {
+            if case .animated(var animation)? = fields.animatable(storageKey) {
                 animation.value = value
                 fields.setAnimatable(.animated(animation), for: storageKey)
             } else {
@@ -141,7 +141,12 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
             animation = VexelAnimationTrack(value: defaultValue)
         }
         if let index = animation.keyframes.firstIndex(where: { abs($0.time - keyframe.time) < 0.000001 }) {
-            animation.keyframes[index] = keyframe
+            var replacement = keyframe
+            if replacement.easing == nil { replacement.easing = animation.keyframes[index].easing }
+            for (key, value) in animation.keyframes[index].unknownFields where replacement.unknownFields[key] == nil {
+                replacement.unknownFields[key] = value
+            }
+            animation.keyframes[index] = replacement
         } else {
             animation.keyframes.append(keyframe)
         }
@@ -156,7 +161,13 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         animation.keyframes.removeAll { abs($0.time - time) < 0.000001 }
         if animation.keyframes.isEmpty {
             if let base = animation.value {
-                setAnimation(.constant(base), on: &layer)
+                if animation.expression != nil || animation.expressionEnabled != nil ||
+                    animation.loop != nil || !animation.unknownFields.isEmpty {
+                    if animation.loop == nil { animation.loop = .none }
+                    setAnimation(.animated(animation), on: &layer)
+                } else {
+                    setAnimation(.constant(base), on: &layer)
+                }
             } else {
                 removeValue(on: &layer)
             }
@@ -169,7 +180,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         switch storage {
         case .transform(let is3D):
             var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
-            transform.properties[id] = value
+            transform.properties[storageKey] = value
             if is3D { layer.transform3D = transform } else { layer.transform = transform }
         case .content:
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
@@ -234,8 +245,14 @@ public enum VexelPropertyCatalog {
         .init(id: "shape.roundness", title: "Roundness", storage: .content, storageKey: "roundness", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 4096, supportedLayerTypes: [.shape]),
         .init(id: "shape.sides", title: "Sides", storage: .content, storageKey: "sides", valueKind: .scalar, defaultValue: .number(5), minimum: 3, maximum: 128, supportedLayerTypes: [.shape]),
         .init(id: "shape.innerRatio", title: "Inner ratio", storage: .content, storageKey: "innerRatio", valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
+        .init(id: "shape.fill.color", title: "Fill color", storage: .contentObject(parent: "fill", key: "color"), storageKey: "color", valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.shape]),
+        .init(id: "shape.stroke.color", title: "Stroke color", storage: .contentObject(parent: "stroke", key: "color"), storageKey: "color", valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.shape]),
+        .init(id: "shape.stroke.width", title: "Stroke width", storage: .contentObject(parent: "stroke", key: "width"), storageKey: "width", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 4096, supportedLayerTypes: [.shape]),
+        .init(id: "shape.trim.start", title: "Trim start", storage: .contentObject(parent: "trim", key: "start"), storageKey: "start", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
+        .init(id: "shape.trim.end", title: "Trim end", storage: .contentObject(parent: "trim", key: "end"), storageKey: "end", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
+        .init(id: "shape.trim.offset", title: "Trim offset", storage: .contentObject(parent: "trim", key: "offset"), storageKey: "offset", valueKind: .scalar, defaultValue: .number(0), minimum: -360, maximum: 360, supportedLayerTypes: [.shape]),
         .init(id: "media.volume", title: "Volume", storage: .content, storageKey: "volume", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 4, supportedLayerTypes: [.video, .audio]),
-        .init(id: "object3D.size", title: "Object size", storage: .content, storageKey: "size", valueKind: .vector(3), defaultValue: .array([.number(1), .number(1), .number(1)]), minimum: 0, maximum: 8192, supportedLayerTypes: [.object3D, .model3D]),
+        .init(id: "object3D.size", title: "Object size", storage: .content, storageKey: "size", valueKind: .any, defaultValue: .array([.number(1), .number(1), .number(1)]), minimum: 0, maximum: 8192, supportedLayerTypes: [.object3D, .model3D]),
         .init(id: "camera.position", title: "Camera position", storage: .content, storageKey: "position", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: [.camera]),
         .init(id: "camera.target", title: "Camera target", storage: .content, storageKey: "target", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(-1)]), supportedLayerTypes: [.camera]),
         .init(id: "camera.rotation", title: "Camera rotation", storage: .content, storageKey: "rotation", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: [.camera]),

@@ -12,7 +12,7 @@ enum VexelEditorTool: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var isAvailable: Bool {
         switch self {
-        case .layers, .shapes, .text, .effects: return true
+        case .layers, .shapes, .text, .effects, .motion: return true
         case .media, .audio: return true
         case .model3D, .motion, .camera, .captions, .elements, .plugins: return false
         }
@@ -687,7 +687,8 @@ struct VexelEditorWorkspace: View {
             HStack {
                 VexelSectionLabel(title: "Inspector")
                 Spacer()
-                VexelIconButton(symbol: "point.topleft.down.to.point.bottomright.curvepath", disabled: true) { showGraph = true }
+                VexelIconButton(symbol: "point.topleft.down.to.point.bottomright.curvepath", disabled: selectedPropertyDescriptors.isEmpty) { showGraph = true }
+                    .accessibilityIdentifier("inspector.graph")
             }
             Picker("Inspector", selection: $selectedTab) {
                 ForEach(availablePropertyTabs, id: \.self) { Text($0).tag($0) }

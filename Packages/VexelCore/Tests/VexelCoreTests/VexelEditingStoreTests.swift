@@ -677,6 +677,7 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertTrue(VexelPropertyCatalog.descriptors(for: object3D).contains { $0.id == "material.metallic" })
 
         try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(240), .number(120)]), atTime: nil))
+        try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.stroke.width", value: .number(8), atTime: nil))
         try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(300), .number(150)]), atTime: 4))
         try await store.execute(.setPropertyKeyframe(layerID: "title", propertyID: "text.fontSize", keyframe: VexelKeyframe(time: 2, value: .number(144))))
         try await store.execute(.setPropertyValue(layerID: "audio", propertyID: "media.volume", value: .number(0.8), atTime: nil))
@@ -693,6 +694,8 @@ final class VexelEditingStoreTests: XCTestCase {
         )))
         XCTAssertEqual(shapeFields.string("futureShapeField"), "keep")
         XCTAssertEqual(shapeFields.object("size")?.string("futureSizeField"), "keep")
+        XCTAssertEqual(shapeFields.object("size")?.array("keyframes")?.count, 2)
+        XCTAssertEqual(shapeFields.object("stroke")?.animatable("width"), .constant(.number(8)))
         let textFields = VexelObjectFields(snapshot.layers[1].content?.objectValue ?? [:])
         guard case .animated(let textFontSizeTrack)? = textFields.animatable("fontSize") else { return XCTFail("Text font size keyframe must be stored as an animation track.") }
         XCTAssertEqual(textFontSizeTrack.keyframes.first?.time, 2)
@@ -733,6 +736,64 @@ final class VexelEditingStoreTests: XCTestCase {
         try await store.execute(.removePropertyKeyframe(layerID: "object", propertyID: "rotation3D", time: 3))
         let final = await store.snapshot()
         XCTAssertEqual(final.layers[0].transform3D?.properties["rotation"], nil)
+        XCTAssertEqual(final.layers[0].transform3D?.properties["position"], .constant(.array([.number(1), .number(2), .number(3)])))
+    }
+
+    func testDescriptorKeyframeUpsertAndRemovalPreserveEasingAndTrackMetadata() async throws {
+        let animation = VexelAnimationTrack(
+            keyframes: [VexelKeyframe(
+                time: 2,
+                value: .number(10),
+                easing: .preset("easeOut"),
+                unknownFields: ["futureKeyframeFlag": .bool(true)]
+            )],
+            value: .number(5),
+            loop: .pingpong,
+            expression: "time",
+            expressionEnabled: false,
+            unknownFields: ["futureTrackFlag": .string("preserve")]
+        )
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 8, content: .object([
+            "roundness": .object([
+                "keyframes": .array([.object([
+                    "time": .number(2),
+                    "value": .number(10),
+                    "easing": .string("easeOut"),
+                    "futureKeyframeFlag": .bool(true)
+                ])]),
+                "value": .number(5),
+                "loop": .string("pingpong"),
+                "expression": .string("time"),
+                "expressionEnabled": .bool(false),
+                "futureTrackFlag": .string("preserve")
+            ])
+        ]))
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setPropertyKeyframe(
+            layerID: "shape",
+            propertyID: "shape.roundness",
+            keyframe: VexelKeyframe(time: 2, value: .number(12))
+        ))
+        var snapshot = await store.snapshot()
+        guard case .animated(let updated)? = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:]).animatable("roundness") else {
+            return XCTFail("The property must remain animated.")
+        }
+        XCTAssertEqual(updated.keyframes.first?.easing, animation.keyframes.first?.easing)
+        XCTAssertEqual(updated.keyframes.first?.unknownFields["futureKeyframeFlag"], .bool(true))
+        XCTAssertEqual(updated.unknownFields["futureTrackFlag"], .string("preserve"))
+
+        try await store.execute(.removePropertyKeyframe(layerID: "shape", propertyID: "shape.roundness", time: 2))
+        snapshot = await store.snapshot()
+        guard case .animated(let emptyTrack)? = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:]).animatable("roundness") else {
+            return XCTFail("Removing the last keyframe must retain animation metadata.")
+        }
+        XCTAssertTrue(emptyTrack.keyframes.isEmpty)
+        XCTAssertEqual(emptyTrack.value, .number(5))
+        XCTAssertEqual(emptyTrack.loop, .pingpong)
+        XCTAssertEqual(emptyTrack.expression, "time")
+        XCTAssertEqual(emptyTrack.expressionEnabled, false)
+        XCTAssertEqual(emptyTrack.unknownFields["futureTrackFlag"], .string("preserve"))
     }
 
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {

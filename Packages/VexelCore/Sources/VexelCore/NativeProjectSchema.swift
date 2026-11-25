@@ -477,7 +477,7 @@ public enum VexelAnimatableValue: Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let value = try JSONValue(from: decoder)
-        if let object = value.objectValue, object["keyframes"]?.arrayValue != nil || object["expression"]?.stringValue != nil {
+        if let object = value.objectValue, object["keyframes"]?.arrayValue != nil || object["expression"]?.stringValue != nil || object["loop"]?.stringValue != nil || object["expressionEnabled"]?.boolValue != nil {
             self = .animated(try JSONDecoder().decode(VexelAnimationTrack.self, from: JSONEncoder().encode(value)))
         } else {
             self = .constant(value)

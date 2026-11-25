@@ -105,7 +105,8 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["keyframe.time.0.000"].waitForExistence(timeout: 5))
 
         let remove = app.buttons["keyframe.remove"]
-        XCTAssertTrue(remove.isEnabled)
+        let enabled = expectation(for: NSPredicate(format: "isEnabled == true"), evaluatedWith: remove)
+        wait(for: [enabled], timeout: 5)
         remove.tap()
         XCTAssertTrue(app.staticTexts["No keyframes on this property yet."].waitForExistence(timeout: 5))
     }

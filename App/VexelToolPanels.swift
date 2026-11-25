@@ -371,8 +371,8 @@ struct VexelToolSheet: View {
                         VexelActionButton(title: "Graph editor", systemImage: "point.topleft.down.to.point.bottomright.curvepath", action: onGraph)
                     }
                     HStack {
-                        VexelActionButton(title: "Curve editor", systemImage: "waveform.path", action: onCurve)
-                        VexelActionButton(title: "Expressions", systemImage: "chevron.left.forwardslash.chevron.right") { advancedPage = .expression }
+                        VexelActionButton(title: "Curve editor (unavailable)", systemImage: "waveform.path", action: onCurve).disabled(true)
+                        VexelActionButton(title: "Expressions (unavailable)", systemImage: "chevron.left.forwardslash.chevron.right") {}.disabled(true)
                     }
                 }
             }
