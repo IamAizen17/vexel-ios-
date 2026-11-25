@@ -201,7 +201,7 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Provide reusable timeline panel, track/clip rows, playhead/ruler, keyframe markers, tool dock and contextual inspector components.
 - [x] Mark unsupported 3D model/font import, voiceover capture and cutout processing as unavailable instead of exposing nonfunctional actions.
 - [x] Remove nonfunctional audio mixer/EQ placeholder sliders and clearly identify audio processing as planned.
-- [x] Route audio import to the audio media filter instead of the image/video picker.
+- [x] Route audio import through the system document picker with audio-only content types, separate from the image/video Photos picker.
 - [ ] Bind every implemented control to the canonical store and expose incomplete capabilities honestly.
 - [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
 

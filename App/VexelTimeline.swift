@@ -228,6 +228,7 @@ struct VexelTimelinePanel: View {
                                         containerDuration: duration,
                                         fps: fps,
                                         snapPoints: snapPoints,
+                                        snappingEnabled: snappingEnabled,
                                         selectedTrackID: $selectedTrackID,
                                         onSelect: { name in
                                             onNotice("Selected \(name).")
@@ -361,6 +362,7 @@ private struct VexelTimelineTrackRow: View {
     let containerDuration: Double
     let fps: Int
     let snapPoints: [Double]
+    let snappingEnabled: Bool
     @Binding var selectedTrackID: UUID?
     let onSelect: (String) -> Void
     let onMarkerEdit: (VexelMarker) -> Void
@@ -415,6 +417,7 @@ private struct VexelTimelineTrackRow: View {
                         containerDuration: track.duration,
                         fps: fps,
                         snapPoints: snapPoints,
+                        snappingEnabled: snappingEnabled,
                         selectedTrackID: $selectedTrackID,
                         onSelect: onSelect,
                         onMarkerEdit: onMarkerEdit,
