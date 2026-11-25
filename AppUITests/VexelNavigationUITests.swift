@@ -271,10 +271,13 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["High frame rate"].waitForExistence(timeout: 10))
         app.buttons["chevron.left"].tap()
         app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.width"].waitForExistence(timeout: 5))
 
         XCTAssertEqual(Int(String((app.textFields["newProject.width"].value as? String ?? "").filter { $0.isNumber })), 1920)
         XCTAssertEqual(Int(String((app.textFields["newProject.height"].value as? String ?? "").filter { $0.isNumber })), 1080)
         XCTAssertTrue(app.staticTexts["60 frames per second"].exists)
+        app.buttons["newProject.resetDefaults"].tap()
+        app.buttons["Cancel"].tap()
     }
 
 
@@ -290,6 +293,7 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
         rectangle.tap()
 
+        XCTAssertTrue(app.buttons["Select Rectangle Layer"].waitForExistence(timeout: 5))
         app.buttons["editor.tool.layers"].tap()
         let visibility = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "layers.visibility.")).firstMatch
         XCTAssertTrue(visibility.waitForExistence(timeout: 5))
@@ -319,9 +323,7 @@ final class VexelNavigationUITests: XCTestCase {
     }
 
     func testIPadEditorKeepsTheInspectorVisibleBesideTheWorkspace() {
-        guard UIDevice.current.userInterfaceIdiom == .pad else {
-            throw XCTSkip("This layout assertion is specific to iPad.")
-        }
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
 
         let app = launchApp()
         XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
