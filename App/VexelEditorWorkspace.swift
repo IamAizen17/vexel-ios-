@@ -332,12 +332,29 @@ struct VexelEditorWorkspace: View {
                     inspectorPanel.frame(width: inspectorWidth)
                 }
                 .padding(14)
+            } else if isCompactLandscape {
+                HStack(spacing: 8) {
+                    VStack(spacing: 0) {
+                        previewCanvas
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        transportBar
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack(spacing: 0) {
+                        timelinePanel
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        if !layerNames.isEmpty { selectionBar }
+                        toolBar
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .padding(8)
             } else {
                 previewCanvas
-                    .frame(maxHeight: isCompactLandscape ? 90 : .infinity)
+                    .frame(maxHeight: .infinity)
                 transportBar
                 timelinePanel
-                if !layerNames.isEmpty && !isCompactLandscape { selectionBar }
+                if !layerNames.isEmpty { selectionBar }
                 toolBar
             }
         }

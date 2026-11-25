@@ -191,7 +191,8 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Persist last-used new-composition dimensions, frame rate and duration locally; restore them in the next creation flow and provide an explicit reset to defaults.
 - [x] Add UI regression coverage for restoring a previously created composition preset and resetting the defaults.
 - [ ] Complete the editor redesign around preview, timeline, layer selection, contextual tools and property editing.
-- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts.
+- [x] Implement a dedicated compact-height iPhone landscape workspace with a side-by-side preview/transport and timeline/tool column.
+- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on simulators and physical devices.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, tool dock, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings when changed in the in-editor composition settings sheet as well as when a new composition is created.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.

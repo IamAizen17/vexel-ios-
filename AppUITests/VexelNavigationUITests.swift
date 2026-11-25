@@ -162,7 +162,7 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
         rectangle.tap()
 
-        XCTAssertTrue(app.otherElements["editor.timeline"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["editor.timeline"].waitForExistence(timeout: 5))
         let layerSelection = app.buttons["Select Rectangle Layer"]
         XCTAssertTrue(layerSelection.waitForExistence(timeout: 5))
         layerSelection.tap()
@@ -181,7 +181,7 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
         app.buttons["newProject.create"].tap()
 
-        XCTAssertTrue(app.otherElements["editor.preview"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["editor.preview"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["editor.playback.toggle"].waitForExistence(timeout: 5))
         app.buttons["Shapes"].tap()
         let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
@@ -189,7 +189,7 @@ final class VexelNavigationUITests: XCTestCase {
         rectangle.tap()
         XCTAssertTrue(app.buttons["editor.action.properties"].waitForExistence(timeout: 5))
         app.buttons["editor.action.properties"].tap()
-        XCTAssertTrue(app.otherElements["editor.inspector"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["editor.inspector"].waitForExistence(timeout: 5))
     }
 
 }
