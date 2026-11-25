@@ -82,6 +82,7 @@ struct VexelTimelinePanel: View {
 
     private let rulerHeight: CGFloat = 34
     private let rowHeight: CGFloat = 44
+    private let headerWidth: CGFloat = 116
     private let minimumZoom: CGFloat = 8
     private let maximumZoom: CGFloat = 2000
 
@@ -143,16 +144,25 @@ struct VexelTimelinePanel: View {
                 .background(VexelPalette.lane, in: RoundedRectangle(cornerRadius: 9))
             } else {
                 GeometryReader { geometry in
-                    let width = max(contentWidth, geometry.size.width)
+                    let timelineWidth = max(contentWidth, geometry.size.width - headerWidth)
+                    let totalWidth = headerWidth + timelineWidth
                     ScrollView([.horizontal, .vertical], showsIndicators: true) {
                         ZStack(alignment: .topLeading) {
                             VStack(spacing: 3) {
-                                ruler(width: width)
+                                HStack(spacing: 0) {
+                                    Text("LAYERS")
+                                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                        .tracking(0.8)
+                                        .foregroundStyle(VexelPalette.secondary)
+                                        .frame(width: headerWidth, height: rulerHeight, alignment: .leading)
+                                        .padding(.leading, 8)
+                                    ruler(width: timelineWidth)
+                                }
                                 ForEach($tracks) { $track in
                                     VexelTimelineTrackRow(
                                         track: $track,
                                         depth: 0,
-                                        width: width,
+                                        width: timelineWidth,
                                         zoom: zoom,
                                         compositionDuration: duration,
                                         containerOffset: 0,
@@ -175,10 +185,10 @@ struct VexelTimelinePanel: View {
                             Rectangle()
                                 .fill(VexelPalette.accent)
                                 .frame(width: 1.5, height: rulerHeight + CGFloat(visibleRowCount) * rowHeight + CGFloat(max(visibleRowCount, 1)) * 3)
-                                .offset(x: CGFloat(currentTime) * zoom, y: 0)
+                                .offset(x: headerWidth + CGFloat(currentTime) * zoom, y: 0)
                                 .allowsHitTesting(false)
                         }
-                        .frame(width: width, alignment: .topLeading)
+                        .frame(width: totalWidth, alignment: .topLeading)
                         .simultaneousGesture(
                             MagnificationGesture()
                                 .onChanged { value in
@@ -313,19 +323,22 @@ private struct VexelTimelineTrackRow: View {
 
     var body: some View {
         VStack(spacing: 3) {
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(VexelPalette.lane.opacity(0.85))
-                    .frame(height: 39)
-
-                HStack(spacing: 0) {
-                    Color.clear.frame(width: CGFloat(depth) * 18 + CGFloat(containerOffset + track.start) * zoom)
-                    clip
-                    Spacer(minLength: 0)
+            HStack(spacing: 0) {
+                trackHeader
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(VexelPalette.lane.opacity(0.85))
+                        .frame(height: 39)
+                    HStack(spacing: 0) {
+                        Color.clear.frame(width: CGFloat(containerOffset + track.start) * zoom)
+                        clip
+                        Spacer(minLength: 0)
+                    }
+                    .frame(width: width, height: 39, alignment: .leading)
                 }
-                .frame(width: width, height: 39, alignment: .leading)
+                .frame(width: width, height: 42)
             }
-            .frame(width: width, height: 42)
+            .frame(width: headerWidth + width, height: 42)
 
             if track.isGroup && track.isExpanded {
                 ForEach($track.children) { $child in
@@ -353,32 +366,37 @@ private struct VexelTimelineTrackRow: View {
         }
     }
 
-    private var clip: some View {
-        HStack(spacing: 5) {
+    private var trackHeader: some View {
+        HStack(spacing: 4) {
             if track.isGroup {
                 Button { track.isExpanded.toggle() } label: {
                     Image(systemName: track.isExpanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 8, weight: .bold))
-                        .frame(width: 12, height: 22)
+                        .frame(width: 12, height: 24)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(track.isExpanded ? "Collapse group" : "Expand group")
             }
-
+            RoundedRectangle(cornerRadius: 2)
+                .fill(clipColor)
+                .frame(width: 3, height: 18)
             Button {
                 selectedTrackID = track.id
                 onSelect(track.name)
             } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Image(systemName: track.kind == .audio ? "waveform" : (track.kind == .text ? "textformat" : (track.isGroup ? "folder" : "square")))
                         .font(.system(size: 9, weight: .bold))
-                    Text(track.name.uppercased())
-                        .font(.system(size: 8, weight: .bold))
+                    Text(track.name)
+                        .font(.system(size: 8, weight: .semibold))
                         .lineLimit(1)
+                        .truncationMode(.middle)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-
+            .accessibilityLabel("Select \(track.name)")
             Button {
                 onEditBegan()
                 onTrackVisibilityChange(track.id, !track.visible)
@@ -388,6 +406,7 @@ private struct VexelTimelineTrackRow: View {
                     .font(.system(size: 8))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(track.visible ? "Hide \(track.name)" : "Show \(track.name)")
             Button {
                 onEditBegan()
                 onTrackLockChange(track.id, !track.locked)
@@ -397,34 +416,45 @@ private struct VexelTimelineTrackRow: View {
                     .font(.system(size: 8))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(track.locked ? "Unlock \(track.name)" : "Lock \(track.name)")
         }
-        .foregroundStyle(.white.opacity(track.visible ? 0.95 : 0.5))
-        .padding(.horizontal, 7)
-        .frame(width: max(72, CGFloat(track.duration) * zoom), height: 28)
-        .background(clipColor.opacity(track.visible ? 0.82 : 0.24), in: RoundedRectangle(cornerRadius: 5))
-        .overlay(RoundedRectangle(cornerRadius: 5).stroke(selectedTrackID == track.id ? VexelPalette.accent : .clear, lineWidth: 1.5))
-        .overlay(alignment: .topLeading) {
-            ForEach(track.keyframes.filter { $0.isFinite && $0 >= 0 && $0 <= track.duration }, id: \.self) { time in
-                Image(systemName: "diamond.fill")
-                    .font(.system(size: 6, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.95))
-                    .offset(x: CGFloat(time) * zoom + 7, y: 4)
-                    .accessibilityHidden(true)
-            }
-        }
-        .overlay(alignment: .leading) {
-            Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
-                .gesture(trimStartGesture)
-        }
+        .foregroundStyle(VexelPalette.soft)
+        .padding(.leading, CGFloat(depth) * 7 + 6)
+        .padding(.trailing, 5)
+        .frame(width: headerWidth, height: 42)
+        .background(selectedTrackID == track.id ? VexelPalette.accent.opacity(0.12) : VexelPalette.lane.opacity(0.7))
         .overlay(alignment: .trailing) {
-            Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
-                .gesture(trimEndGesture)
+            Rectangle().fill(VexelPalette.line.opacity(0.5)).frame(width: 1)
         }
-        .contentShape(Rectangle())
-        .gesture(moveGesture)
-        .opacity(track.locked ? 0.62 : 1)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(track.name) timeline clip")
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+
+    private var clip: some View {
+        RoundedRectangle(cornerRadius: 5)
+            .fill(clipColor.opacity(track.visible ? 0.82 : 0.24))
+            .frame(width: max(72, CGFloat(track.duration) * zoom), height: 28)
+            .overlay(alignment: .leading) {
+                Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
+                    .gesture(trimStartGesture)
+            }
+            .overlay(alignment: .trailing) {
+                Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
+                    .gesture(trimEndGesture)
+            }
+            .overlay(alignment: .topLeading) {
+                ForEach(track.keyframes.filter { $0.isFinite && $0 >= 0 && $0 <= track.duration }, id: \.self) { time in
+                    Image(systemName: "diamond.fill")
+                        .font(.system(size: 6, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.95))
+                        .offset(x: CGFloat(time) * zoom + 7, y: 4)
+                        .accessibilityHidden(true)
+                }
+            }
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(selectedTrackID == track.id ? VexelPalette.accent : .clear, lineWidth: 1.5))
+            .contentShape(Rectangle())
+            .gesture(moveGesture)
+            .opacity(track.locked ? 0.62 : 1)
+            .accessibilityLabel("\(track.name) timeline clip")
     }
 
     private var moveGesture: some Gesture {

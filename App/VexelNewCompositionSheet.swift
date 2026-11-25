@@ -56,6 +56,7 @@ struct VexelNewCompositionSheet: View {
                         }
                         Spacer()
                         Button("Reset") {
+                            VexelCompositionDefaults.reset()
                             let defaults = VexelCompositionDefaults.default
                             width = Double(defaults.width)
                             height = Double(defaults.height)

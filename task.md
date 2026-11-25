@@ -1,9 +1,9 @@
 # Vexel iOS engineering plan
 
-Last reviewed: 2026-11-24
+Last reviewed: 2026-11-25
 Reference repository: https://github.com/IamAizen17/vexel-editor
 iOS implementation repository: https://github.com/IamAizen17/vexel-ios-
-Active implementation branch: `feat/modular-engine-architecture`
+Active implementation branch: `feat/p1a-editor-redesign-v4`
 Related engine PR: https://github.com/IamAizen17/vexel-ios-/pull/2
 
 This is the active project handoff, implementation status, and prioritized backlog. A checked item means the implementation exists and has supporting evidence; it does not automatically mean complete source parity or production readiness. Keep implementation status, test status, and device validation separate.
