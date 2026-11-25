@@ -271,7 +271,7 @@ Successful workflow references:
 ## P1.A redesign verification (2026-11-25)
 
 Implementation branch: `feat/p1a-editor-redesign-v10`  
-Code head: `08521b6cff4e1c3b54487a172ef6637b42b851a9`
+Code head: `bf96d678fb95040ccc4838f489b8b29240da1909`
 
 - [x] Review the branch diff and verify the new composition-default model, editor layout changes, timeline callbacks and test target paths are present.
 - [x] Compile and run a standalone Swift smoke test for composition-default load, save, validation and reset behavior.
