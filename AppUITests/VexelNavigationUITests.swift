@@ -195,4 +195,23 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["editor.inspector"].waitForExistence(timeout: 5))
     }
 
+    func testLandscapeEditorPlacesPreviewBesideTimeline() {
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+
+        let app = launchApp()
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+
+        let preview = app.descendants(matching: .any)["editor.preview"]
+        let timeline = app.descendants(matching: .any)["editor.timeline"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 5))
+        XCTAssertTrue(timeline.waitForExistence(timeout: 5))
+        XCTAssertLessThan(preview.frame.midX, timeline.frame.midX)
+        XCTAssertTrue(app.buttons["timeline.zoom.in"].exists)
+        XCTAssertTrue(app.buttons["editor.playback.toggle"].exists)
+    }
+
 }

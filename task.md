@@ -194,6 +194,7 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Implement a dedicated compact-height iPhone landscape workspace with a side-by-side preview/transport and timeline/tool column.
 - [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on simulators and physical devices.
 - [x] Add explicit timeline zoom controls and a user-toggleable frame/snap-point snapping mode.
+- [x] Add UI regression tests for timeline layer selection/visibility, editor preview/playback/inspector availability and the compact landscape layout.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings when changed in the in-editor composition settings sheet as well as when a new composition is created.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
