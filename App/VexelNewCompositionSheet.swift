@@ -4,13 +4,27 @@ struct VexelNewCompositionSheet: View {
     let onCreate: (VexelProjectItem) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var title = "Untitled Composition"
-    @State private var width = 1080.0
-    @State private var height = 1920.0
-    @State private var fps = 30.0
-    @State private var duration = 10.0
-    @State private var selectedPreset: String? = "Portrait video"
+    @State private var width: Double
+    @State private var height: Double
+    @State private var fps: Double
+    @State private var duration: Double
 
     private let frameRates = [24.0, 25.0, 30.0, 50.0, 60.0, 120.0]
+
+    init(onCreate: @escaping (VexelProjectItem) -> Void) {
+        self.onCreate = onCreate
+        let saved = VexelCompositionDefaults.load()
+        _width = State(initialValue: Double(saved.width))
+        _height = State(initialValue: Double(saved.height))
+        _fps = State(initialValue: Double(saved.fps))
+        _duration = State(initialValue: saved.duration)
+    }
+
+    private var selectedPresetName: String? {
+        ProjectPreset.all.first {
+            $0.width == Int(width) && $0.height == Int(height) && $0.fps == Int(fps)
+        }?.name
+    }
 
     private var canCreate: Bool {
         width.isFinite && height.isFinite && duration.isFinite &&
@@ -27,6 +41,33 @@ struct VexelNewCompositionSheet: View {
                         Text("Set your canvas.").font(.system(size: 26, weight: .bold, design: .rounded)).foregroundStyle(VexelPalette.text)
                         Text("Choose a format, then fine-tune your composition settings.").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
                     }
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(VexelPalette.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("LAST USED SETTINGS")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .tracking(0.8)
+                                .foregroundStyle(VexelPalette.text)
+                            Text("Your canvas defaults are saved on this device.")
+                                .font(.system(size: 9))
+                                .foregroundStyle(VexelPalette.secondary)
+                        }
+                        Spacer()
+                        Button("Reset") {
+                            let defaults = VexelCompositionDefaults.default
+                            width = Double(defaults.width)
+                            height = Double(defaults.height)
+                            fps = Double(defaults.fps)
+                            duration = defaults.duration
+                        }
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(VexelPalette.accent)
+                        .accessibilityIdentifier("newProject.resetDefaults")
+                    }
+                    .padding(12)
+                    .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                     VStack(alignment: .leading, spacing: 9) {
                         VexelSectionLabel(title: "Composition name")
                         TextField("Untitled Composition", text: $title)
@@ -39,7 +80,6 @@ struct VexelNewCompositionSheet: View {
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
                             ForEach(ProjectPreset.all) { preset in
                                 Button {
-                                    selectedPreset = preset.name
                                     width = Double(preset.width)
                                     height = Double(preset.height)
                                     fps = Double(preset.fps)
@@ -49,7 +89,7 @@ struct VexelNewCompositionSheet: View {
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 9).fill(VexelPalette.preview).frame(height: 64)
                                             RoundedRectangle(cornerRadius: 3)
-                                                .stroke(selectedPreset == preset.name ? VexelPalette.accent : VexelPalette.secondary.opacity(0.7), lineWidth: selectedPreset == preset.name ? 1.8 : 1)
+                                                .stroke(selectedPresetName == preset.name ? VexelPalette.accent : VexelPalette.secondary.opacity(0.7), lineWidth: selectedPresetName == preset.name ? 1.8 : 1)
                                                 .frame(width: preset.width > preset.height ? 48 : (preset.width == preset.height ? 39 : 25),
                                                        height: preset.width > preset.height ? 27 : (preset.width == preset.height ? 39 : 46))
                                         }
@@ -57,8 +97,8 @@ struct VexelNewCompositionSheet: View {
                                         Text("\(preset.width) × \(preset.height)").font(.system(size: 8, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
                                     }
                                     .padding(8).frame(maxWidth: .infinity)
-                                    .background(selectedPreset == preset.name ? VexelPalette.accent.opacity(0.09) : VexelPalette.card, in: RoundedRectangle(cornerRadius: 12))
-                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(selectedPreset == preset.name ? VexelPalette.accent.opacity(0.75) : VexelPalette.line, lineWidth: 1))
+                                    .background(selectedPresetName == preset.name ? VexelPalette.accent.opacity(0.09) : VexelPalette.card, in: RoundedRectangle(cornerRadius: 12))
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(selectedPresetName == preset.name ? VexelPalette.accent.opacity(0.75) : VexelPalette.line, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("preset.\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
@@ -117,6 +157,12 @@ struct VexelNewCompositionSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                        VexelCompositionDefaults(
+                            width: Int(width),
+                            height: Int(height),
+                            fps: Int(fps),
+                            duration: duration
+                        ).save()
                         onCreate(VexelProjectItem(title: name.isEmpty ? "Untitled Composition" : name,
                                                   width: Int(width), height: Int(height), fps: Int(fps), duration: duration))
                     }

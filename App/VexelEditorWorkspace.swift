@@ -37,6 +37,7 @@ enum VexelEditorTool: String, CaseIterable, Identifiable {
 
 struct VexelEditorWorkspace: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State var project: VexelProjectItem
     let onClose: () -> Void
     let onProjectChange: (VexelProjectItem) -> Void
@@ -310,7 +311,8 @@ struct VexelEditorWorkspace: View {
         }
     }
 
-    private var isWide: Bool { horizontalSizeClass == .regular }
+    private var isWide: Bool { horizontalSizeClass == .regular || verticalSizeClass == .compact }
+    private var inspectorWidth: CGFloat { horizontalSizeClass == .regular ? 300 : 252 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -325,7 +327,7 @@ struct VexelEditorWorkspace: View {
                         toolBar
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    inspectorPanel.frame(width: 290)
+                    inspectorPanel.frame(width: inspectorWidth)
                 }
                 .padding(14)
             } else {
@@ -691,7 +693,7 @@ struct VexelEditorWorkspace: View {
     private var toolBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
-                ForEach(VexelEditorTool.allCases) { tool in
+                ForEach(VexelEditorTool.allCases.filter(\.isAvailable)) { tool in
                     Button { selectedTool = tool } label: {
                         VStack(spacing: 5) {
                             Image(systemName: tool.symbol).font(.system(size: 16, weight: .medium))
