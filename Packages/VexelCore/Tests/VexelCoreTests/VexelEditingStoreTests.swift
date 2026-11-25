@@ -661,7 +661,10 @@ final class VexelEditingStoreTests: XCTestCase {
         )
         let text = VexelLayer(id: "title", type: .text, start: 0, duration: 8, content: .object(["content": .string("Hello")]))
         let audio = VexelLayer(id: "audio", type: .audio, start: 0, duration: 8, content: .object(["volume": .number(0.5)]))
-        let store = try makeStore(layers: [shape, text, audio])
+        let camera = VexelLayer(id: "camera", type: .camera, start: 0, duration: 8, content: .object([:]))
+        let light = VexelLayer(id: "light", type: .light, start: 0, duration: 8, content: .object([:]))
+        let object3D = VexelLayer(id: "model", type: .object3D, start: 0, duration: 8, content: .object(["material": .object(["futureMaterialField": .string("keep")])]))
+        let store = try makeStore(layers: [shape, text, audio, camera, light, object3D])
 
         let shapeDescriptors = VexelPropertyCatalog.descriptors(for: shape)
         XCTAssertTrue(shapeDescriptors.contains { $0.id == "shape.size" })
@@ -669,11 +672,17 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertFalse(shapeDescriptors.contains { $0.id == "text.fontSize" })
         XCTAssertTrue(VexelPropertyCatalog.descriptors(for: text).contains { $0.id == "text.fontSize" })
         XCTAssertTrue(VexelPropertyCatalog.descriptors(for: audio).contains { $0.id == "media.volume" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: camera).contains { $0.id == "camera.fov" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: light).contains { $0.id == "light.intensity" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: object3D).contains { $0.id == "material.metallic" })
 
         try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(240), .number(120)]), atTime: nil))
         try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(300), .number(150)]), atTime: 4))
         try await store.execute(.setPropertyKeyframe(layerID: "title", propertyID: "text.fontSize", keyframe: VexelKeyframe(time: 2, value: .number(144))))
         try await store.execute(.setPropertyValue(layerID: "audio", propertyID: "media.volume", value: .number(0.8), atTime: nil))
+        try await store.execute(.setPropertyValue(layerID: "camera", propertyID: "camera.fov", value: .number(72), atTime: nil))
+        try await store.execute(.setPropertyKeyframe(layerID: "light", propertyID: "light.intensity", keyframe: VexelKeyframe(time: 1, value: .number(2.5))))
+        try await store.execute(.setPropertyValue(layerID: "model", propertyID: "material.metallic", value: .number(0.75), atTime: nil))
 
         let snapshot = await store.snapshot()
         let shapeFields = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:])
@@ -688,10 +697,18 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(textFields.animatable("fontSize")?.keyframes.first?.time, 2)
         let audioFields = VexelObjectFields(snapshot.layers[2].content?.objectValue ?? [:])
         XCTAssertEqual(audioFields.animatable("volume"), .constant(.number(0.8)))
+        XCTAssertEqual(VexelObjectFields(snapshot.layers[3].content?.objectValue ?? [:]).animatable("fov"), .constant(.number(72)))
+        XCTAssertEqual(VexelObjectFields(snapshot.layers[4].content?.objectValue ?? [:]).animatable("intensity")?.keyframes.first?.value, .number(2.5))
+        let material = VexelObjectFields(snapshot.layers[5].content?.objectValue ?? [:]).object("material")
+        XCTAssertEqual(material?.animatable("metallic"), .constant(.number(0.75)))
+        XCTAssertEqual(material?.string("futureMaterialField"), "keep")
 
         try await store.execute(.removePropertyKeyframe(layerID: "shape", propertyID: "shape.size", time: 4))
         let removed = await store.snapshot()
-        XCTAssertEqual(VexelObjectFields(removed.layers[0].content?.objectValue ?? [:]).animatable("size"), .constant(.array([.number(240), .number(120)])))
+        let removedSize = VexelObjectFields(removed.layers[0].content?.objectValue ?? [:]).animatable("size")
+        guard case .animated(let remainingTrack)? = removedSize else { return XCTFail("Removing one keyframe must preserve the remaining animation track.") }
+        XCTAssertEqual(remainingTrack.keyframes.map(\.time), [0])
+        XCTAssertEqual(remainingTrack.value, .array([.number(240), .number(120)]))
     }
 
     func testPropertyDescriptorValidationIsAtomicAndSupportsThreeDimensionalTracks() async throws {

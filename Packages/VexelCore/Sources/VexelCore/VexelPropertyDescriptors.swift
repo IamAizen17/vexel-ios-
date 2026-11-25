@@ -27,9 +27,9 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         id: String,
         title: String,
         storage: VexelPropertyStorage,
+        storageKey: String? = nil,
         valueKind: VexelPropertyValueKind,
         defaultValue: JSONValue,
-        storageKey: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil,
         supportedLayerTypes: [VexelLayerType]
@@ -213,7 +213,7 @@ public enum VexelPropertyDescriptorError: Error, Equatable, Sendable {
 
 public enum VexelPropertyCatalog {
     private static let visual2D: [VexelLayerType] = [.text, .shape, .image, .video, .group, .null]
-    private static let visual3D: [VexelLayerType] = [.object3D, .model3D, .camera, .light]
+    private static let visual3D: [VexelLayerType] = [.object3D, .model3D]
     private static let scalarTypes: [VexelLayerType] = [.text, .shape, .image, .video, .audio, .object3D, .model3D, .camera, .light]
 
     public static let all: [VexelPropertyDescriptor] = [
@@ -235,6 +235,21 @@ public enum VexelPropertyCatalog {
         .init(id: "shape.sides", title: "Sides", storage: .content, storageKey: "sides", valueKind: .scalar, defaultValue: .number(5), minimum: 3, maximum: 128, supportedLayerTypes: [.shape]),
         .init(id: "shape.innerRatio", title: "Inner ratio", storage: .content, storageKey: "innerRatio", valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
         .init(id: "media.volume", title: "Volume", storage: .content, storageKey: "volume", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 4, supportedLayerTypes: [.video, .audio]),
+        .init(id: "object3D.size", title: "Object size", storage: .content, storageKey: "size", valueKind: .vector(3), defaultValue: .array([.number(1), .number(1), .number(1)]), minimum: 0, maximum: 8192, supportedLayerTypes: [.object3D, .model3D]),
+        .init(id: "camera.position", title: "Camera position", storage: .content, storageKey: "position", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: [.camera]),
+        .init(id: "camera.target", title: "Camera target", storage: .content, storageKey: "target", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(-1)]), supportedLayerTypes: [.camera]),
+        .init(id: "camera.rotation", title: "Camera rotation", storage: .content, storageKey: "rotation", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: [.camera]),
+        .init(id: "camera.fov", title: "Field of view", storage: .content, storageKey: "fov", valueKind: .scalar, defaultValue: .number(50), minimum: 1, maximum: 179, supportedLayerTypes: [.camera]),
+        .init(id: "camera.dof.focusDistance", title: "Focus distance", storage: .contentObject(parent: "dof", key: "focusDistance"), storageKey: "focusDistance", valueKind: .scalar, defaultValue: .number(10), minimum: 0, maximum: 100000, supportedLayerTypes: [.camera]),
+        .init(id: "camera.dof.range", title: "Depth of field range", storage: .contentObject(parent: "dof", key: "range"), storageKey: "range", valueKind: .scalar, defaultValue: .number(5), minimum: 0, maximum: 100000, supportedLayerTypes: [.camera]),
+        .init(id: "camera.dof.blur", title: "Depth of field blur", storage: .contentObject(parent: "dof", key: "blur"), storageKey: "blur", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 1000, supportedLayerTypes: [.camera]),
+        .init(id: "light.color", title: "Light color", storage: .content, storageKey: "color", valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.light]),
+        .init(id: "light.intensity", title: "Light intensity", storage: .content, storageKey: "intensity", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 100000, supportedLayerTypes: [.light]),
+        .init(id: "light.position", title: "Light position", storage: .content, storageKey: "position", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: [.light]),
+        .init(id: "light.target", title: "Light target", storage: .content, storageKey: "target", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(-1)]), supportedLayerTypes: [.light]),
+        .init(id: "light.radius", title: "Light radius", storage: .content, storageKey: "radius", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 100000, supportedLayerTypes: [.light]),
+        .init(id: "light.shadowDarkness", title: "Shadow darkness", storage: .content, storageKey: "shadowDarkness", valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.light]),
+        .init(id: "material.color", title: "Material color", storage: .contentObject(parent: "material", key: "color"), storageKey: "color", valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.object3D, .model3D]),
         .init(id: "material.metallic", title: "Metallic", storage: .contentObject(parent: "material", key: "metallic"), storageKey: "metallic", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
         .init(id: "material.roughness", title: "Roughness", storage: .contentObject(parent: "material", key: "roughness"), storageKey: "roughness", valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
         .init(id: "material.emissive", title: "Emissive", storage: .contentObject(parent: "material", key: "emissive"), storageKey: "emissive", valueKind: .any, defaultValue: .number(0), supportedLayerTypes: [.object3D, .model3D])
