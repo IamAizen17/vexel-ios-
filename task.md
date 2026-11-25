@@ -184,7 +184,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 
-Implementation note: the canvas-first composition setup is implemented as a dedicated SwiftUI sheet with presets, editable dimensions, custom frame-rate restoration, duration control (1–3600 seconds) and bounds validation. Last-used composition defaults are persisted locally after successful project creation or successful in-editor composition-setting commits, and can be reset in the creation sheet. The editor workspace redesign and adaptive validation remain open.
+Implementation note: the editor redesign is implemented on feat/p1a-editor-redesign-v12. The canvas-first composition sheet restores device-local defaults; successful in-editor settings commits and direct preset creation update them. The workspace includes separate iPhone portrait, compact-landscape and iPad layouts, preview, transport, timeline clips, zoom/snapping, layer controls and contextual inspectors. Physical-device validation remains open.
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
 - [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
 - [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.
@@ -192,10 +192,12 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Add UI regression coverage for restoring a previously created composition preset, direct preset-library persistence and resetting the defaults.
 - [x] Implement the primary editor workspace with preview, transport, layer timeline, contextual tools and property editing; continue refinement and device validation.
 - [x] Implement a dedicated compact-height iPhone landscape workspace with a side-by-side preview/transport and timeline/tool column.
-- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on simulators and physical devices.
+- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on physical devices.
+- [x] Add iPhone 16 and iPad (10th generation) simulator UI-test destinations, including iPad persistent-inspector layout assertions.
 - [x] Add explicit timeline zoom controls and a user-toggleable magnetic snap mode, with enlarged clip-trim touch targets and accessible clip selection.
 - [x] Display a real HH:MM:SS:FF preview timecode and test that it follows transport position.
 - [x] Mark interpolation and export as unavailable until their runtime pipelines are connected; disable placeholder actions.
+- [x] Disable mask, track-matte, transition and unbound composition-inspector controls until their backing store/renderer commands are implemented.
 - [x] Add UI regression tests for timeline clip selection, layer visibility, editor preview/playback/inspector availability and the compact landscape layout.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, clip selection, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings only after a successful in-editor settings command, and restore custom FPS values in the next creation flow.
