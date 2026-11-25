@@ -111,6 +111,34 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No keyframes on this property yet."].waitForExistence(timeout: 5))
     }
 
+    func testNewCompositionRestoresLastUsedPresetAndCanResetDefaults() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        let highFrameRatePreset = app.buttons["preset.high-frame-rate"]
+        XCTAssertTrue(highFrameRatePreset.waitForExistence(timeout: 5))
+        highFrameRatePreset.tap()
+        app.buttons["newProject.create"].tap()
+
+        XCTAssertTrue(app.staticTexts["Your canvas is empty"].waitForExistence(timeout: 10))
+        app.buttons["chevron.left"].tap()
+        app.buttons["home.createProject"].tap()
+
+        let width = app.textFields["newProject.width"]
+        let height = app.textFields["newProject.height"]
+        XCTAssertTrue(width.waitForExistence(timeout: 5))
+        XCTAssertTrue(height.exists)
+        XCTAssertEqual(Int(String((width.value as? String ?? "").filter { $0.isNumber })), 1920)
+        XCTAssertEqual(Int(String((height.value as? String ?? "").filter { $0.isNumber })), 1080)
+        XCTAssertTrue(app.staticTexts["60 frames per second"].exists)
+
+        app.buttons["newProject.resetDefaults"].tap()
+        XCTAssertEqual(Int(String((width.value as? String ?? "").filter { $0.isNumber })), 1080)
+        XCTAssertEqual(Int(String((height.value as? String ?? "").filter { $0.isNumber })), 1920)
+        XCTAssertTrue(app.staticTexts["30 frames per second"].exists)
+    }
+
     func testSelectingPortraitPresetOpensMatchingComposition() {
         let app = launchApp()
 

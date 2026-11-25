@@ -3,7 +3,7 @@
 Last reviewed: 2026-11-25
 Reference repository: https://github.com/IamAizen17/vexel-editor
 iOS implementation repository: https://github.com/IamAizen17/vexel-ios-
-Active implementation branch: `feat/p1a-editor-redesign-v8`
+Active implementation branch: `feat/p1a-editor-redesign-v9`
 Related engine PR: https://github.com/IamAizen17/vexel-ios-/pull/2
 
 This is the active project handoff, implementation status, and prioritized backlog. A checked item means the implementation exists and has supporting evidence; it does not automatically mean complete source parity or production readiness. Keep implementation status, test status, and device validation separate.
@@ -189,6 +189,7 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
 - [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.
 - [x] Persist last-used new-composition dimensions, frame rate and duration locally; restore them in the next creation flow and provide an explicit reset to defaults.
+- [x] Add UI regression coverage for restoring a previously created composition preset and resetting the defaults.
 - [ ] Complete the editor redesign around preview, timeline, layer selection, contextual tools and property editing.
 - [ ] Validate portrait iPhone and landscape/iPad adaptive layouts.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
