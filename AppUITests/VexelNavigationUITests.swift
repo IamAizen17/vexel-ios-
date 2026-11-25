@@ -163,6 +163,9 @@ final class VexelNavigationUITests: XCTestCase {
         rectangle.tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["editor.timeline"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["timeline.snap.toggle"].exists)
+        XCTAssertTrue(app.buttons["timeline.zoom.in"].exists)
+        XCTAssertTrue(app.buttons["timeline.zoom.out"].exists)
         let layerSelection = app.buttons["Select Rectangle Layer"]
         XCTAssertTrue(layerSelection.waitForExistence(timeout: 5))
         layerSelection.tap()

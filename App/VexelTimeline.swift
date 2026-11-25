@@ -79,6 +79,7 @@ struct VexelTimelinePanel: View {
 
     @State private var zoom: CGFloat = 72
     @State private var pinchStartZoom: CGFloat?
+    @State private var snappingEnabled = true
     @State private var showMarkerEditor = false
 
     private let rulerHeight: CGFloat = 34
@@ -130,6 +131,40 @@ struct VexelTimelinePanel: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("timeline.marker.add")
+                Button {
+                    snappingEnabled.toggle()
+                } label: {
+                    Image(systemName: "magnet")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(snappingEnabled ? VexelPalette.accent : VexelPalette.secondary)
+                        .frame(width: 28, height: 28)
+                        .background(snappingEnabled ? VexelPalette.accent.opacity(0.12) : VexelPalette.field, in: RoundedRectangle(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(snappingEnabled ? "Disable snapping" : "Enable snapping")
+                .accessibilityIdentifier("timeline.snap.toggle")
+                Button {
+                    zoom = max(minimumZoom, zoom / 1.25)
+                } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(VexelPalette.soft)
+                        .frame(width: 25, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Zoom timeline out")
+                .accessibilityIdentifier("timeline.zoom.out")
+                Button {
+                    zoom = min(maximumZoom, zoom * 1.25)
+                } label: {
+                    Image(systemName: "plus.magnifyingglass")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(VexelPalette.soft)
+                        .frame(width: 25, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Zoom timeline in")
+                .accessibilityIdentifier("timeline.zoom.in")
                 Button(action: onGraph) {
                     Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                         .font(.system(size: 10, weight: .semibold))
@@ -539,6 +574,7 @@ private struct VexelTimelineTrackRow: View {
 
     private func snapped(_ value: Double) -> Double {
         let frame = (value * Double(max(fps, 1))).rounded() / Double(max(fps, 1))
+        guard snappingEnabled else { return frame }
         let tolerance = Double(8 / zoom)
         if let candidate = snapPoints.min(by: { abs($0 - frame) < abs($1 - frame) }),
            abs(candidate - frame) <= tolerance {
