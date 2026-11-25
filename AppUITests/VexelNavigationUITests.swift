@@ -59,25 +59,25 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(positionX.waitForExistence(timeout: 5))
         positionX.tap()
         positionX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "64" + XCUIKeyboardKey.return.rawValue)
-        XCTAssertEqual(Double(positionX.value as? String ?? ""), 64, accuracy: 0.01)
+        XCTAssertEqual(Double(positionX.value as? String ?? "") ?? .nan, 64, accuracy: 0.01)
 
         let scaleX = app.textFields["inspector.scale.x"]
         XCTAssertTrue(scaleX.waitForExistence(timeout: 5))
         scaleX.tap()
         scaleX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "125" + XCUIKeyboardKey.return.rawValue)
-        XCTAssertEqual(Double(scaleX.value as? String ?? ""), 125, accuracy: 0.01)
+        XCTAssertEqual(Double(scaleX.value as? String ?? "") ?? .nan, 125, accuracy: 0.01)
 
         let rotation = app.textFields["inspector.rotation"]
         XCTAssertTrue(rotation.waitForExistence(timeout: 5))
         rotation.tap()
         rotation.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "45" + XCUIKeyboardKey.return.rawValue)
-        XCTAssertEqual(Double(rotation.value as? String ?? ""), 45, accuracy: 0.01)
+        XCTAssertEqual(Double(rotation.value as? String ?? "") ?? .nan, 45, accuracy: 0.01)
 
         let opacity = app.textFields["inspector.opacity"]
         XCTAssertTrue(opacity.waitForExistence(timeout: 5))
         opacity.tap()
         opacity.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "75" + XCUIKeyboardKey.return.rawValue)
-        XCTAssertEqual(Double(opacity.value as? String ?? ""), 75, accuracy: 0.01)
+        XCTAssertEqual(Double(opacity.value as? String ?? "") ?? .nan, 75, accuracy: 0.01)
     }
 
     func testGraphEditorAddsAndRemovesKeyframeForSelectedProperty() {
