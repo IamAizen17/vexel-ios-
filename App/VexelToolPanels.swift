@@ -1000,8 +1000,9 @@ struct VexelGraphEditor: View {
                         .foregroundStyle(VexelPalette.secondary)
                         .frame(maxWidth: .infinity, minHeight: 132, alignment: .center)
                 } else {
+                    let points = graphPoints
+                    let graphPlayheadTime = playheadTime
                     Canvas { context, size in
-                        let points = self.graphPoints
                         let inset: CGFloat = 14
                         let plot = CGRect(
                             x: inset,
@@ -1050,8 +1051,8 @@ struct VexelGraphEditor: View {
                             }
                         }
 
-                        if self.playheadTime >= minTime && self.playheadTime <= maxTime {
-                            let x = plot.minX + CGFloat((self.playheadTime - minTime) / max(maxTime - minTime, 0.001)) * plot.width
+                        if graphPlayheadTime >= minTime && graphPlayheadTime <= maxTime {
+                            let x = plot.minX + CGFloat((graphPlayheadTime - minTime) / max(maxTime - minTime, 0.001)) * plot.width
                             var playhead = Path()
                             playhead.move(to: CGPoint(x: x, y: plot.minY))
                             playhead.addLine(to: CGPoint(x: x, y: plot.maxY))
