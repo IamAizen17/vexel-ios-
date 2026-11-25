@@ -86,11 +86,11 @@ jobs:
             -project Vexel.xcodeproj \
             -scheme Vexel \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPhone 16" \
+            -destination "platform=iOS Simulator,name=iPhone 17" \
             CODE_SIGNING_ALLOWED=NO
           xcodebuild test \
             -project Vexel.xcodeproj \
             -scheme Vexel \
             -configuration Debug \
-            -destination "platform=iOS Simulator,name=iPad (10th generation)" \
+            -destination "platform=iOS Simulator,name=iPad (A16)" \
             CODE_SIGNING_ALLOWED=NO
