@@ -5,9 +5,7 @@ Vexel targets iPhone and iPad, with iOS 16.0 as the deployment baseline. The app
 
 ## Continuous integration
 
-`.github/workflows/ios-ci.yml` runs on pushes to `feat/modular-engine-architecture`, pull requests targeting
-`feat/port-reference-ui`, and manual dispatch. It verifies the effect registry and engine-port status, builds and
-tests every Swift package under `Packages/`, generates the Xcode project, and builds the iOS Simulator target.
+`.github/workflows/ios-ci.yml` supports manual dispatch and path-filtered pushes to `feat/modular-engine-architecture` and `feat/p1a-editor-redesign-v7`. The redesign branch is explicitly included so editor, timeline, composition-defaults and test changes receive the same CI checks. The workflow verifies the effect registry and engine-port status, builds and tests every Swift package under `Packages/`, generates the Xcode project, and runs app unit/UI tests with an iPhone 16 Simulator.
 
 ## Build an unsigned IPA from GitHub without a Mac
 
@@ -16,7 +14,7 @@ GitHub-hosted `macos-15` runner and builds the selected branch.
 
 1. Open **Actions → Build Vexel IPA**.
 2. Tap **Run workflow**.
-3. Select the branch to build, normally `feat/modular-engine-architecture`.
+3. Select the branch to build, normally `feat/p1a-editor-redesign-v7`.
 4. Tap **Run workflow** and wait for the job to complete.
 5. Open the successful run and download the `Vexel-unsigned-IPA` artifact.
 

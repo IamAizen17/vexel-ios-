@@ -21,9 +21,7 @@ rendering, and AVFoundation media pipeline.
 
 ## Build without owning a Mac
 
-Open **Actions → Vexel Validation → Run workflow** and leave `build_ipa` disabled to run Swift package tests. Enable `build_ipa` only when you want to consume a macOS runner and build an unsigned IPA. After the workflow succeeds, download the
-`Vexel-unsigned-IPA` artifact. It is an unsigned build artifact, not directly installable on a physical iPhone.
-Device installation requires signing and a provisioning profile. See [docs/BUILDING.md](docs/BUILDING.md).
+Open **Actions → iOS Continuous Integration → Run workflow** to run Swift package tests, app tests and the iOS Simulator build for the selected branch. The separate **Build Vexel IPA** workflow creates an unsigned device archive. After that workflow succeeds, download the `Vexel-unsigned-IPA` artifact. It is not directly installable on a physical iPhone; device installation requires signing and a provisioning profile. See [docs/BUILDING.md](docs/BUILDING.md).
 
 ## Development
 
