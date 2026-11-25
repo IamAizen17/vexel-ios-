@@ -361,6 +361,7 @@ struct VexelEditorWorkspace: View {
                 project: project,
                 onSavedVersions: { showSavedVersions = true },
                 onSave: { draft in
+                    VexelCompositionDefaults(width: draft.width, height: draft.height, fps: draft.fps, duration: draft.duration).save()
                     performEditingCommand(.updateProjectSettings(
                         title: draft.title,
                         width: draft.width,
@@ -535,6 +536,7 @@ struct VexelEditorWorkspace: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .accessibilityIdentifier("editor.preview")
         .padding(.horizontal, 12).padding(.top, 12).padding(.bottom, 8)
     }
 
@@ -546,7 +548,9 @@ struct VexelEditorWorkspace: View {
                 Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                     .font(.system(size: 15, weight: .bold)).foregroundStyle(Color.black)
                     .frame(width: 38, height: 38).background(VexelPalette.accent, in: Circle())
-            }.buttonStyle(.plain)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editor.playback.toggle")
             VexelIconButton(symbol: "goforward.5") { currentTime = min(project.duration, currentTime + 5) }
             VexelIconButton(symbol: "repeat", active: loopPlayback) { loopPlayback.toggle() }
             VexelIconButton(symbol: "bookmark") {
@@ -699,6 +703,7 @@ struct VexelEditorWorkspace: View {
                 .fixedSize()
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("editor.action.\(title.lowercased())")
     }
 
     private var toolBar: some View {
@@ -719,6 +724,7 @@ struct VexelEditorWorkspace: View {
                         .overlay(RoundedRectangle(cornerRadius: 9).stroke(activeDockTool == tool ? VexelPalette.accent.opacity(0.55) : VexelPalette.line.opacity(0.35), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("editor.tool.\(tool.rawValue.lowercased())")
                     .disabled(!tool.isAvailable)
                     .opacity(tool.isAvailable ? 1 : 0.38)
                 }
@@ -759,6 +765,7 @@ struct VexelEditorWorkspace: View {
         }
         .padding(14)
         .background(VexelPalette.sheet, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityIdentifier("editor.inspector")
     }
 
     private func resetEditingStoreFromWorkspace() {

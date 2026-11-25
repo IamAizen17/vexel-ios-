@@ -129,12 +129,14 @@ struct VexelTimelinePanel: View {
                         .foregroundStyle(VexelPalette.accent)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("timeline.marker.add")
                 Button(action: onGraph) {
                     Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(VexelPalette.accent)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("timeline.graph")
             }
 
             if tracks.isEmpty {
@@ -221,6 +223,7 @@ struct VexelTimelinePanel: View {
         .padding(.horizontal, compact ? 8 : 14)
         .padding(.vertical, compact ? 4 : 10)
         .background(VexelPalette.sheet)
+        .accessibilityIdentifier("editor.timeline")
     }
 
     private func ruler(width: CGFloat) -> some View {
@@ -405,6 +408,7 @@ private struct VexelTimelineTrackRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Select \(track.name)")
+            .accessibilityIdentifier("timeline.layer.select.\(track.id.uuidString)")
             Button {
                 onEditBegan()
                 onTrackVisibilityChange(track.id, !track.visible)
@@ -415,6 +419,7 @@ private struct VexelTimelineTrackRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(track.visible ? "Hide \(track.name)" : "Show \(track.name)")
+            .accessibilityIdentifier("timeline.layer.visibility.\(track.id.uuidString)")
             Button {
                 onEditBegan()
                 onTrackLockChange(track.id, !track.locked)
@@ -425,6 +430,7 @@ private struct VexelTimelineTrackRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(track.locked ? "Unlock \(track.name)" : "Lock \(track.name)")
+            .accessibilityIdentifier("timeline.layer.lock.\(track.id.uuidString)")
         }
         .foregroundStyle(VexelPalette.soft)
         .padding(.leading, CGFloat(depth) * 7 + 6)

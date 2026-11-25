@@ -148,4 +148,48 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Portrait video"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Your canvas is empty"].exists)
     }
+    func testTimelineLayerSelectionAndVisibilityControlsAreAccessible() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        XCTAssertTrue(app.staticTexts["Your canvas is empty"].waitForExistence(timeout: 10))
+
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+
+        XCTAssertTrue(app.otherElements["editor.timeline"].waitForExistence(timeout: 5))
+        let layerSelection = app.buttons["Select Rectangle Layer"]
+        XCTAssertTrue(layerSelection.waitForExistence(timeout: 5))
+        layerSelection.tap()
+
+        let hideLayer = app.buttons["Hide Rectangle Layer"]
+        XCTAssertTrue(hideLayer.waitForExistence(timeout: 5))
+        hideLayer.tap()
+        XCTAssertTrue(app.buttons["Show Rectangle Layer"].waitForExistence(timeout: 5))
+    }
+
+    func testInspectorAndPlaybackControlsArePresentInEditor() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+
+        XCTAssertTrue(app.otherElements["editor.preview"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["editor.playback.toggle"].waitForExistence(timeout: 5))
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+        XCTAssertTrue(app.buttons["editor.action.properties"].waitForExistence(timeout: 5))
+        app.buttons["editor.action.properties"].tap()
+        XCTAssertTrue(app.otherElements["editor.inspector"].waitForExistence(timeout: 5))
+    }
+
 }
