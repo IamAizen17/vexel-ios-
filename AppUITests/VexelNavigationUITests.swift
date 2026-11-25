@@ -349,7 +349,7 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertEqual(timecode.label, "00:00:05:00")
     }
 
-    func testIPadEditorKeepsTheInspectorVisibleBesideTheWorkspace() {
+    func testIPadEditorKeepsTheInspectorVisibleBesideTheWorkspace() throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
 
         let app = launchApp()
