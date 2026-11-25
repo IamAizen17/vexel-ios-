@@ -14,7 +14,7 @@ enum VexelEditorTool: String, CaseIterable, Identifiable {
         switch self {
         case .layers, .shapes, .text, .effects, .motion: return true
         case .media, .audio: return true
-        case .model3D, .motion, .camera, .captions, .elements, .plugins: return false
+        case .model3D, .camera, .captions, .elements, .plugins: return false
         }
     }
     var symbol: String {
