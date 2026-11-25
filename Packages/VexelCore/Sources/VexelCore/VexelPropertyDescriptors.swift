@@ -163,7 +163,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
             if let base = animation.value {
                 if animation.expression != nil || animation.expressionEnabled != nil ||
                     animation.loop != nil || !animation.unknownFields.isEmpty {
-                    if animation.loop == nil { animation.loop = .none }
+                    if animation.loop == nil { animation.loop = VexelLoopMode.none }
                     setAnimation(.animated(animation), on: &layer)
                 } else {
                     setAnimation(.constant(base), on: &layer)
