@@ -67,6 +67,7 @@ struct VexelTimelinePanel: View {
     @Binding var selectedTrackID: UUID?
     let duration: Double
     let fps: Int
+    var compact = false
     let onMarkerEdit: (VexelMarker) -> Void
     let onNotice: (String) -> Void
     let onGraph: () -> Void
@@ -87,6 +88,10 @@ struct VexelTimelinePanel: View {
     private let maximumZoom: CGFloat = 2000
 
     private var contentWidth: CGFloat { max(320, CGFloat(duration) * zoom + 32) }
+    private var timelineHeight: CGFloat {
+        let natural = rulerHeight + CGFloat(visibleRowCount) * rowHeight + CGFloat(max(visibleRowCount, 1)) * 3
+        return compact ? min(104, max(84, natural)) : min(210, max(112, natural))
+    }
 
     private var snapPoints: [Double] {
         func collect(_ values: [VexelTimelineTrack], offset: Double = 0) -> [Double] {
@@ -108,7 +113,7 @@ struct VexelTimelinePanel: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: compact ? 5 : 8) {
             HStack {
                 VexelSectionLabel(title: "Timeline", trailing: "\(visibleRowCount) TRACKS · \(markers.count) MARKERS")
                 Spacer()
@@ -199,20 +204,22 @@ struct VexelTimelinePanel: View {
                         )
                     }
                 }
-                .frame(height: min(210, max(112, rulerHeight + CGFloat(visibleRowCount) * rowHeight + 12)))
-                HStack {
-                    Text("PINCH TO ZOOM")
-                    Spacer()
-                    Text("\(zoom, specifier: "%.0f") PX/S")
-                    Text("·")
-                    Text("\(currentTime, specifier: "%.2f") S")
+                .frame(height: timelineHeight)
+                if !compact {
+                    HStack {
+                        Text("PINCH TO ZOOM")
+                        Spacer()
+                        Text("\(zoom, specifier: "%.0f") PX/S")
+                        Text("·")
+                        Text("\(currentTime, specifier: "%.2f") S")
+                    }
+                    .font(.system(size: 8, weight: .medium, design: .monospaced))
+                    .foregroundStyle(VexelPalette.secondary)
                 }
-                .font(.system(size: 8, weight: .medium, design: .monospaced))
-                .foregroundStyle(VexelPalette.secondary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, compact ? 8 : 14)
+        .padding(.vertical, compact ? 6 : 10)
         .background(VexelPalette.sheet)
     }
 

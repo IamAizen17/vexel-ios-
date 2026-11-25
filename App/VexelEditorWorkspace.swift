@@ -312,8 +312,9 @@ struct VexelEditorWorkspace: View {
         }
     }
 
-    private var isWide: Bool { horizontalSizeClass == .regular || verticalSizeClass == .compact }
-    private var inspectorWidth: CGFloat { horizontalSizeClass == .regular ? 300 : 252 }
+    private var isWide: Bool { horizontalSizeClass == .regular }
+    private var isCompactLandscape: Bool { horizontalSizeClass == .compact && verticalSizeClass == .compact }
+    private var inspectorWidth: CGFloat { 300 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -333,10 +334,10 @@ struct VexelEditorWorkspace: View {
                 .padding(14)
             } else {
                 previewCanvas
-                    .frame(maxHeight: .infinity)
+                    .frame(maxHeight: isCompactLandscape ? 112 : .infinity)
                 transportBar
                 timelinePanel
-                if !layerNames.isEmpty { selectionBar }
+                if !layerNames.isEmpty && !isCompactLandscape { selectionBar }
                 toolBar
             }
         }
@@ -558,7 +559,7 @@ struct VexelEditorWorkspace: View {
             Text(String(format: "%.2f s", currentTime))
                 .font(.system(size: 11, weight: .semibold, design: .monospaced)).foregroundStyle(VexelPalette.accent)
         }
-        .padding(.horizontal, 14).padding(.vertical, 7)
+        .padding(.horizontal, 14).padding(.vertical, isCompactLandscape ? 2 : 7)
         .background(VexelPalette.bar.opacity(0.8))
     }
 
@@ -570,6 +571,7 @@ struct VexelEditorWorkspace: View {
             selectedTrackID: $selectedTrackID,
             duration: project.duration,
             fps: project.fps,
+            compact: isCompactLandscape,
             onMarkerEdit: { editingMarker = $0 },
             onNotice: { showingNotice = $0 },
             onGraph: {
@@ -707,11 +709,11 @@ struct VexelEditorWorkspace: View {
                         selectedTool = tool
                     } label: {
                         VStack(spacing: 5) {
-                            Image(systemName: tool.symbol).font(.system(size: 16, weight: .medium))
-                            Text(tool.rawValue).font(.system(size: 8, weight: .semibold))
+                            Image(systemName: tool.symbol).font(.system(size: isCompactLandscape ? 14 : 16, weight: .medium))
+                            Text(tool.rawValue).font(.system(size: isCompactLandscape ? 7 : 8, weight: .semibold))
                         }
                         .foregroundStyle(activeDockTool == tool ? VexelPalette.accent : VexelPalette.soft)
-                        .frame(width: 57, height: 54)
+                        .frame(width: isCompactLandscape ? 52 : 57, height: isCompactLandscape ? 40 : 54)
                         .background(activeDockTool == tool ? VexelPalette.accent.opacity(0.12) : VexelPalette.field.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
                         .overlay(RoundedRectangle(cornerRadius: 9).stroke(activeDockTool == tool ? VexelPalette.accent.opacity(0.55) : VexelPalette.line.opacity(0.35), lineWidth: 1))
                     }
@@ -720,7 +722,7 @@ struct VexelEditorWorkspace: View {
                     .opacity(tool.isAvailable ? 1 : 0.38)
                 }
             }
-            .padding(.horizontal, 8).padding(.vertical, 8)
+            .padding(.horizontal, 8).padding(.vertical, isCompactLandscape ? 3 : 8)
         }
         .background(VexelPalette.bar)
     }
