@@ -78,7 +78,7 @@ struct VexelAudioWorkspace: View {
                                 .foregroundStyle(VexelPalette.secondary)
                         }
                     }
-                    VexelSectionLabel(title: "Equalizer", trailing: "5-BAND")
+                    VexelSectionLabel(title: "Equalizer", trailing: "PLANNED")
                     VexelPanel {
                         Text("Equalizer controls will appear when the realtime audio engine is connected.")
                             .font(.system(size: 11))

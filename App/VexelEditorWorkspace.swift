@@ -314,6 +314,18 @@ struct VexelEditorWorkspace: View {
     private var isWide: Bool { horizontalSizeClass == .regular }
     private var isCompactLandscape: Bool { horizontalSizeClass == .compact && verticalSizeClass == .compact }
     private var inspectorWidth: CGFloat { 300 }
+    private var formattedTimecode: String {
+        let rate = max(project.fps, 1)
+        let totalFrames = max(0, Int((currentTime * Double(rate)).rounded(.down)))
+        let totalSeconds = totalFrames / rate
+        return String(
+            format: "%02d:%02d:%02d:%02d",
+            totalSeconds / 3600,
+            (totalSeconds / 60) % 60,
+            totalSeconds % 60,
+            totalFrames % rate
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -533,8 +545,10 @@ struct VexelEditorWorkspace: View {
             HStack {
                 VexelSectionLabel(title: "Preview", trailing: "FIT")
                 Spacer()
-                Text("00:00:00:\(String(format: "%02d", Int(currentTime * Double(project.fps)) % max(project.fps, 1)))")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(VexelPalette.accent)
+                Text(formattedTimecode)
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(VexelPalette.accent)
+                    .accessibilityIdentifier("editor.timecode")
             }
             ZStack {
                 RoundedRectangle(cornerRadius: 16).fill(VexelPalette.preview)
@@ -579,6 +593,7 @@ struct VexelEditorWorkspace: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("editor.playback.toggle")
             VexelIconButton(symbol: "goforward.5") { currentTime = min(project.duration, currentTime + 5) }
+                .accessibilityIdentifier("editor.time.forwardFive")
             VexelIconButton(symbol: "repeat", active: loopPlayback) { loopPlayback.toggle() }
             VexelIconButton(symbol: "bookmark") {
                 if let marker = project.markers.first(where: { abs($0.time - currentTime) <= 0.5 / Double(max(project.fps, 1)) }) {
@@ -1372,8 +1387,9 @@ private struct CompositionSettingsSheet: View {
                 }
                 Section("Project history") {
                     Button(action: onSavedVersions) {
-                        Label("Saved versions", systemImage: "clock.arrow.circlepath")
+                        Label("Saved versions · Coming soon", systemImage: "clock.arrow.circlepath")
                     }
+                    .disabled(true)
                     Text("Snapshot restoration will be connected to the project store.")
                         .font(.caption).foregroundStyle(.secondary)
                 }

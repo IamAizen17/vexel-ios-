@@ -192,9 +192,10 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Add UI regression coverage for restoring a previously created composition preset, direct preset-library persistence and resetting the defaults.
 - [x] Implement the primary editor workspace with preview, transport, layer timeline, contextual tools and property editing; continue refinement and device validation.
 - [x] Implement a dedicated compact-height iPhone landscape workspace with a side-by-side preview/transport and timeline/tool column.
-- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on physical devices.
-- [x] Add iPhone 16 and iPad (10th generation) simulator UI-test destinations, including iPad persistent-inspector layout assertions.
+- [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on simulators and physical devices.
 - [x] Add explicit timeline zoom controls and a user-toggleable magnetic snap mode, with enlarged clip-trim touch targets and accessible clip selection.
+- [x] Display a real HH:MM:SS:FF preview timecode and test that it follows transport position.
+- [x] Mark interpolation and export as unavailable until their runtime pipelines are connected; disable placeholder actions.
 - [x] Add UI regression tests for timeline clip selection, layer visibility, editor preview/playback/inspector availability and the compact landscape layout.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, clip selection, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings only after a successful in-editor settings command, and restore custom FPS values in the next creation flow.

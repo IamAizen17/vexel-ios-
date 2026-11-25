@@ -426,10 +426,15 @@ struct VexelToolSheet: View {
                     }
                 }
             }
-            VexelSectionLabel(title: "Interpolation")
+            VexelSectionLabel(title: "Interpolation", trailing: "PLANNED")
             ForEach(["Linear", "Ease in", "Ease out", "Ease in / out", "Hold", "Bezier"], id: \.self) { name in
-                HStack { Text(name).font(.system(size: 12, weight: .medium)).foregroundStyle(VexelPalette.text); Spacer(); Image(systemName: "chevron.right").foregroundStyle(VexelPalette.secondary) }
-                    .padding(12).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 10))
+                HStack {
+                    Text(name).font(.system(size: 12, weight: .medium)).foregroundStyle(VexelPalette.secondary)
+                    Spacer()
+                    Text("SOON").font(.system(size: 8, weight: .bold, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
+                }
+                .padding(12)
+                .background(VexelPalette.card.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
             }
             Spacer()
         }
@@ -810,68 +815,58 @@ struct VexelPropertiesPanel: View {
                         .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
 
                 case "Masks":
-                    VStack(alignment: .leading, spacing: 12) {
-                        propertyGroup("MASK") {
-                            Picker("Shape", selection: $maskShape) {
-                                ForEach(["Rectangle", "Ellipse"], id: \.self) { Text($0).tag($0) }
-                            }.tint(VexelPalette.accent)
-                            Picker("Mode", selection: $maskMode) {
-                                ForEach(["Add", "Subtract", "Intersect"], id: \.self) { Text($0).tag($0) }
-                            }.tint(VexelPalette.accent)
-                            Toggle("Enabled", isOn: $maskEnabled).tint(VexelPalette.accent)
-                            Toggle("Invert", isOn: $maskInverted).tint(VexelPalette.accent)
-                        }
-                        propertyGroup("TRACK MATTE") {
-                            Picker("Source layer", selection: $matteLayer) {
-                                Text("None").tag("None")
-                                Text("Sibling layer").tag("Sibling layer")
-                            }.tint(VexelPalette.accent)
-                            Picker("Mode", selection: $matteMode) {
-                                ForEach(["Alpha", "Alpha inverted", "Luma", "Luma inverted"], id: \.self) { Text($0).tag($0) }
-                            }.tint(VexelPalette.accent)
-                        }
-                        Text("Mask and track-matte editing will be enabled after their typed commands and renderer support are connected.")
+                    propertyGroup("MASK") {
+                        Picker("Shape", selection: $maskShape) {
+                            ForEach(["Rectangle", "Ellipse"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        Picker("Mode", selection: $maskMode) {
+                            ForEach(["Add", "Subtract", "Intersect"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        Toggle("Enabled", isOn: $maskEnabled).tint(VexelPalette.accent)
+                        Toggle("Invert", isOn: $maskInverted).tint(VexelPalette.accent)
+                        Text("Position, size, roundness, feather and opacity are animated properties.")
                             .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
-                    .disabled(true)
+                    propertyGroup("TRACK MATTE") {
+                        Picker("Source layer", selection: $matteLayer) {
+                            Text("None").tag("None")
+                            Text("Sibling layer").tag("Sibling layer")
+                        }.tint(VexelPalette.accent)
+                        Picker("Mode", selection: $matteMode) {
+                            ForEach(["Alpha", "Alpha inverted", "Luma", "Luma inverted"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                    }
 
                 case "Transitions":
-                    VStack(alignment: .leading, spacing: 12) {
-                        propertyGroup("TRANSITION IN") {
-                            Picker("Type", selection: $transitionIn) {
-                                ForEach(["None", "Fade", "Slide left", "Slide right", "Slide up", "Slide down", "Zoom in", "Zoom out", "Spin", "Blur", "Wipe left", "Wipe right"], id: \.self) { Text($0).tag($0) }
-                            }.tint(VexelPalette.accent)
-                            valueField("Duration", value: $transitionDuration, unit: "s")
-                        }
-                        propertyGroup("TRANSITION OUT") {
-                            Picker("Type", selection: $transitionOut) {
-                                ForEach(["None", "Fade", "Slide left", "Slide right", "Slide up", "Slide down", "Zoom in", "Zoom out", "Spin", "Blur", "Wipe left", "Wipe right"], id: \.self) { Text($0).tag($0) }
-                            }.tint(VexelPalette.accent)
-                            valueField("Duration", value: $transitionDuration, unit: "s")
-                        }
-                        Text("Transition editing is disabled until transition commands and rendering are implemented.")
-                            .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                    propertyGroup("TRANSITION IN") {
+                        Picker("Type", selection: $transitionIn) {
+                            ForEach(["None", "Fade", "Slide left", "Slide right", "Slide up", "Slide down", "Zoom in", "Zoom out", "Spin", "Blur", "Wipe left", "Wipe right"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        valueField("Duration", value: $transitionDuration, unit: "s")
                     }
-                    .disabled(true)
+                    propertyGroup("TRANSITION OUT") {
+                        Picker("Type", selection: $transitionOut) {
+                            ForEach(["None", "Fade", "Slide left", "Slide right", "Slide up", "Slide down", "Zoom in", "Zoom out", "Spin", "Blur", "Wipe left", "Wipe right"], id: \.self) { Text($0).tag($0) }
+                        }.tint(VexelPalette.accent)
+                        valueField("Duration", value: $transitionDuration, unit: "s")
+                    }
+                    Text("Transition easing and duration will be stored in the layer model.")
+                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
 
                 case "Composition":
-                    VStack(alignment: .leading, spacing: 12) {
-                        propertyGroup("COMPOSITION FORMAT") {
-                            valueField("Width", value: $compositionWidth, unit: "px")
-                            valueField("Height", value: $compositionHeight, unit: "px")
-                            valueField("Frame rate", value: $compositionFPS, unit: "fps")
-                            valueField("Duration", value: $compositionDuration, unit: "s")
-                        }
-                        propertyGroup("MOTION BLUR") {
-                            Toggle("Enabled", isOn: $compositionMotionBlur).tint(VexelPalette.accent)
-                            valueField("Shutter angle", value: $shutterAngle, unit: "°")
-                            valueField("Samples", value: $motionBlurSamples, unit: "")
-                        }
-                        Text("Use the composition settings button in the editor header. These inspector controls are not connected to the project store.")
-                            .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+                    propertyGroup("COMPOSITION FORMAT") {
+                        valueField("Width", value: $compositionWidth, unit: "px")
+                        valueField("Height", value: $compositionHeight, unit: "px")
+                        valueField("Frame rate", value: $compositionFPS, unit: "fps")
+                        valueField("Duration", value: $compositionDuration, unit: "s")
                     }
-                    .disabled(true)
-
+                    propertyGroup("MOTION BLUR") {
+                        Toggle("Enabled", isOn: $compositionMotionBlur).tint(VexelPalette.accent)
+                        valueField("Shutter angle", value: $shutterAngle, unit: "°")
+                        valueField("Samples", value: $motionBlurSamples, unit: "")
+                    }
+                    Text("Composition controls are presentation state until the project model is connected.")
+                        .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                 default:
                     VexelEmptyState(symbol: "slider.horizontal.3", title: "Inspector", detail: "Select a layer to inspect its properties.")
                 }
@@ -1185,12 +1180,23 @@ struct VexelExportSheet: View {
                     LabeledContent("Duration", value: "\(Int(project.duration)) sec")
                 }
                 Section {
-                    Text("Export UI is ready. The AVFoundation render pipeline will be connected after engine porting.")
+                    Text("Export settings are a preview only. The render pipeline is not connected, so export is currently unavailable.")
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             }
-            .scrollContentBackground(.hidden).background(VexelPalette.background)
-            .navigationTitle("Export").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }; ToolbarItem(placement: .confirmationAction) { Button("Prepare") {}.disabled(true) } }
+            .scrollContentBackground(.hidden)
+            .background(VexelPalette.background)
+            .disabled(true)
+            .navigationTitle("Export")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Unavailable") {}
+                        .disabled(true)
+                }
+            }
         }    }
 }
