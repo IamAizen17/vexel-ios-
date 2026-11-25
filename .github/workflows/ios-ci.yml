@@ -35,7 +35,7 @@ concurrency:
 jobs:
   validate:
     name: Test packages and build iOS app
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 50
     steps:
       - name: Check out source
@@ -43,7 +43,9 @@ jobs:
 
       - name: Verify Apple toolchain
         run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app
           xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
           swift --version
 
       - name: Verify source effect registry
