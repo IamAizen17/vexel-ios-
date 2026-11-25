@@ -136,7 +136,7 @@ struct VexelEditorWorkspace: View {
     private func propertyEditTimeIfAnimated(_ propertyID: String) -> Double? {
         guard let layer = selectedNativeLayer,
               let descriptor = VexelPropertyCatalog.descriptor(for: propertyID),
-              case .animated? = descriptor.value(in: layer) else { return nil }
+              case .some(.animated(_)) = descriptor.value(in: layer) else { return nil }
         return keyframeLocalPlayheadTime
     }
 
