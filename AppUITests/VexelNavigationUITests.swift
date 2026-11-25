@@ -81,6 +81,33 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertEqual(Double(opacity.value as? String ?? "") ?? .nan, 75, accuracy: 0.01)
     }
 
+    func testTransformTrackpadMovesSelectedLayerAndSupportsFineMode() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+        app.buttons["editor.action.properties"].tap()
+
+        let trackpad = app.descendants(matching: .any)["inspector.position.trackpad"]
+        XCTAssertTrue(trackpad.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["inspector.position.trackpad.fine"].exists)
+        let positionX = app.textFields["inspector.position.x"]
+        XCTAssertTrue(positionX.waitForExistence(timeout: 5))
+        let before = Double(positionX.value as? String ?? "") ?? 0
+        let start = trackpad.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = trackpad.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.35))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        XCTAssertNotEqual(Double(positionX.value as? String ?? "") ?? before, before)
+        app.buttons["inspector.position.trackpad.fine"].tap()
+        XCTAssertTrue(app.buttons["inspector.position.trackpad.fine"].exists)
+    }
+
     func testGraphEditorAddsAndRemovesKeyframeForSelectedProperty() {
         let app = launchApp()
 

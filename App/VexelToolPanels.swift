@@ -637,6 +637,105 @@ struct VexelToolSheet: View {
     }
 }
 
+struct VexelTransformTrackpad: View {
+    @Binding var x: Double
+    @Binding var y: Double
+    let onCommit: (Double, Double) -> Void
+
+    @State private var dragOrigin: CGPoint?
+    @State private var fineMovement = false
+
+    private var sensitivity: Double { fineMovement ? 0.25 : 2.0 }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("MOVE LAYER")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .tracking(1)
+                    .foregroundStyle(VexelPalette.secondary)
+                Spacer()
+                Button {
+                    fineMovement.toggle()
+                } label: {
+                    Label(fineMovement ? "Fine" : "Normal", systemImage: fineMovement ? "scope" : "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(fineMovement ? VexelPalette.accent : VexelPalette.secondary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 6)
+                        .background(VexelPalette.field, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("inspector.position.trackpad.fine")
+            }
+
+            GeometryReader { geometry in
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(VexelPalette.field)
+                    Path { path in
+                        let step = max(geometry.size.width / 8, 1)
+                        stride(from: step, to: geometry.size.width, by: step).forEach { x in
+                            path.move(to: CGPoint(x: x, y: 0))
+                            path.addLine(to: CGPoint(x: x, y: geometry.size.height))
+                        }
+                        stride(from: step, to: geometry.size.height, by: step).forEach { y in
+                            path.move(to: CGPoint(x: 0, y: y))
+                            path.addLine(to: CGPoint(x: geometry.size.width, y: y))
+                        }
+                    }
+                    .stroke(VexelPalette.line.opacity(0.42), lineWidth: 0.6)
+                    Circle()
+                        .stroke(VexelPalette.secondary.opacity(0.55), lineWidth: 1)
+                        .frame(width: 34, height: 34)
+                    Path { path in
+                        path.move(to: CGPoint(x: geometry.size.width / 2, y: 0))
+                        path.addLine(to: CGPoint(x: geometry.size.width / 2, y: geometry.size.height))
+                        path.move(to: CGPoint(x: 0, y: geometry.size.height / 2))
+                        path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height / 2))
+                    }
+                    .stroke(VexelPalette.accent.opacity(0.55), lineWidth: 0.8)
+                    Circle()
+                        .fill(VexelPalette.accent)
+                        .frame(width: 7, height: 7)
+                        .shadow(color: VexelPalette.accent.opacity(0.7), radius: 5)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .contentShape(RoundedRectangle(cornerRadius: 14))
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { value in
+                            if dragOrigin == nil {
+                                dragOrigin = CGPoint(x: x, y: y)
+                            }
+                            guard let origin = dragOrigin else { return }
+                            x = origin.x + Double(value.translation.width) * sensitivity
+                            y = origin.y - Double(value.translation.height) * sensitivity
+                        }
+                        .onEnded { _ in
+                            dragOrigin = nil
+                            onCommit(x, y)
+                        }
+                )
+            }
+            .frame(height: 112)
+            .accessibilityElement()
+            .accessibilityLabel("Layer position trackpad")
+            .accessibilityValue("X \(Int(x.rounded())), Y \(Int(y.rounded()))")
+            .accessibilityHint("Drag to move the selected layer. Enable Fine for precision movement.")
+            .accessibilityIdentifier("inspector.position.trackpad")
+
+            HStack {
+                Label("X \(x, specifier: "%.1f")", systemImage: "arrow.left.and.right")
+                Spacer()
+                Label("Y \(y, specifier: "%.1f")", systemImage: "arrow.up.and.down")
+            }
+            .font(.system(size: 10, weight: .medium, design: .monospaced))
+            .foregroundStyle(VexelPalette.secondary)
+        }
+    }
+}
+
 struct VexelPropertiesPanel: View {
     let tab: String
     let layerName: String
@@ -713,7 +812,10 @@ struct VexelPropertiesPanel: View {
                         valueField("Y", value: $positionY, unit: "px", accessibilityIdentifier: "inspector.position.y") {
                             onPositionCommit(positionX, positionY)
                         }
-                        Text("Position changes are committed to the native project.")
+                        VexelTransformTrackpad(x: $positionX, y: $positionY) { x, y in
+                            onPositionCommit(x, y)
+                        }
+                        Text("Drag to move the layer. Fine mode reduces movement sensitivity.")
                             .font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
                     }
                     propertyGroup("ANCHOR") {
