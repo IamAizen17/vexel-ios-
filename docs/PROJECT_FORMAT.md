@@ -1,36 +1,39 @@
 # Vexel Project Format
 
 ## Identity
-- Extension: .vexelproj
+
+- Extension: `.vexelproj`
 - Container: ZIP
-- Proposed MIME: application/vnd.vexel.project+zip
-- Root document: project.json
-- Format identifier: vexelproj
-- Initial format version: 1
+- MIME type: `application/vnd.vexel.project+zip`
+- Native document entry: `vexel.json`
+- Format identifier: `vexelproj`
+- Current format version: 2
 
-The MIME type is a proposed identifier and must be used consistently in document type registration and export metadata.
+The MIME type and extension are Vexel-owned identifiers and are registered in the XcodeGen project configuration as the app's exported document type.
 
-## Package layout
-~~~
+## Native package layout
+
+```
 Example.vexelproj
-├── project.json
+├── vexel.json
 ├── metadata.json
-├── thumbnail.jpg
+├── thumbnail.png
 └── assets/
     ├── images/
     ├── videos/
     ├── audio/
     ├── fonts/
     └── models/
-~~~
+```
 
-Only project.json is mandatory. Metadata and thumbnail are optional. Asset paths in JSON are authoritative.
+Only `vexel.json` is mandatory. Metadata and thumbnail are optional. Asset paths in the document are authoritative.
 
 ## Root document envelope
-~~~
+
+```json
 {
   "format": "vexelproj",
-  "formatVersion": 1,
+  "formatVersion": 2,
   "generator": "Vexel",
   "meta": {},
   "composition": {},
@@ -39,23 +42,24 @@ Only project.json is mandatory. Metadata and thumbnail are optional. Asset paths
   "editorView": {},
   "layers": []
 }
-~~~
+```
 
-This is an envelope example, not the complete schema. Field-level contracts must be derived from the reference schema and models before version 1 is frozen.
+This is the native envelope, not the complete schema. Field-level contracts are defined by VexelCore and versioned migrations.
 
-## Compatibility
-- Import .knsproj through a dedicated adapter.
-- Decode to a canonical internal model.
-- Preserve unknown fields in extension storage where possible.
-- Do not silently discard unsupported effects, layers, parameters or metadata.
-- Report features that cannot yet be rendered or edited.
-- Save using Vexel's independent version number.
-- Export to .knsproj only when used features can be represented losslessly; otherwise require explicit lossy-export confirmation or refuse.
+## Import compatibility
+
+- Native Vexel documents use `vexel.json` and `.vexelproj`.
+- The importer recognizes the previous Android archive layout, whose root document is `project.json`, only at the import boundary.
+- `VexelProjectImporter` translates legacy project data into the current Vexel envelope. Native Vexel v1 documents are also migrated to v2 before validation. The legacy identifier is not accepted by VexelCore and cannot be written by the native archive exporter.
+- Imported unknown fields are retained where possible. Unsupported features must be reported rather than silently discarded.
+- All saves and exports use the native Vexel format.
+- The current adapter performs envelope migration only. Full layer, effect, animation, and media semantic parity requires source fixtures and dedicated migration tests.
 
 ## Archive security
+
 - Reject absolute paths, traversal, drive prefixes, alternate separators and duplicate normalized paths.
 - Reject symlinks and unsupported entry types.
-- Enforce entry count, per-entry size, total uncompressed size and JSON size limits.
+- Enforce entry count, per-entry size, total uncompressed size and document JSON size limits.
 - Enforce decompression-ratio/resource budgets against ZIP bombs.
 - Verify CRC and optional SHA-256 hashes.
 - Never extract into shared/user-visible directories directly.
@@ -63,14 +67,26 @@ This is an envelope example, not the complete schema. Field-level contracts must
 - Do not trust MIME types/extensions; inspect media before decoding.
 - Handle duplicate asset IDs and missing paths deterministically.
 
-Reference archive limits observed: JSON up to 64 MiB, aggregate uncompressed data up to 8 GiB and 10,000 entries. Vexel may choose stricter device-specific limits but must not weaken validation without tests and rationale.
+Current archive limits: document JSON up to 64 MiB, aggregate uncompressed data up to 8 GiB and 10,000 entries. Vexel may choose stricter device-specific limits but must not weaken validation without tests and rationale.
 
 ## Determinism
+
 - Use stable JSON and numeric conventions where practical.
 - Store project time in seconds and use an explicit rational frame timebase for frame operations.
 - Asset identity must not depend on local absolute paths.
 - Save/reopen must preserve semantic project equality.
 - Migrations are pure transformations with fixtures for every supported version.
 
+### Native Vexel v1 to v2
+
+The v1-to-v2 migration is lossless for existing fields and fills defaults that v2 makes explicit:
+- `generator` defaults to `Vexel`.
+- `meta` is materialized and an empty/missing title becomes `Untitled`.
+- `assets`, `markers`, and `layers` are materialized as empty arrays when absent.
+- `composition.background` defaults to `#0D0F12` when absent.
+
+The importer runs migration before semantic validation. Newer unsupported versions are rejected rather than interpreted as v2.
+
 ## Versioning
+
 A migration registry maps (format, formatVersion) to the current internal model. Reject newer unsupported versions with an actionable error. Never decode them as an older schema.

@@ -6,6 +6,20 @@ options:
 packages:
   VexelCore:
     path: Packages/VexelCore
+  VexelArchive:
+    path: Packages/VexelArchive
+  VexelRenderer:
+    path: Packages/VexelRenderer
+  VexelShaderCompiler:
+    path: Packages/VexelShaderCompiler
+  VexelMedia:
+    path: Packages/VexelMedia
+  VexelAudio:
+    path: Packages/VexelAudio
+  VexelExport:
+    path: Packages/VexelExport
+  VexelPlugins:
+    path: Packages/VexelPlugins
 targets:
   Vexel:
     type: application
@@ -17,6 +31,37 @@ targets:
     dependencies:
       - package: VexelCore
         product: VexelCore
+      - package: VexelArchive
+        product: VexelArchive
+      - package: VexelRenderer
+        product: VexelRenderer
+      - package: VexelMedia
+        product: VexelMedia
+      - package: VexelAudio
+        product: VexelAudio
+      - package: VexelExport
+        product: VexelExport
+      - package: VexelPlugins
+        product: VexelPlugins
+    info:
+      path: App/Info.plist
+      properties:
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.ragestudios.vexel.project
+            UTTypeDescription: Vexel Project
+            UTTypeConformsTo:
+              - public.zip-archive
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - vexelproj
+              public.mime-type:
+                - application/vnd.vexel.project+zip
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Vexel Project
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.ragestudios.vexel.project
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel
@@ -33,4 +78,32 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         CODE_SIGN_STYLE: Automatic
     scheme:
-      testTargets: []
+      testTargets:
+        - VexelTests
+        - VexelUITests
+  VexelTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: Vexel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Vexel.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Vexel"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  VexelUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: AppUITests
+    dependencies:
+      - target: Vexel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.iamAizen17.vexel.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Vexel

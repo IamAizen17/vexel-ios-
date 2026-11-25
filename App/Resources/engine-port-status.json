@@ -1,0 +1,924 @@
+{
+  "sourceRepository": "IamAizen17/vexel-editor",
+  "sourceCommit": "0fe341060cec9710df90bc1ba7fda85006c188d8",
+  "shaderFiles": [
+    {
+      "sourcePath": "app/src/main/assets/shaders/blur.frag",
+      "status": "partial",
+      "mslFunction": "gaussianBlurFragment"
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/copy.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/depth.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/dof.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fullscreen.vert",
+      "status": "partial",
+      "mslFunction": "fullscreenVertex"
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/alphaFromLuma.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/bendWarp.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/blockGlitch.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/brightnessContrast.frag",
+      "status": "partial",
+      "mslFunction": "brightnessContrastFragment"
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/channelShuffle.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/checkerboard.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/chromaKey.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/chromaticAberration.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/colorBalance.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/colorize.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/common.glsl",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/copyBackground.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/deepGlowCombine.frag",
+      "status": "partial",
+      "mslFunction": "deepGlowCombineFragment"
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/directionalBlur.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/dissolveShake.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/eightBit.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/emboss.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/exposure.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/fill.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/filmGrain.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/findEdges.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/fractalNoise.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/glass.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/glitchify.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/gradientMap.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/gradientRamp.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/grid.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/halftone.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/hueShift.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/invert.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/kernel.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/lensBlur.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/lensFlare.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/lineGlitch.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/lumaKey.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/matteChoker.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/mirror.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/outline.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/pinchBulge.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/pixDither.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/pixelEncoder.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/pixelate.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/posterize.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/radialBlur.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/rgbSplit.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/ripple.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/saturation.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/scanlines.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/sharpen.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/signalAnalog.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/sketch.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/spillSuppressor.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/staticNoise.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/strobe.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/threshold.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/tint.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/transform.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/twirl.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/vhs.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/vibrance.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/vignette.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/fx/warp.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/lineardepth.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/mask_common.glsl",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/matte.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/mesh.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/mesh.vert",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/pack_alpha.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/quad.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/quad.vert",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/quad_oes.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/shadow.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/shadow_depth.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/shadow_depth.vert",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/solid.frag",
+      "status": "not_started",
+      "mslFunction": null
+    },
+    {
+      "sourcePath": "app/src/main/assets/shaders/timeSliceStrip.frag",
+      "status": "not_started",
+      "mslFunction": null
+    }
+  ],
+  "effects": [
+    {
+      "id": "gradientMap",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "exposure",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "brightnessContrast",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "partial"
+    },
+    {
+      "id": "saturation",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "hueShift",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "invert",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "fill",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "deepGlow",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "partial"
+    },
+    {
+      "id": "lensFlare",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "tint",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "colorize",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "glow",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "colorBalance",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "vibrance",
+      "category": "colorLight",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "blur",
+      "category": "blurSharpen",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "sharpen",
+      "category": "blurSharpen",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "lensBlur",
+      "category": "blurSharpen",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "directionalBlur",
+      "category": "blurSharpen",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "radialBlur",
+      "category": "blurSharpen",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "pinchBulge",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "glass",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": true,
+      "status": "not_started"
+    },
+    {
+      "id": "warp",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "bendWarp",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "mirror",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "twirl",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "ripple",
+      "category": "distort",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "autoShake",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "spin",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "oscillate",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "float",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "pulse",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "swing",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "scaleAssist",
+      "category": "motion",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "pixelate",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "dropShadow",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "vignette",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "halftone",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "posterize",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "filmGrain",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "scanlines",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "eightBit",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "pixDither",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "pixelEncoder",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "kernel",
+      "category": "stylize",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "blockGlitch",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "lineGlitch",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "vhs",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "chromaticAberration",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "rgbSplit",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "staticNoise",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "signalAnalog",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "glitchify",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "dissolveShake",
+      "category": "glitch",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "findEdges",
+      "category": "drawEdges",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "outline",
+      "category": "drawEdges",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "emboss",
+      "category": "drawEdges",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "sketch",
+      "category": "drawEdges",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "fractalNoise",
+      "category": "procedural",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "gradientRamp",
+      "category": "procedural",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "checkerboard",
+      "category": "procedural",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "grid",
+      "category": "procedural",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "chromaKey",
+      "category": "keying",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "lumaKey",
+      "category": "keying",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "spillSuppressor",
+      "category": "keying",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "matteChoker",
+      "category": "keying",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "echo",
+      "category": "time",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "posterizeTime",
+      "category": "time",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "strobe",
+      "category": "time",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "timeSlice",
+      "category": "time",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "depthMap",
+      "category": "utility",
+      "target": "layer_3d",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "channelShuffle",
+      "category": "utility",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "alphaFromLuma",
+      "category": "utility",
+      "target": "any",
+      "needsBackdrop": false,
+      "status": "not_started"
+    },
+    {
+      "id": "copyBackground",
+      "category": "utility",
+      "target": "any",
+      "needsBackdrop": true,
+      "status": "not_started"
+    }
+  ]
+}

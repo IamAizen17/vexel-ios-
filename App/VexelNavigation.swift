@@ -1,18 +1,22 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import VexelCore
+import VexelArchive
 
-struct VexelProjectItem: Identifiable, Hashable {
-    let id: UUID
+struct VexelProjectItem: Identifiable, Hashable, Codable {
+    var id: UUID
     var title: String
     var width: Int
     var height: Int
     var fps: Int
+    var sourceFPS: Double?
     var duration: Double
     var modified: Date
     var layerNames: [String]
     var timelineTracks: [VexelTimelineTrack]
     var markers: [VexelMarker]
+    var documentJSON: String?
+    var assetsDirectory: String?
 
     init(title: String, width: Int = 1080, height: Int = 1920, fps: Int = 30, duration: Double = 10) {
         self.id = UUID()
@@ -20,11 +24,15 @@ struct VexelProjectItem: Identifiable, Hashable {
         self.width = width
         self.height = height
         self.fps = fps
+        self.sourceFPS = nil
         self.duration = duration
         self.modified = Date()
         self.layerNames = []
         self.timelineTracks = []
         self.markers = []
+        self.documentJSON = nil
+        self.assetsDirectory = nil
+        self.synchronizeDocument()
     }
 }
 
@@ -43,34 +51,63 @@ enum HomeDestination: String, CaseIterable {
 }
 
 struct VexelRootView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("vexel.onboarding.complete") private var onboardingComplete = false
     @AppStorage("vexel.theme") private var theme = "dark"
+
+    private var navigationAnimation: Animation {
+        reduceMotion ? .easeOut(duration: 0.15) : VexelMotion.navigation
+    }
+
+    private var navigationTransition: AnyTransition {
+        reduceMotion ? .opacity : .asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .trailing).combined(with: .opacity)
+        )
+    }
     @State private var activeProject: VexelProjectItem?
     @State private var projects: [VexelProjectItem] = []
+    @State private var persistenceError: String?
 
     var body: some View {
         Group {
             if !onboardingComplete {
                 VexelOnboardingView {
-                    onboardingComplete = true
+                    withAnimation(navigationAnimation) { onboardingComplete = true }
                 }
+                 .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.985)))
             } else if let project = activeProject {
                 VexelEditorWorkspace(
                     project: project,
-                    onClose: { activeProject = nil },
+                    onClose: { withAnimation(navigationAnimation) { activeProject = nil } },
                     onProjectChange: { updated in
                         if let index = projects.firstIndex(where: { $0.id == updated.id }) {
                             projects[index] = updated
                         }
                     }
                 )
+                 .transition(navigationTransition)
             } else {
                 VexelHomeView(
                     projects: $projects,
-                    onOpen: { activeProject = $0 }
+                    onOpen: { project in withAnimation(navigationAnimation) { activeProject = project } }
                 )
+                 .transition(reduceMotion ? .opacity : .asymmetric(insertion: .move(edge: .leading).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
             }
         }
+         .animation(navigationAnimation, value: activeProject?.id)
+        .animation(navigationAnimation, value: onboardingComplete)
+        .task {
+            do { projects = try VexelProjectStore.load() }
+            catch { persistenceError = "Could not load saved projects: \(error.localizedDescription)" }
+        }
+        .onChange(of: projects) { updated in
+            do { try VexelProjectStore.save(updated); persistenceError = nil }
+            catch { persistenceError = "Could not save projects: \(error.localizedDescription)" }
+        }
+        .alert("Project storage", isPresented: Binding(get: { persistenceError != nil }, set: { if !$0 { persistenceError = nil } })) {
+            Button("OK", role: .cancel) { persistenceError = nil }
+        } message: { Text(persistenceError ?? "") }
         .preferredColorScheme(theme == "system" ? nil : (theme == "light" ? .light : .dark))
         .tint(VexelPalette.accent)
     }
@@ -177,6 +214,86 @@ struct VexelOnboardingView: View {
     }
 }
 
+private struct PendingVexelImport: Identifiable {
+    let id = UUID()
+    let project: VexelProjectItem
+    let sourceName: String
+    let unsupportedFeatures: [VexelUnsupportedFeature]
+}
+
+private struct VexelImportReviewSheet: View {
+    let pending: PendingVexelImport
+    let onCancel: () -> Void
+    let onImport: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(pending.project.title)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(VexelPalette.text)
+                    Text("\(pending.project.width) × \(pending.project.height) · \(pending.project.fps) FPS · \(pending.project.timelineTracks.count) top-level tracks")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+
+                HStack(spacing: 8) {
+                    Image(systemName: pending.unsupportedFeatures.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(pending.unsupportedFeatures.isEmpty ? VexelPalette.accent : VexelPalette.amber)
+                    Text(pending.unsupportedFeatures.isEmpty
+                         ? "No known unsupported features detected."
+                         : "\(pending.unsupportedFeatures.count) features are preserved but are not fully supported by the current editor.")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(VexelPalette.text)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 12))
+
+                if !pending.unsupportedFeatures.isEmpty {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(pending.unsupportedFeatures.enumerated()), id: \.offset) { _, feature in
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(feature.feature)
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(VexelPalette.text)
+                                    Text(feature.path)
+                                        .font(.system(size: 9, design: .monospaced))
+                                        .foregroundStyle(VexelPalette.accent)
+                                    Text(feature.reason)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(VexelPalette.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                                .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 9))
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 10) {
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.bordered)
+                    Button("Import project", action: onImport)
+                        .buttonStyle(.borderedProminent)
+                        .tint(VexelPalette.accent)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(18)
+            .background(VexelPalette.background)
+            .navigationTitle("Import review")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .interactiveDismissDisabled(true)
+    }
+}
+
 struct VexelHomeView: View {
     @Binding var projects: [VexelProjectItem]
     let onOpen: (VexelProjectItem) -> Void
@@ -186,7 +303,9 @@ struct VexelHomeView: View {
     @State private var showingPlugins = false
     @State private var deletingProject: VexelProjectItem?
     @State private var showingImporter = false
+    @State private var pendingImport: PendingVexelImport?
     @State private var notice: String?
+    @State private var sharingProjectURL: URL?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -219,16 +338,76 @@ struct VexelHomeView: View {
         .fileImporter(isPresented: Binding(
             get: { showingImporter },
             set: { showingImporter = $0 }
-        ), allowedContentTypes: [.data, .item], allowsMultipleSelection: false) { result in
+        ), allowedContentTypes: [.vexelProject, .zip, .data], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
                 let access = url.startAccessingSecurityScopedResource()
                 defer { if access { url.stopAccessingSecurityScopedResource() } }
-                notice = "Selected \(url.lastPathComponent). Import will be enabled when the secure .knsproj archive adapter is connected."
+                do {
+                    let projectID = UUID()
+                    let assetsURL = try VexelProjectStore.assetsDirectory(for: projectID)
+                    do {
+                        let payload = try ZIPProjectArchive().read(from: url, extractingAssetsTo: assetsURL)
+                        var imported = VexelProjectItem(document: payload.project)
+                        imported.id = projectID
+                        imported.assetsDirectory = assetsURL.path
+                        _ = try imported.makeProjectDocument()
+                        pendingImport = PendingVexelImport(
+                            project: imported,
+                            sourceName: url.lastPathComponent,
+                            unsupportedFeatures: VexelProjectImporter.compatibilityReport(for: payload.project)
+                        )
+                    } catch {
+                        try? FileManager.default.removeItem(at: assetsURL)
+                        throw error
+                    }
+                } catch {
+                    notice = "Import failed: \(error.localizedDescription)"
+                }
             case .failure(let error):
                 notice = error.localizedDescription
             }
+        }
+        .sheet(item: $pendingImport) { pending in
+            VexelImportReviewSheet(
+                pending: pending,
+                onCancel: {
+                    try? VexelProjectStore.deleteAssets(for: pending.project)
+                    pendingImport = nil
+                },
+                onImport: {
+                    var updatedProjects = projects
+                    updatedProjects.insert(pending.project, at: 0)
+                    do {
+                        try VexelProjectStore.save(updatedProjects)
+                        projects = updatedProjects
+                        notice = "Imported \(pending.project.title) from \(pending.sourceName)."
+                    } catch {
+                        try? VexelProjectStore.deleteAssets(for: pending.project)
+                        notice = "Import failed: \(error.localizedDescription)"
+                    }
+                    pendingImport = nil
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: Binding(get: { sharingProjectURL != nil }, set: { if !$0 { sharingProjectURL = nil } })) {
+            VStack(spacing: 16) {
+                Text("Project archive ready").font(.system(size: 18, weight: .bold))
+                if let sharingProjectURL {
+                    ShareLink(item: sharingProjectURL) {
+                        Label("Share Vexel project", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.black)
+                            .padding(.horizontal, 18).frame(height: 46)
+                            .background(VexelPalette.accent, in: Capsule())
+                    }
+                }
+                Button("Done") { sharingProjectURL = nil }.foregroundStyle(VexelPalette.secondary)
+            }
+            .padding(24).presentationDetents([.medium])
         }
         .alert("Project action", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
             Button("OK", role: .cancel) { notice = nil }
@@ -240,7 +419,18 @@ struct VexelHomeView: View {
             presenting: deletingProject
         ) { project in
             Button("Delete", role: .destructive) {
-                projects.removeAll { $0.id == project.id }
+                let updatedProjects = projects.filter { $0.id != project.id }
+                do {
+                    try VexelProjectStore.save(updatedProjects)
+                    projects = updatedProjects
+                    do {
+                        try VexelProjectStore.deleteAssets(for: project)
+                    } catch {
+                        notice = "Project was deleted, but its assets could not be removed: \(error.localizedDescription)"
+                    }
+                } catch {
+                    notice = "Could not delete project because the project library could not be saved: \(error.localizedDescription)"
+                }
                 deletingProject = nil
             }
         } message: { project in
@@ -259,6 +449,7 @@ struct VexelHomeView: View {
             Spacer()
             VexelIconButton(symbol: "bell") { notice = "Notifications will be available when project sync is implemented." }
             VexelIconButton(symbol: "plus", active: true) { showingNewProject = true }
+                .accessibilityIdentifier("home.createProject")
         }
         .padding(.horizontal, 18)
         .padding(.top, 12)
@@ -267,61 +458,131 @@ struct VexelHomeView: View {
 
     private var projectsPage: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Your workspace").font(.system(size: 23, weight: .bold, design: .rounded)).foregroundStyle(VexelPalette.text)
-                        Text("\(projects.count) compositions").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
+                        Text("Your workspace")
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
+                            .foregroundStyle(VexelPalette.text)
+                        Text("\(projects.count) compositions")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(VexelPalette.secondary)
                     }
                     Spacer()
                     Button { showingImporter = true } label: {
                         Label("Import", systemImage: "square.and.arrow.down")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(VexelPalette.soft)
-                            .padding(.horizontal, 12).frame(height: 34)
+                            .padding(.horizontal, 12).frame(height: 36)
                             .background(VexelPalette.field, in: Capsule())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.import")
                 }
 
                 Button { showingNewProject = true } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: "plus").font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(Color.black).frame(width: 42, height: 42)
-                            .background(VexelPalette.accent, in: RoundedRectangle(cornerRadius: 12))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Create composition").font(.system(size: 14, weight: .bold)).foregroundStyle(VexelPalette.text)
-                            Text("Start from a blank canvas or preset").font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(LinearGradient(
+                                colors: [VexelPalette.card, VexelPalette.preview],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                        HStack(spacing: 14) {
+                            VStack(alignment: .leading, spacing: 9) {
+                                Text("NEW COMPOSITION")
+                                    .font(.system(size: 8, weight: .black))
+                                    .tracking(1.8)
+                                    .foregroundStyle(VexelPalette.accent)
+                                Text("Make something\nmove.")
+                                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                                    .multilineTextAlignment(.leading)
+                                    .foregroundStyle(VexelPalette.text)
+                                HStack(spacing: 6) {
+                                    Text("Start creating")
+                                    Image(systemName: "arrow.up.right")
+                                }
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color.black)
+                                .padding(.horizontal, 12).frame(height: 30)
+                                .background(VexelPalette.accent, in: Capsule())
+                            }
+                            Spacer(minLength: 0)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 15)
+                                    .fill(VexelPalette.field.opacity(0.8))
+                                    .frame(width: 100, height: 116)
+                                    .rotationEffect(.degrees(8))
+                                RoundedRectangle(cornerRadius: 11)
+                                    .fill(VexelPalette.preview)
+                                    .frame(width: 86, height: 104)
+                                    .overlay {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 5)
+                                                .stroke(VexelPalette.accent.opacity(0.8), lineWidth: 1.2)
+                                                .frame(width: 50, height: 68)
+                                            Circle().fill(VexelPalette.accent)
+                                                .frame(width: 16, height: 16)
+                                                .offset(x: 12, y: -18)
+                                            Image(systemName: "waveform.path")
+                                                .font(.system(size: 19, weight: .medium))
+                                                .foregroundStyle(VexelPalette.soft)
+                                        }
+                                    }
+                            }
                         }
-                        Spacer()
-                        Image(systemName: "arrow.up.right").foregroundStyle(VexelPalette.secondary)
+                        .padding(18)
                     }
-                    .padding(14)
-                    .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(VexelPalette.line, lineWidth: 1))
+                    .frame(minHeight: 154)
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(VexelPalette.line, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("home.createProject.featured")
 
-                VexelSectionLabel(title: "Recent projects", trailing: "SORT: RECENT")
+                HStack {
+                    VexelSectionLabel(title: "Recent projects", trailing: "LATEST FIRST")
+                    Spacer()
+                    Text("PROJECT LIBRARY")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .tracking(0.8)
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+
                 if projects.isEmpty {
                     VexelEmptyState(symbol: "square.stack.3d.up", title: "No projects yet", detail: "Create a composition to start building your first animation.")
                         .frame(height: 220)
                 } else {
-                    LazyVStack(spacing: 10) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 270), spacing: 12)], spacing: 12) {
                         ForEach(projects) { project in
                             ProjectCard(project: project, onOpen: { onOpen(project) }, onDuplicate: {
-                                var copy = project
-                                copy = VexelProjectItem(title: project.title + " Copy", width: project.width, height: project.height, fps: project.fps, duration: project.duration)
-                                projects.insert(copy, at: 0)
+                                do {
+                                    projects = try VexelProjectStore.duplicate(project, addingTo: projects)
+                                } catch {
+                                    notice = "Could not duplicate project: \(error.localizedDescription)"
+                                }
                             }, onDelete: { deletingProject = project }, onExport: {
-                                notice = "Project archive export will be enabled when the .vexelproj archive writer is connected."
+                                do {
+                                    let document = try project.makeProjectDocument()
+                                    let safeTitle = project.title
+                                        .replacingOccurrences(of: "/", with: "-")
+                                        .replacingOccurrences(of: "\\", with: "-")
+                                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                                    let destination = FileManager.default.temporaryDirectory
+                                        .appendingPathComponent("\(safeTitle.isEmpty ? "Untitled" : safeTitle).vexelproj")
+                                    let assets = project.assetsDirectory.map(URL.init(fileURLWithPath:))
+                                    try ZIPProjectArchive().write(document, assetsDirectory: assets, to: destination)
+                                    sharingProjectURL = destination
+                                } catch {
+                                    notice = "Export failed: \(error.localizedDescription)"
+                                }
                             })
                         }
                     }
                 }
             }
             .padding(.horizontal, 18)
-            .padding(.bottom, 22)
+            .padding(.top, 4)
+            .padding(.bottom, 24)
         }
     }
 
@@ -329,37 +590,65 @@ struct VexelHomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Start with a preset").font(.system(size: 23, weight: .bold, design: .rounded)).foregroundStyle(VexelPalette.text)
-                    Text("Choose a canvas format and frame rate.").font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
+                    Text("Start with a preset")
+                        .font(.system(size: 25, weight: .bold, design: .rounded))
+                        .foregroundStyle(VexelPalette.text)
+                    Text("Choose a canvas format and frame rate.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(VexelPalette.secondary)
                 }
-                ForEach(ProjectPreset.all) { preset in
-                    Button {
-                        let project = VexelProjectItem(title: preset.name, width: preset.width, height: preset.height, fps: preset.fps, duration: preset.duration)
-                        projects.insert(project, at: 0)
-                        onOpen(project)
-                    } label: {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 9).fill(VexelPalette.field)
-                                RoundedRectangle(cornerRadius: 3).stroke(VexelPalette.accent.opacity(0.8), lineWidth: 1.2)
-                                    .frame(width: preset.width > preset.height ? 43 : 24, height: preset.width > preset.height ? 24 : 39)
+                VexelSectionLabel(title: "CANVAS FORMATS", trailing: "\(ProjectPreset.all.count) PRESETS")
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 154), spacing: 12)], spacing: 12) {
+                    ForEach(ProjectPreset.all) { preset in
+                        Button {
+                            let project = VexelProjectItem(title: preset.name, width: preset.width, height: preset.height, fps: preset.fps, duration: preset.duration)
+                            projects.insert(project, at: 0)
+                            onOpen(project)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 10) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12).fill(VexelPalette.preview)
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(VexelPalette.field)
+                                        .frame(width: preset.width > preset.height ? 92 : (preset.width == preset.height ? 70 : 48),
+                                               height: preset.width > preset.height ? 52 : (preset.width == preset.height ? 70 : 82))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 3)
+                                                .stroke(VexelPalette.accent, lineWidth: 1.2)
+                                                .padding(5)
+                                        }
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(VexelPalette.accent)
+                                }
+                                .frame(height: 126)
+                                Text(preset.name)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(VexelPalette.text)
+                                    .lineLimit(1)
+                                Text("\(preset.width) × \(preset.height)")
+                                    .font(.system(size: 9, design: .monospaced))
+                                    .foregroundStyle(VexelPalette.secondary)
+                                HStack {
+                                    Text("\(preset.fps) FPS · \(Int(preset.duration)) sec")
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .foregroundStyle(VexelPalette.accent)
+                                }
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(VexelPalette.soft)
                             }
-                            .frame(width: 60, height: 60)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(preset.name).font(.system(size: 13, weight: .bold)).foregroundStyle(VexelPalette.text)
-                                Text("\(preset.width) × \(preset.height) · \(preset.fps) FPS · \(Int(preset.duration)) sec")
-                                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right").foregroundStyle(VexelPalette.accent)
+                            .padding(11)
+                            .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 15))
+                            .overlay(RoundedRectangle(cornerRadius: 15).stroke(VexelPalette.line, lineWidth: 1))
                         }
-                        .padding(12)
-                        .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 14))
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("preset.\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(18)
+            .padding(.bottom, 24)
         }
     }
 
@@ -376,6 +665,7 @@ struct VexelHomeView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("home.tab.\(item.rawValue.lowercased())")
             }
         }
         .padding(.top, 7)
@@ -391,40 +681,94 @@ private struct ProjectCard: View {
     let onDelete: () -> Void
     let onExport: () -> Void
 
+    private var stageSize: CGSize {
+        if project.width > project.height { return CGSize(width: 108, height: 62) }
+        if project.width == project.height { return CGSize(width: 78, height: 78) }
+        return CGSize(width: 58, height: 88)
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 11) {
             Button(action: onOpen) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10).fill(VexelPalette.preview)
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(VexelPalette.field)
-                        .frame(width: project.width > project.height ? 48 : 28, height: project.width > project.height ? 28 : 48)
-                        .overlay(Text("V").font(.system(size: 12, weight: .black)).foregroundStyle(VexelPalette.accent))
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 12).fill(VexelPalette.preview)
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("VEXEL PROJECT")
+                                .font(.system(size: 7, weight: .black, design: .monospaced))
+                                .tracking(1.2)
+                            Spacer()
+                            Text(project.modified.formatted(date: .abbreviated, time: .omitted).uppercased())
+                                .font(.system(size: 7, weight: .semibold, design: .monospaced))
+                        }
+                        .foregroundStyle(VexelPalette.secondary)
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(VexelPalette.field)
+                                .frame(width: stageSize.width, height: stageSize.height)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .stroke(VexelPalette.accent.opacity(0.85), lineWidth: 1)
+                                        .padding(6)
+                                    Text("V")
+                                        .font(.system(size: 17, weight: .black, design: .rounded))
+                                        .foregroundStyle(VexelPalette.accent)
+                                }
+                            Spacer()
+                        }
+                        Spacer()
+                        HStack(spacing: 5) {
+                            Circle().fill(VexelPalette.accent).frame(width: 5, height: 5)
+                            Text("EDITABLE COMPOSITION")
+                                .font(.system(size: 7, weight: .bold, design: .monospaced))
+                                .tracking(0.8)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 9, weight: .bold))
+                        }
+                        .foregroundStyle(VexelPalette.soft)
+                    }
+                    .padding(12)
                 }
-                .frame(width: 66, height: 66)
+                .frame(height: 154)
             }
             .buttonStyle(.plain)
-            VStack(alignment: .leading, spacing: 5) {
-                Text(project.title).font(.system(size: 13, weight: .bold)).foregroundStyle(VexelPalette.text).lineLimit(1)
-                Text("\(project.width) × \(project.height) · \(project.fps) FPS")
-                    .font(.system(size: 10, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                Text(project.modified.formatted(date: .abbreviated, time: .shortened))
-                    .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
+            .accessibilityIdentifier("project.open.\(project.id.uuidString)")
+
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(project.title)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(VexelPalette.text)
+                        .lineLimit(1)
+                    Text("\(project.width) × \(project.height) · \(project.fps) FPS")
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+                Spacer(minLength: 0)
+                Menu {
+                    Button(action: onOpen) { Label("Open", systemImage: "arrow.up.right.square") }
+                    Button(action: onDuplicate) { Label("Duplicate", systemImage: "plus.square.on.square") }
+                    Button(action: onExport) { Label("Export project", systemImage: "square.and.arrow.up") }
+                    Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(VexelPalette.secondary)
+                        .frame(width: 32, height: 34)
+                        .background(VexelPalette.field, in: Circle())
+                }
+                .accessibilityIdentifier("project.actions.\(project.id.uuidString)")
             }
-            Spacer(minLength: 0)
-            Menu {
-                Button(action: onOpen) { Label("Open", systemImage: "arrow.up.right.square") }
-                Button(action: onDuplicate) { Label("Duplicate", systemImage: "plus.square.on.square") }
-                Button(action: onExport) { Label("Export project", systemImage: "square.and.arrow.up") }
-                Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
-            } label: {
-                Image(systemName: "ellipsis").font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(VexelPalette.secondary).frame(width: 34, height: 44)
-            }
+            Text("Modified \(project.modified.formatted(date: .abbreviated, time: .shortened))")
+                .font(.system(size: 9))
+                .foregroundStyle(VexelPalette.secondary)
         }
-        .padding(10)
-        .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(VexelPalette.line.opacity(0.7), lineWidth: 1))
+        .padding(11)
+        .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 17))
+        .overlay(RoundedRectangle(cornerRadius: 17).stroke(VexelPalette.line, lineWidth: 1))
     }
 }
 
@@ -457,7 +801,7 @@ private struct NewProjectSheet: View {
         NavigationStack {
             Form {
                 Section("Composition") {
-                    TextField("Project name", text: $title)
+                    TextField("Project name", text: $title).accessibilityIdentifier("newProject.name")
                     HStack {
                         numericField("Width", value: $width)
                         numericField("Height", value: $height)
@@ -477,6 +821,7 @@ private struct NewProjectSheet: View {
                         Button(preset.name) {
                             width = Double(preset.width); height = Double(preset.height); fps = Double(preset.fps); duration = preset.duration
                         }
+                        .accessibilityIdentifier("preset.\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
                     }
                 }
             }
@@ -490,6 +835,7 @@ private struct NewProjectSheet: View {
                     Button("Create") {
                         onCreate(VexelProjectItem(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Composition" : title, width: Int(width), height: Int(height), fps: Int(fps), duration: duration))
                     }
+                    .accessibilityIdentifier("newProject.create")
                 }
             }
         }
@@ -699,4 +1045,12 @@ struct VexelPluginsPage: View {
             .fileImporter(isPresented: $showingInstall, allowedContentTypes: [.data, .zip], allowsMultipleSelection: false) { _ in }
         }
     }
+}
+
+
+private extension UTType {
+    static let vexelProject = UTType(
+        exportedAs: "com.ragestudios.vexel.project",
+        conformingTo: .zip
+    )
 }

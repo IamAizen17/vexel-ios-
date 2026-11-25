@@ -39,13 +39,13 @@ H. UI/interaction: navigation, inspector, timeline gestures, shortcuts, accessib
 ## Initial source observations
 - Root Gradle configuration includes core and app modules.
 - Core is Kotlin/JVM targeting Java 17, not currently configured as multiplatform.
-- Project.kt declares format ID knsproj and format version 12.
-- KnsprojArchive.kt defines a ZIP with required project.json, optional thumbnail.jpg and referenced assets. Declared limits: 64 MiB project JSON, 8 GiB aggregate uncompressed data and 10,000 entries.
+- The Android source Project model uses a legacy format discriminator and schema version 12; Vexel recognizes it only during import and converts it to the native Vexel document format.
+- The Android source archive implementation defines a ZIP with required project.json, optional thumbnail.jpg and referenced assets. Declared limits: 64 MiB project JSON, 8 GiB aggregate uncompressed data and 10,000 entries.
 - SceneEvaluator.evaluate(project, time) is documented and implemented as deterministic project/time-to-frame-scene evaluation.
 - Compositor.kt implements OpenGL ES and caches textures, video frames, meshes, glyphs, environment maps and temporal slices.
 - Export.kt uses Android EGL/OpenGL ES and MediaCodec/MediaMuxer.
 - Audio.kt contains a 48 kHz stereo PCM cache/mixing path.
-- The generated tools/knsproj/effects.json catalogue contains 73 effect IDs across 13 categories.
+- The generated Android source effect catalogue contains 73 effect IDs across 13 categories.
 - LICENSE is GNU GPL version 3; the Rust crate declares GPL-3.0-only.
 
 This is an initial sample, not an exhaustive source or runtime audit.

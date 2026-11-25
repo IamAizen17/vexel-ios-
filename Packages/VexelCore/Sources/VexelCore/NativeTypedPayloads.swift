@@ -1,0 +1,656 @@
+import Foundation
+
+public struct VexelObjectFields: Equatable, Sendable {
+    public var values: [String: JSONValue]
+
+    public init(_ values: [String: JSONValue] = [:]) {
+        self.values = values
+    }
+
+    public subscript(_ key: String) -> JSONValue? {
+        get { values[key] }
+        set { values[key] = newValue }
+    }
+
+    public func string(_ key: String) -> String? { values[key]?.stringValue }
+    public func number(_ key: String) -> Double? { values[key]?.numberValue }
+    public func integer(_ key: String) -> Int? {
+        guard let value = number(key), value.isFinite,
+              value >= Double(Int.min), value <= Double(Int.max),
+              value.rounded(.towardZero) == value else { return nil }
+        return Int(value)
+    }
+    public func bool(_ key: String) -> Bool? {
+        guard case .bool(let value)? = values[key] else { return nil }
+        return value
+    }
+    public func object(_ key: String) -> VexelObjectFields? {
+        values[key]?.objectValue.map { VexelObjectFields($0) }
+    }
+    public func array(_ key: String) -> [JSONValue]? { values[key]?.arrayValue }
+
+    public func animatable(_ key: String) -> VexelAnimatableValue? {
+        guard let value = values[key], let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelAnimatableValue.self, from: data)
+    }
+
+    public mutating func setAnimatable(_ value: VexelAnimatableValue?, for key: String) {
+        guard let value else {
+            values.removeValue(forKey: key)
+            return
+        }
+        guard let data = try? JSONEncoder().encode(value),
+              let json = try? JSONDecoder().decode(JSONValue.self, from: data) else {
+            return
+        }
+        values[key] = json
+    }
+}
+
+public struct VexelFontContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var family: String? { fields.string("family") }
+    public var weight: Int? { fields.integer("weight") }
+    public var italic: Bool? { fields.bool("italic") }
+    public var asset: String? { fields.string("asset") }
+}
+
+public struct VexelTextContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var content: String? { fields.string("content") }
+    public var font: VexelFontContent? { fields.object("font").map { VexelFontContent(fields: $0) } }
+    public var fontSize: VexelAnimatableValue? { fields.animatable("fontSize") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var align: String? { fields.string("align") }
+    public var lineHeight: Double? { fields.number("lineHeight") }
+    public var letterSpacing: VexelAnimatableValue? { fields.animatable("letterSpacing") }
+    public var maxWidth: Double? { fields.number("maxWidth") }
+    public var stroke: VexelStrokeContent? { fields.object("stroke").map { VexelStrokeContent(fields: $0) } }
+    public var animators: [VexelTextAnimatorContent]? {
+        fields.array("animators")?.compactMap { $0.objectValue.map { VexelTextAnimatorContent(fields: VexelObjectFields($0)) } }
+    }
+    public var propertyAnimators: [VexelTextPropertyAnimatorContent]? {
+        fields.array("propertyAnimators")?.compactMap { $0.objectValue.map { VexelTextPropertyAnimatorContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+
+public struct VexelGradientStopContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var offset: Double? { fields.number("offset") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+}
+
+public struct VexelGradientContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var start: JSONValue? { fields["start"] }
+    public var end: JSONValue? { fields["end"] }
+    public var stops: [VexelGradientStopContent]? {
+        fields.array("stops")?.compactMap { $0.objectValue.map { VexelGradientStopContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+public struct VexelFillContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var gradient: VexelGradientContent? { fields.object("gradient").map { VexelGradientContent(fields: $0) } }
+}
+
+public struct VexelStrokeContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var width: VexelAnimatableValue? { fields.animatable("width") }
+    public var cap: String? { fields.string("cap") }
+    public var join: String? { fields.string("join") }
+}
+
+public struct VexelTrimContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var start: VexelAnimatableValue? { fields.animatable("start") }
+    public var end: VexelAnimatableValue? { fields.animatable("end") }
+    public var offset: VexelAnimatableValue? { fields.animatable("offset") }
+}
+
+public struct VexelPathPointContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var point: JSONValue? { fields["point"] }
+    public var inTangent: JSONValue? { fields["in"] }
+    public var outTangent: JSONValue? { fields["out"] }
+}
+
+public struct VexelPathContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var closed: Bool? { fields.bool("closed") }
+    public var points: [VexelPathPointContent]? {
+        fields.array("points")?.compactMap { $0.objectValue.map { VexelPathPointContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+public struct VexelShapeContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var kind: String? { fields.string("kind") }
+    public var size: VexelAnimatableValue? { fields.animatable("size") }
+    public var roundness: VexelAnimatableValue? { fields.animatable("roundness") }
+    public var sides: VexelAnimatableValue? { fields.animatable("sides") }
+    public var innerRatio: VexelAnimatableValue? { fields.animatable("innerRatio") }
+    public var path: VexelPathContent? { fields.object("path").map { VexelPathContent(fields: $0) } }
+    public var fill: VexelFillContent? { fields.object("fill").map { VexelFillContent(fields: $0) } }
+    public var stroke: VexelStrokeContent? { fields.object("stroke").map { VexelStrokeContent(fields: $0) } }
+    public var trim: VexelTrimContent? { fields.object("trim").map { VexelTrimContent(fields: $0) } }
+}
+
+public struct VexelImageContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var asset: String? { fields.string("asset") }
+}
+
+public struct VexelMediaContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var asset: String? { fields.string("asset") }
+    public var sourceStart: Double? { fields.number("sourceStart") }
+    public var speed: Double? { fields.number("speed") }
+    public var volume: VexelAnimatableValue? { fields.animatable("volume") }
+    public var muted: Bool? { fields.bool("muted") }
+    public var fadeIn: Double? { fields.number("fadeIn") }
+    public var fadeOut: Double? { fields.number("fadeOut") }
+    public var alphaPacked: Bool? { fields.bool("alphaPacked") }
+    public var equalizerBands: [VexelEqualizerBandContent]? {
+        fields.array("eq")?.compactMap { $0.objectValue.map { VexelEqualizerBandContent(fields: VexelObjectFields($0)) } }
+    }
+    public var cutout: VexelCutoutBrushContent? { fields.object("cutout").map { VexelCutoutBrushContent(fields: $0) } }
+}
+
+
+public struct VexelMaterialContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var metallic: VexelAnimatableValue? { fields.animatable("metallic") }
+    public var roughness: VexelAnimatableValue? { fields.animatable("roughness") }
+    public var emissive: VexelAnimatableValue? { fields.animatable("emissive") }
+    public var texture: String? { fields.string("texture") }
+    public var shading: String? { fields.string("shading") }
+}
+
+public struct VexelText3DContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var content: String? { fields.string("content") }
+    public var font: VexelFontContent? { fields.object("font").map { VexelFontContent(fields: $0) } }
+    public var fontSize: Double? { fields.number("fontSize") }
+    public var depth: Double? { fields.number("depth") }
+    public var bevel: Double? { fields.number("bevel") }
+    public var align: String? { fields.string("align") }
+    public var lineHeight: Double? { fields.number("lineHeight") }
+}
+
+public struct VexelDepthOfFieldContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var focusDistance: VexelAnimatableValue? { fields.animatable("focusDistance") }
+    public var range: VexelAnimatableValue? { fields.animatable("range") }
+    public var blur: VexelAnimatableValue? { fields.animatable("blur") }
+}
+
+public struct VexelTextAnimatorContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var mode: String? { fields.string("mode") }
+    public var unit: String? { fields.string("unit") }
+    public var start: Double? { fields.number("start") }
+    public var stagger: Double? { fields.number("stagger") }
+    public var unitDuration: Double? { fields.number("unitDuration") }
+    public var easing: VexelEasing? {
+        guard let value = fields["easing"], let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelEasing.self, from: data)
+    }
+    public var amount: Double? { fields.number("amount") }
+    public var order: String? { fields.string("order") }
+}
+
+public struct VexelTextPropertyAnimatorContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var name: String? { fields.string("name") }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var unit: String? { fields.string("unit") }
+    public var position: VexelAnimatableValue? { fields.animatable("position") }
+    public var scale: VexelAnimatableValue? { fields.animatable("scale") }
+    public var rotation: VexelAnimatableValue? { fields.animatable("rotation") }
+    public var opacity: VexelAnimatableValue? { fields.animatable("opacity") }
+    public var amount: VexelAnimatableValue? { fields.animatable("amount") }
+}
+
+public struct VexelEqualizerBandContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var frequency: Double? { fields.number("frequency") }
+    public var gain: Double? { fields.number("gain") }
+    public var q: Double? { fields.number("q") }
+}
+
+public struct VexelCutoutBrushContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var source: String? { fields.string("source") }
+    public var sourceStart: Double? { fields.number("sourceStart") }
+    public var duration: Double? { fields.number("duration") }
+    public var frames: [JSONValue]? { fields.array("frames") }
+}
+
+public struct VexelObject3DContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var primitive: String? { fields.string("primitive") }
+    public var size: VexelAnimatableValue? { fields.animatable("size") }
+    public var material: VexelMaterialContent? { fields.object("material").map { VexelMaterialContent(fields: $0) } }
+    public var text: VexelText3DContent? { fields.object("text").map { VexelText3DContent(fields: $0) } }
+}
+
+public struct VexelModel3DContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var asset: String? { fields.string("asset") }
+    public var size: VexelAnimatableValue? { fields.animatable("size") }
+    public var material: VexelMaterialContent? { fields.object("material").map { VexelMaterialContent(fields: $0) } }
+}
+
+public struct VexelCameraContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var position: VexelAnimatableValue? { fields.animatable("position") }
+    public var target: VexelAnimatableValue? { fields.animatable("target") }
+    public var rotation: VexelAnimatableValue? { fields.animatable("rotation") }
+    public var aim: String? { fields.string("aim") }
+    public var fieldOfView: VexelAnimatableValue? { fields.animatable("fov") }
+    public var depthOfField: VexelDepthOfFieldContent? { fields.object("dof").map { VexelDepthOfFieldContent(fields: $0) } }
+}
+
+public struct VexelLightContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var kind: String? { fields.string("kind") }
+    public var color: VexelAnimatableValue? { fields.animatable("color") }
+    public var intensity: VexelAnimatableValue? { fields.animatable("intensity") }
+    public var position: VexelAnimatableValue? { fields.animatable("position") }
+    public var target: VexelAnimatableValue? { fields.animatable("target") }
+    public var radius: VexelAnimatableValue? { fields.animatable("radius") }
+    public var castsShadows: Bool? { fields.bool("castShadows") }
+    public var shadowDarkness: VexelAnimatableValue? { fields.animatable("shadowDarkness") }
+    public var shadowSoftness: Double? { fields.number("shadowSoftness") }
+}
+
+public struct VexelNullContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var is3D: Bool? { fields.bool("threeD") }
+}
+
+public enum VexelLayerContent: Equatable, Sendable {
+    case text(VexelTextContent)
+    case shape(VexelShapeContent)
+    case image(VexelImageContent)
+    case video(VexelMediaContent)
+    case audio(VexelMediaContent)
+    case group
+    case object3D(VexelObject3DContent)
+    case model3D(VexelModel3DContent)
+    case camera(VexelCameraContent)
+    case light(VexelLightContent)
+    case null(VexelNullContent)
+
+    fileprivate var fields: VexelObjectFields? {
+        switch self {
+        case .text(let value): value.fields
+        case .shape(let value): value.fields
+        case .image(let value): value.fields
+        case .video(let value), .audio(let value): value.fields
+        case .group: nil
+        case .object3D(let value): value.fields
+        case .model3D(let value): value.fields
+        case .camera(let value): value.fields
+        case .light(let value): value.fields
+        case .null(let value): value.fields
+        }
+    }
+}
+
+public struct VexelMask: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var shape: String? { fields.string("shape") }
+    public var mode: String? { fields.string("mode") }
+    public var position: VexelAnimatableValue? { fields.animatable("position") }
+    public var size: VexelAnimatableValue? { fields.animatable("size") }
+    public var roundness: VexelAnimatableValue? { fields.animatable("roundness") }
+    public var feather: VexelAnimatableValue? { fields.animatable("feather") }
+    public var opacity: VexelAnimatableValue? { fields.animatable("opacity") }
+    public var inverted: Bool? { fields.bool("inverted") }
+    public var enabled: Bool? { fields.bool("enabled") }
+}
+
+public struct VexelMatte: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var layerID: String? { fields.string("layer") }
+    public var mode: String? { fields.string("mode") }
+}
+
+public struct VexelTransition: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var type: String? { fields.string("type") }
+    public var duration: Double? { fields.number("duration") }
+    public var easing: VexelEasing? {
+        guard let value = fields["easing"], let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelEasing.self, from: data)
+    }
+    public var distance: Double? { fields.number("distance") }
+}
+
+
+public struct VexelProjectMetadata: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var title: String? { fields.string("title") }
+    public var description: String? { fields.string("description") }
+    public var author: String? { fields.string("author") }
+    public var createdAt: String? { fields.string("createdAt") }
+    public var modifiedAt: String? { fields.string("modifiedAt") }
+}
+
+public struct VexelMotionBlurSettings: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var enabled: Bool? { fields.bool("enabled") }
+    public var shutterAngle: Double? { fields.number("shutterAngle") }
+    public var samples: Int? { fields.integer("samples") }
+}
+
+public struct VexelEnvironmentSettings: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var asset: String? { fields.string("asset") }
+    public var intensity: Double? { fields.number("intensity") }
+    public var rotation: Double? { fields.number("rotation") }
+}
+
+public enum VexelEditorViewMode: String, Sendable {
+    case camera, editor, inside
+}
+
+public struct VexelEditorView: Equatable, Sendable {
+    public var fields: VexelObjectFields
+    public init(fields: VexelObjectFields) { self.fields = fields }
+    public var mode: VexelEditorViewMode? { fields.string("mode").flatMap { VexelEditorViewMode(rawValue: $0) } }
+    public var target: JSONValue? { fields["target"] }
+    public var yaw: Double? { fields.number("yaw") }
+    public var pitch: Double? { fields.number("pitch") }
+    public var distance: Double? { fields.number("distance") }
+    public var fieldOfView: Double? { fields.number("fov") }
+}
+
+public extension VexelNativeProject {
+    var typedMetadata: VexelProjectMetadata {
+        VexelProjectMetadata(fields: VexelObjectFields(meta))
+    }
+
+    var typedEditorView: VexelEditorView? {
+        editorView?.objectValue.map { VexelEditorView(fields: VexelObjectFields($0)) }
+    }
+}
+
+public extension VexelComposition {
+    var backgroundColor: String? { background?.stringValue }
+
+    var typedMotionBlur: VexelMotionBlurSettings? {
+        motionBlur?.objectValue.map { VexelMotionBlurSettings(fields: VexelObjectFields($0)) }
+    }
+
+    var typedEnvironment: VexelEnvironmentSettings? {
+        environment?.objectValue.map { VexelEnvironmentSettings(fields: VexelObjectFields($0)) }
+    }
+}
+
+public extension VexelLayer {
+    var typedContent: VexelLayerContent? {
+        get {
+            if type == .group { return .group }
+            guard let values = content?.objectValue else { return nil }
+            let fields = VexelObjectFields(values)
+            switch type {
+            case .text: return .text(VexelTextContent(fields: fields))
+            case .shape: return .shape(VexelShapeContent(fields: fields))
+            case .image: return .image(VexelImageContent(fields: fields))
+            case .video: return .video(VexelMediaContent(fields: fields))
+            case .audio: return .audio(VexelMediaContent(fields: fields))
+            case .group: return .group
+            case .object3D: return .object3D(VexelObject3DContent(fields: fields))
+            case .model3D: return .model3D(VexelModel3DContent(fields: fields))
+            case .camera: return .camera(VexelCameraContent(fields: fields))
+            case .light: return .light(VexelLightContent(fields: fields))
+            case .null: return .null(VexelNullContent(fields: fields))
+            case .unknown: return nil
+            }
+        }
+        set {
+            guard let newValue else { content = nil; return }
+            switch (type, newValue) {
+            case (.group, .group):
+                content = nil
+            case (.text, .text), (.shape, .shape), (.image, .image),
+                 (.video, .video), (.audio, .audio), (.object3D, .object3D),
+                 (.model3D, .model3D), (.camera, .camera), (.light, .light), (.null, .null):
+                content = newValue.fields.map { .object($0.values) }
+            default:
+                break
+            }
+        }
+    }
+
+    var typedMasks: [VexelMask] {
+        get { masks.compactMap { $0.objectValue.map { VexelMask(fields: VexelObjectFields($0)) } } }
+        set { masks = newValue.map { .object($0.fields.values) } }
+    }
+
+    var typedMatte: VexelMatte? {
+        get { matte?.objectValue.map { VexelMatte(fields: VexelObjectFields($0)) } }
+        set { matte = newValue.map { .object($0.fields.values) } }
+    }
+
+    var typedTransitionIn: VexelTransition? {
+        get { transitionIn?.objectValue.map { VexelTransition(fields: VexelObjectFields($0)) } }
+        set { transitionIn = newValue.map { .object($0.fields.values) } }
+    }
+
+    var typedTransitionOut: VexelTransition? {
+        get { transitionOut?.objectValue.map { VexelTransition(fields: VexelObjectFields($0)) } }
+        set { transitionOut = newValue.map { .object($0.fields.values) } }
+    }
+}
+
+
+public struct VexelVector2: Codable, Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 2D vector requires two coordinates."))
+        }
+        x = try container.decode(Double.self)
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 2D vector requires two coordinates."))
+        }
+        y = try container.decode(Double.self)
+        guard container.isAtEnd, x.isFinite, y.isFinite else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 2D vector must contain exactly two finite coordinates."))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(x)
+        try container.encode(y)
+    }
+}
+
+public struct VexelVector3: Codable, Equatable, Sendable {
+    public var x: Double
+    public var y: Double
+    public var z: Double
+
+    public init(x: Double, y: Double, z: Double) {
+        self.x = x
+        self.y = y
+        self.z = z
+    }
+
+    public init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector requires three coordinates."))
+        }
+        x = try container.decode(Double.self)
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector requires three coordinates."))
+        }
+        y = try container.decode(Double.self)
+        guard !container.isAtEnd else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector requires three coordinates."))
+        }
+        z = try container.decode(Double.self)
+        guard container.isAtEnd, x.isFinite, y.isFinite, z.isFinite else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "A 3D vector must contain exactly three finite coordinates."))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(x)
+        try container.encode(y)
+        try container.encode(z)
+    }
+}
+
+public enum VexelRotoMode: Equatable, Sendable, Codable {
+    case add
+    case remove
+    case unknown(String)
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case "add": self = .add
+        case "remove": self = .remove
+        default: self = .unknown(rawValue)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .add: try container.encode("add")
+        case .remove: try container.encode("remove")
+        case .unknown(let raw): try container.encode(raw)
+        }
+    }
+}
+
+public struct VexelCutoutStrokeContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+
+    public init(fields: VexelObjectFields) {
+        self.fields = fields
+    }
+
+    public var mode: VexelRotoMode? {
+        guard let raw = fields.string("mode") else { return nil }
+        switch raw {
+        case "add": return .add
+        case "remove": return .remove
+        default: return .unknown(raw)
+        }
+    }
+
+    public var size: Double? { fields.number("size") }
+
+    public var points: [VexelVector2]? {
+        fields.array("points")?.compactMap { value in
+            guard let data = try? JSONEncoder().encode(value) else { return nil }
+            return try? JSONDecoder().decode(VexelVector2.self, from: data)
+        }
+    }
+}
+
+public struct VexelCutoutFrameContent: Equatable, Sendable {
+    public var fields: VexelObjectFields
+
+    public init(fields: VexelObjectFields) {
+        self.fields = fields
+    }
+
+    public var time: Double? { fields.number("time") }
+
+    public var strokes: [VexelCutoutStrokeContent]? {
+        fields.array("strokes")?.compactMap { $0.objectValue.map { VexelCutoutStrokeContent(fields: VexelObjectFields($0)) } }
+    }
+}
+
+public extension VexelObjectFields {
+    func vector2(_ key: String) -> VexelVector2? {
+        guard let value = values[key],
+              let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelVector2.self, from: data)
+    }
+
+    func vector3(_ key: String) -> VexelVector3? {
+        guard let value = values[key],
+              let data = try? JSONEncoder().encode(value) else { return nil }
+        return try? JSONDecoder().decode(VexelVector3.self, from: data)
+    }
+}
+
+public extension VexelGradientContent {
+    var startPoint: VexelVector2? { fields.vector2("start") }
+    var endPoint: VexelVector2? { fields.vector2("end") }
+}
+
+public extension VexelPathPointContent {
+    var typedPoint: VexelVector2? { fields.vector2("point") }
+    var typedInTangent: VexelVector2? { fields.vector2("in") }
+    var typedOutTangent: VexelVector2? { fields.vector2("out") }
+}
+
+public extension VexelCutoutBrushContent {
+    var typedFrames: [VexelCutoutFrameContent]? {
+        get {
+            frames?.compactMap { $0.objectValue.map { VexelCutoutFrameContent(fields: VexelObjectFields($0)) } }
+        }
+    }
+}

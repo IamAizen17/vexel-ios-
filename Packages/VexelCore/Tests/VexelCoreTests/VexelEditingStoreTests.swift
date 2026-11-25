@@ -1,0 +1,854 @@
+import XCTest
+@testable import VexelCore
+
+final class VexelEditingStoreTests: XCTestCase {
+    func testSnapshotReplacementParticipatesInUndoAndRedo() async throws {
+        let store = try makeStore()
+        let original = await store.snapshot()
+        var replacement = original
+        replacement.meta["title"] = .string("Replacement")
+
+        try await store.execute(.replaceSnapshot(replacement))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Replacement"))
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], original.meta["title"])
+
+        let didRedo = await store.redo()
+        XCTAssertTrue(didRedo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Replacement"))
+    }
+
+    func testAddUndoRedoAndCoalescedEdits() async throws {
+        let store = try makeStore()
+        let shape = VexelLayer(
+            id: "shape",
+            type: .shape,
+            name: "Rectangle",
+            start: 0,
+            duration: 4,
+            content: .object(["kind": .string("rectangle")])
+        )
+
+        try await store.execute(.addLayer(shape, containerID: nil, index: nil))
+        try await store.execute(.renameLayer(id: "shape", name: "First"), coalescingKey: "rename:shape")
+        try await store.execute(.renameLayer(id: "shape", name: "Final"), coalescingKey: "rename:shape")
+
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Final")
+        let canUndo = await store.canUndo
+        XCTAssertTrue(canUndo)
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Rectangle")
+
+        let didRedo = await store.redo()
+        XCTAssertTrue(didRedo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Final")
+
+        _ = await store.undo()
+        try await store.execute(.renameLayer(id: "shape", name: "Replacement"))
+        let canRedo = await store.canRedo
+        XCTAssertFalse(canRedo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.name, "Replacement")
+    }
+
+    func testDuplicateAndSplitUseCoreLayerEditingSemantics() async throws {
+        let source = VexelLayer(
+            id: "clip",
+            type: .video,
+            name: "Clip",
+            start: 1,
+            duration: 8,
+            content: .object([
+                "asset": .string("video-asset"),
+                "sourceStart": .number(0),
+                "speed": .number(1)
+            ])
+        )
+        var document = ProjectDocument.starter(title: "Media editing")
+        document.fields["assets"] = .array([
+            .object([
+                "id": .string("video-asset"),
+                "type": .string("video"),
+                "path": .string("assets/video.mp4")
+            ])
+        ])
+        var native = try VexelNativeProject(document: document)
+        native.layers = [source]
+        let store = try VexelEditingStore(project: native)
+        try await store.execute(.duplicateLayer(id: "clip", newID: "clip-copy"))
+        try await store.execute(.splitLayer(id: "clip", localTime: 2, newID: "clip-second"))
+
+        let layers = (await store.snapshot()).layers
+        XCTAssertEqual(layers.map(\.id), ["clip", "clip-second", "clip-copy"])
+        XCTAssertEqual(layers[0].duration, 2)
+        XCTAssertEqual(layers[1].start, 3)
+        XCTAssertEqual(layers[1].duration, 6)
+        XCTAssertEqual(layers[2].name, "Clip copy")
+    }
+
+    func testEffectCommandsPreserveParametersAndUndo() async throws {
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))
+        let store = try makeStore(layers: [layer])
+        let glow = VexelEffect(type: "glow", parameters: ["radius": .number(12)])
+        let blur = VexelEffect(type: "blur", parameters: ["amount": .number(4)])
+
+        try await store.execute(.addEffect(layerID: "shape", effect: glow))
+        try await store.execute(.addEffect(layerID: "shape", effect: blur))
+        try await store.execute(.removeEffect(layerID: "shape", type: "blur"))
+
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].effects, [glow])
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].effects, [glow, blur])
+    }
+
+    func testNestedInsertionAndParentCycleProtection() async throws {
+        let group = VexelLayer(
+            id: "group",
+            type: .group,
+            name: "Scene",
+            start: 0,
+            duration: 8,
+            layers: [
+                VexelLayer(id: "first", type: .shape, start: 0, duration: 8, content: .object(["kind": .string("rectangle")])),
+                VexelLayer(id: "second", type: .shape, start: 0, duration: 8, content: .object(["kind": .string("rectangle")]))
+            ]
+        )
+        let store = try makeStore(layers: [group])
+
+        try await store.execute(.setParent(id: "first", parentID: "second"))
+        do {
+            try await store.execute(.setParent(id: "second", parentID: "first"))
+            XCTFail("A parent cycle must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].layers[0].parent, "second")
+        XCTAssertNil(snapshot.layers[0].layers[1].parent)
+    }
+
+    func testGroupAndUngroupPreserveSiblingTimingAndOrder() async throws {
+        let first = VexelLayer(id: "first", type: .shape, name: "First", start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))
+        let second = VexelLayer(id: "second", type: .shape, name: "Second", start: 2, duration: 5, content: .object(["kind": .string("rectangle")]))
+        let store = try makeStore(layers: [first, second])
+
+        try await store.execute(.groupLayers(firstID: "first", secondID: "second", groupID: "group", name: "Scene"))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.map(\.id), ["group"])
+        XCTAssertEqual(snapshot.layers[0].start, 0)
+        XCTAssertEqual(snapshot.layers[0].duration, 7)
+        XCTAssertEqual(snapshot.layers[0].layers.map(\.id), ["first", "second"])
+        XCTAssertEqual(snapshot.layers[0].layers[1].start, 2)
+
+        try await store.execute(.ungroupLayer(id: "group"))
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.map(\.id), ["first", "second"])
+        XCTAssertEqual(snapshot.layers[1].start, 2)
+        XCTAssertEqual(snapshot.layers[1].duration, 5)
+    }
+
+    func testUngroupRejectsGroupLevelPropertiesThatWouldBeLost() async throws {
+        let group = VexelLayer(
+            id: "group",
+            type: .group,
+            start: 0,
+            duration: 4,
+            transform: VexelTransform(properties: ["opacity": .constant(.number(0.5))]),
+            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))]
+        )
+        let store = try makeStore(layers: [group])
+
+        do {
+            try await store.execute(.ungroupLayer(id: "group"))
+            XCTFail("Ungrouping must not discard a group transform.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.id, "group")
+    }
+
+    func testThreeDimensionalNullLayerCanParentThreeDimensionalLayers() async throws {
+        let parent = VexelLayer(
+            id: "null-3d",
+            type: .null,
+            start: 0,
+            duration: 8,
+            content: .object(["threeD": .bool(true)])
+        )
+        let child = VexelLayer(id: "object", type: .object3D, start: 0, duration: 8, content: .object(["primitive": .string("cube")]))
+        let store = try makeStore(layers: [parent, child])
+
+        try await store.execute(.setParent(id: "object", parentID: "null-3d"))
+        try await store.execute(.setTransformValue(
+            id: "null-3d",
+            property: "position",
+            value: .constant(.array([.number(1), .number(2), .number(3)])),
+            is3D: true
+        ))
+
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[1].parent, "null-3d")
+        XCTAssertNotNil(snapshot.layers[0].transform3D)
+    }
+
+    func testGroupCannotMoveIntoItsOwnDescendant() async throws {
+        let group = VexelLayer(
+            id: "group",
+            type: .group,
+            start: 0,
+            duration: 8,
+            layers: [VexelLayer(id: "child", type: .shape, start: 0, duration: 8, content: .object(["kind": .string("rectangle")]))]
+        )
+        let store = try makeStore(layers: [group])
+
+        do {
+            try await store.execute(.moveLayer(id: "group", toContainerID: "child", index: nil))
+            XCTFail("A group cannot move inside one of its descendants.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.first?.id, "group")
+    }
+
+    func testFailedCommandDoesNotMutateProjectOrCreateUndoEntry() async throws {
+        let store = try makeStore()
+        let before = await store.snapshot()
+
+        do {
+            try await store.execute(.setComposition(width: 0, height: 1920, fps: 30, duration: 10))
+            XCTFail("Invalid composition settings must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        let after = await store.snapshot()
+        let canUndo = await store.canUndo
+        XCTAssertEqual(after, before)
+        XCTAssertFalse(canUndo)
+    }
+
+    func testTypedKeyframeCommandsPreserveAnimationMetadataAndUndo() async throws {
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 6,
+            transform: VexelTransform(properties: [
+                "position": .animated(VexelAnimationTrack(
+                    keyframes: [VexelKeyframe(time: 0, value: .array([.number(0), .number(0)]))],
+                    loop: .cycle,
+                    expression: "time",
+                    expressionEnabled: false,
+                    unknownFields: ["futureTrackFlag": .bool(true)]
+                ))
+            ]),
+            content: .object(["kind": .string("rectangle")])
+        )
+        let store = try makeStore(layers: [layer])
+        let keyframe = VexelKeyframe(
+            time: 2,
+            value: .array([.number(100), .number(50)]),
+            easing: .preset("easeIn")
+        )
+
+        try await store.execute(.setKeyframe(layerID: "shape", property: "position", keyframe: keyframe, is3D: false))
+        var snapshot = await store.snapshot()
+        guard case .animated(let animation)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Expected an animated position property.")
+        }
+        XCTAssertEqual(animation.keyframes.count, 2)
+        XCTAssertEqual(animation.loop, .cycle)
+        XCTAssertEqual(animation.expression, "time")
+        XCTAssertEqual(animation.unknownFields["futureTrackFlag"], .bool(true))
+
+        try await store.execute(.removeKeyframe(layerID: "shape", property: "position", time: 2, is3D: false))
+        snapshot = await store.snapshot()
+        guard case .animated(let restored)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Expected the original animation to remain.")
+        }
+        XCTAssertEqual(restored.keyframes.count, 1)
+
+        let didUndoKeyframe = await store.undo()
+        XCTAssertTrue(didUndoKeyframe)
+        snapshot = await store.snapshot()
+        guard case .animated(let undone)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Expected keyframe undo to restore the previous track.")
+        }
+        XCTAssertEqual(undone.keyframes.count, 2)
+    }
+
+    func testMarkerUpsertUpdatesExistingMarkerWithoutDuplicatingIt() async throws {
+        let store = try makeStore()
+        try await store.execute(.upsertMarker(VexelMarkerData(id: "marker", time: 1, name: "Original")))
+        try await store.execute(.upsertMarker(VexelMarkerData(
+            id: "marker",
+            time: 2,
+            name: "Updated",
+            unknownFields: ["extension": .bool(true)]
+        )))
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.count, 1)
+        XCTAssertEqual(snapshot.markers[0].name, "Updated")
+        XCTAssertEqual(snapshot.markers[0].unknownFields["extension"], .bool(true))
+    }
+
+    func testKeyframeCommandRejectsTimeOutsideLayerWithoutMutatingHistory() async throws {
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 2, content: .object(["kind": .string("rectangle")]))
+        let store = try makeStore(layers: [layer])
+        let before = await store.snapshot()
+        do {
+            try await store.execute(.setKeyframe(
+                layerID: "shape",
+                property: "position",
+                keyframe: VexelKeyframe(time: 3, value: .array([.number(1), .number(2)])),
+                is3D: false
+            ))
+            XCTFail("Out-of-range keyframes must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \(error)") }
+        }
+        let after = await store.snapshot()
+        let canUndo = await store.canUndo
+        XCTAssertEqual(after, before)
+        XCTAssertFalse(canUndo)
+    }
+
+    func testMarkerCommandsUpsertSortRemoveAndUndo() async throws {
+        let store = try makeStore()
+        let marker = VexelMarkerData(
+            id: "marker-a",
+            time: 3,
+            name: "Beat",
+            color: "#00D6C8",
+            unknownFields: ["futureMarkerData": .string("preserve")]
+        )
+        try await store.execute(.upsertMarker(marker))
+        try await store.execute(.upsertMarker(VexelMarkerData(id: "marker-b", time: 1, name: "Intro")))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
+        XCTAssertEqual(snapshot.markers[1].unknownFields["futureMarkerData"], .string("preserve"))
+
+        try await store.execute(.removeMarker(id: "marker-a"))
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b"])
+        let didUndoRemoval = await store.undo()
+        XCTAssertTrue(didUndoRemoval)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.markers.map(\.id), ["marker-b", "marker-a"])
+    }
+
+    func testMediaImportCommandAddsAssetAndLayerAtomicallyAndSupportsUndo() async throws {
+        let store = try makeStore()
+        let asset = VexelAsset(
+            id: "asset-image",
+            type: .image,
+            path: "assets/asset-image.png",
+            name: "image.png",
+            mimeType: "image/png"
+        )
+        let layer = VexelLayer(
+            id: "asset-image",
+            type: .image,
+            name: "image.png",
+            start: 0,
+            duration: 8,
+            content: .object(["asset": .string("asset-image")])
+        )
+
+        try await store.execute(.importMedia(asset: asset, layer: layer))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.assets, [asset])
+        XCTAssertEqual(snapshot.layers.map(\.id), ["asset-image"])
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertTrue(snapshot.assets.isEmpty)
+        XCTAssertTrue(snapshot.layers.isEmpty)
+    }
+
+    func testMediaImportRejectsUnsafeAssetPathsWithoutPartialMutation() async throws {
+        let store = try makeStore()
+        let asset = VexelAsset(
+            id: "asset-image",
+            type: .image,
+            path: "assets/../outside.png",
+            name: "image.png",
+            mimeType: "image/png"
+        )
+        let layer = VexelLayer(
+            id: "asset-image",
+            type: .image,
+            name: "image.png",
+            start: 0,
+            duration: 8,
+            content: .object(["asset": .string("asset-image")])
+        )
+
+        do {
+            try await store.execute(.importMedia(asset: asset, layer: layer))
+            XCTFail("Unsafe asset paths must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \(error)") }
+        }
+        let snapshot = await store.snapshot()
+        XCTAssertTrue(snapshot.assets.isEmpty)
+        XCTAssertTrue(snapshot.layers.isEmpty)
+    }
+
+    func testProjectSettingsUpdateIsAtomicAndUndoable() async throws {
+        let store = try makeStore()
+        try await store.execute(.updateProjectSettings(
+            title: "  Updated  ",
+            width: 1920,
+            height: 1080,
+            fps: 29.97,
+            duration: 42
+        ))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Updated"))
+        XCTAssertEqual(snapshot.composition.width, 1920)
+        XCTAssertEqual(snapshot.composition.height, 1080)
+        XCTAssertEqual(snapshot.composition.fps, 29.97, accuracy: 0.0001)
+        XCTAssertEqual(snapshot.composition.duration, 42, accuracy: 0.0001)
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.meta["title"], .string("Editing store"))
+        XCTAssertEqual(snapshot.composition.width, 1080)
+        XCTAssertEqual(snapshot.composition.height, 1920)
+    }
+
+    func testReorderLayersPreservesLayerDataAndRejectsIncompleteOrder() async throws {
+        let first = VexelLayer(id: "first", type: .shape, name: "First", start: 0, duration: 4, content: .object(["kind": .string("rectangle")]))
+        let second = VexelLayer(id: "second", type: .shape, name: "Second", start: 1, duration: 5, content: .object(["kind": .string("ellipse")]))
+        let third = VexelLayer(id: "third", type: .shape, name: "Third", start: 2, duration: 6, content: .object(["kind": .string("star")]))
+        let store = try makeStore(layers: [first, second, third])
+
+        try await store.execute(.reorderLayers(containerID: nil, orderedIDs: ["third", "first", "second"]))
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers.map(\.id), ["third", "first", "second"])
+        XCTAssertEqual(snapshot.layers[0].content?.objectValue?["kind"], .string("star"))
+
+        let beforeInvalidOrder = snapshot
+        do {
+            try await store.execute(.reorderLayers(containerID: nil, orderedIDs: ["first", "second"]))
+            XCTFail("A partial sibling order must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \(error)") }
+        }
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot, beforeInvalidOrder)
+    }
+
+    func testTypedTextPropertyCommandsPreserveNestedFieldsAndAnimationMetadata() async throws {
+        let layer = VexelLayer(
+            id: "title",
+            type: .text,
+            start: 0,
+            duration: 8,
+            content: .object([
+                "content": .string("Original"),
+                "font": .object([
+                    "family": .string("sans-serif"),
+                    "weight": .number(700),
+                    "italic": .bool(false),
+                    "futureFontField": .string("preserve")
+                ]),
+                "fontSize": .object([
+                    "keyframes": .array([
+                        .object(["time": .number(0), "value": .number(80)]),
+                        .object(["time": .number(3), "value": .number(120)])
+                    ]),
+                    "value": .number(96),
+                    "loop": .string("cycle"),
+                    "expression": .string("time"),
+                    "expressionEnabled": .bool(false),
+                    "futureAnimationFlag": .bool(true)
+                ]),
+                "futureTextField": .string("preserve")
+            ])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTextProperty(id: "title", property: .content, value: .string("Updated title")))
+        try await store.execute(.setTextProperty(id: "title", property: .fontFamily, value: .string("serif")))
+        try await store.execute(.setTextProperty(id: "title", property: .fontWeight, value: .number(500)))
+        try await store.execute(.setTextProperty(id: "title", property: .fontItalic, value: .bool(true)))
+        try await store.execute(.setTextProperty(id: "title", property: .fontSize, value: .number(144)))
+        try await store.execute(.setTextProperty(id: "title", property: .lineHeight, value: .number(1.4)))
+        try await store.execute(.setTextProperty(id: "title", property: .letterSpacing, value: .number(0.08)))
+        try await store.execute(.setTextProperty(id: "title", property: .alignment, value: .string("left")))
+
+        let snapshot = await store.snapshot()
+        let fields = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:])
+        let text = VexelTextContent(fields: fields)
+        XCTAssertEqual(text.content, "Updated title")
+        XCTAssertEqual(text.font?.family, "serif")
+        XCTAssertEqual(text.font?.weight, 500)
+        XCTAssertEqual(text.font?.italic, true)
+        XCTAssertEqual(text.lineHeight, 1.4)
+        XCTAssertEqual(text.letterSpacing, .constant(.number(0.08)))
+        XCTAssertEqual(text.align, "left")
+        XCTAssertEqual(fields["futureTextField"], .string("preserve"))
+        XCTAssertEqual(text.font?.fields["futureFontField"], .string("preserve"))
+        guard case .animated(let updatedFontSize)? = text.fontSize else {
+            return XCTFail("Editing font size must preserve its animation track.")
+        }
+        XCTAssertEqual(updatedFontSize.value, .number(144))
+        XCTAssertEqual(updatedFontSize.keyframes.count, 2)
+        XCTAssertEqual(updatedFontSize.loop, .cycle)
+        XCTAssertEqual(updatedFontSize.expression, "time")
+        XCTAssertEqual(updatedFontSize.expressionEnabled, false)
+        XCTAssertEqual(updatedFontSize.unknownFields["futureAnimationFlag"], .bool(true))
+    }
+
+    func testTransformInspectorPropertiesPersistAndUndoForTwoDimensionalLayers() async throws {
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            content: .object(["kind": .string("rectangle")])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "anchor",
+            value: .constant(.array([.number(12), .number(-8)])), is3D: false
+        ))
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "scale",
+            value: .constant(.array([.number(1.25), .number(0.75)])), is3D: false
+        ))
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "rotation",
+            value: .constant(.number(37.5)), is3D: false
+        ))
+        try await store.execute(.setTransformValue(
+            id: "shape", property: "opacity",
+            value: .constant(.number(0.65)), is3D: false
+        ))
+
+        var snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["anchor"], .constant(.array([.number(12), .number(-8)])))
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["scale"], .constant(.array([.number(1.25), .number(0.75)])))
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["rotation"], .constant(.number(37.5)))
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["opacity"], .constant(.number(0.65)))
+
+        let didUndo = await store.undo()
+        XCTAssertTrue(didUndo)
+        snapshot = await store.snapshot()
+        XCTAssertNil(snapshot.layers[0].transform?.properties["opacity"])
+
+        let didRedo = await store.redo()
+        XCTAssertTrue(didRedo)
+        snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].transform?.properties["opacity"], .constant(.number(0.65)))
+    }
+
+    func testTransformValueEditPreservesExistingAnimationTrackMetadata() async throws {
+        let animation = VexelAnimationTrack(
+            keyframes: [
+                VexelKeyframe(time: 0, value: .array([.number(0), .number(0)])),
+                VexelKeyframe(time: 4, value: .array([.number(40), .number(20)]))
+            ],
+            value: .array([.number(0), .number(0)]),
+            loop: .pingpong,
+            expression: "time",
+            expressionEnabled: false,
+            unknownFields: ["futureTrackFlag": .bool(true)]
+        )
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            transform: VexelTransform(properties: ["position": .animated(animation)]),
+            content: .object(["kind": .string("rectangle")])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTransformValue(
+            id: "shape",
+            property: "position",
+            value: .constant(.array([.number(100), .number(50)])),
+            is3D: false
+        ))
+
+        let snapshot = await store.snapshot()
+        guard case .animated(let updated)? = snapshot.layers[0].transform?.properties["position"] else {
+            return XCTFail("Editing the base value must not replace an animated property.")
+        }
+        XCTAssertEqual(updated.value, .array([.number(100), .number(50)]))
+        XCTAssertEqual(updated.keyframes, animation.keyframes)
+        XCTAssertEqual(updated.loop, .pingpong)
+        XCTAssertEqual(updated.expression, "time")
+        XCTAssertEqual(updated.expressionEnabled, false)
+        XCTAssertEqual(updated.unknownFields["futureTrackFlag"], .bool(true))
+    }
+
+    func testTransformInspectorPreservesThreeDimensionalComponents() async throws {
+        let layer = VexelLayer(
+            id: "object",
+            type: .object3D,
+            start: 0,
+            duration: 8,
+            content: .object(["primitive": .string("cube")])
+        )
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setTransformValue(
+            id: "object", property: "anchor",
+            value: .constant(.array([.number(1), .number(2), .number(3)])), is3D: true
+        ))
+        try await store.execute(.setTransformValue(
+            id: "object", property: "scale",
+            value: .constant(.array([.number(1.5), .number(0.75), .number(2)])), is3D: true
+        ))
+        try await store.execute(.setTransformValue(
+            id: "object", property: "rotation",
+            value: .constant(.array([.number(10), .number(20), .number(30)])), is3D: true
+        ))
+        try await store.execute(.setTransformValue(
+            id: "object", property: "opacity",
+            value: .constant(.number(0.8)), is3D: true
+        ))
+
+        let snapshot = await store.snapshot()
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["anchor"], .constant(.array([.number(1), .number(2), .number(3)])))
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["scale"], .constant(.array([.number(1.5), .number(0.75), .number(2)])))
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["rotation"], .constant(.array([.number(10), .number(20), .number(30)])))
+        XCTAssertEqual(snapshot.layers[0].transform3D?.properties["opacity"], .constant(.number(0.8)))
+    }
+
+
+    func testPropertyCatalogCoversSupportedLayerPropertiesAndAutoKeyframes() async throws {
+        let shape = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            content: .object([
+                "size": .object(["value": .array([.number(100), .number(80)]), "keyframes": .array([.object(["time": .number(0), "value": .array([.number(100), .number(80)])])]), "futureSizeField": .string("keep")]),
+                "futureShapeField": .string("keep")
+            ])
+        )
+        let text = VexelLayer(id: "title", type: .text, start: 0, duration: 8, content: .object(["content": .string("Hello")]))
+        let audio = VexelLayer(id: "audio", type: .audio, start: 0, duration: 8, content: .object(["volume": .number(0.5)]))
+        let camera = VexelLayer(id: "camera", type: .camera, start: 0, duration: 8, content: .object([:]))
+        let light = VexelLayer(id: "light", type: .light, start: 0, duration: 8, content: .object([:]))
+        let object3D = VexelLayer(id: "model", type: .object3D, start: 0, duration: 8, content: .object(["material": .object(["futureMaterialField": .string("keep")])]))
+        let store = try makeStore(layers: [shape, text, audio, camera, light, object3D])
+
+        let shapeDescriptors = VexelPropertyCatalog.descriptors(for: shape)
+        XCTAssertTrue(shapeDescriptors.contains { $0.id == "shape.size" })
+        XCTAssertTrue(shapeDescriptors.contains { $0.id == "opacity" })
+        XCTAssertFalse(shapeDescriptors.contains { $0.id == "text.fontSize" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: text).contains { $0.id == "text.fontSize" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: audio).contains { $0.id == "media.volume" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: camera).contains { $0.id == "camera.fov" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: light).contains { $0.id == "light.intensity" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: object3D).contains { $0.id == "material.metallic" })
+
+        try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(240), .number(120)]), atTime: nil))
+        try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.stroke.width", value: .number(8), atTime: nil))
+        try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(300), .number(150)]), atTime: 4))
+        try await store.execute(.setPropertyKeyframe(layerID: "title", propertyID: "text.fontSize", keyframe: VexelKeyframe(time: 2, value: .number(144))))
+        try await store.execute(.setPropertyValue(layerID: "audio", propertyID: "media.volume", value: .number(0.8), atTime: nil))
+        try await store.execute(.setPropertyValue(layerID: "camera", propertyID: "camera.fov", value: .number(72), atTime: nil))
+        try await store.execute(.setPropertyKeyframe(layerID: "light", propertyID: "light.intensity", keyframe: VexelKeyframe(time: 1, value: .number(2.5))))
+        try await store.execute(.setPropertyValue(layerID: "model", propertyID: "material.metallic", value: .number(0.75), atTime: nil))
+
+        let snapshot = await store.snapshot()
+        let shapeFields = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:])
+        XCTAssertEqual(shapeFields.animatable("size"), .animated(VexelAnimationTrack(
+            keyframes: [VexelKeyframe(time: 0, value: .array([.number(100), .number(80)])), VexelKeyframe(time: 4, value: .array([.number(300), .number(150)]))],
+            value: .array([.number(240), .number(120)]),
+            unknownFields: ["futureSizeField": .string("keep")]
+        )))
+        XCTAssertEqual(shapeFields.string("futureShapeField"), "keep")
+        XCTAssertEqual(shapeFields.object("size")?.string("futureSizeField"), "keep")
+        XCTAssertEqual(shapeFields.object("size")?.array("keyframes")?.count, 2)
+        XCTAssertEqual(shapeFields.object("stroke")?.animatable("width"), .constant(.number(8)))
+        let textFields = VexelObjectFields(snapshot.layers[1].content?.objectValue ?? [:])
+        guard case .animated(let textFontSizeTrack)? = textFields.animatable("fontSize") else { return XCTFail("Text font size keyframe must be stored as an animation track.") }
+        XCTAssertEqual(textFontSizeTrack.keyframes.first?.time, 2)
+        let audioFields = VexelObjectFields(snapshot.layers[2].content?.objectValue ?? [:])
+        XCTAssertEqual(audioFields.animatable("volume"), .constant(.number(0.8)))
+        XCTAssertEqual(VexelObjectFields(snapshot.layers[3].content?.objectValue ?? [:]).animatable("fov"), .constant(.number(72)))
+        guard case .animated(let lightIntensityTrack)? = VexelObjectFields(snapshot.layers[4].content?.objectValue ?? [:]).animatable("intensity") else { return XCTFail("Light intensity keyframe must be stored as an animation track.") }
+        XCTAssertEqual(lightIntensityTrack.keyframes.first?.value, .number(2.5))
+        let material = VexelObjectFields(snapshot.layers[5].content?.objectValue ?? [:]).object("material")
+        XCTAssertEqual(material?.animatable("metallic"), .constant(.number(0.75)))
+        XCTAssertEqual(material?.string("futureMaterialField"), "keep")
+
+        try await store.execute(.removePropertyKeyframe(layerID: "shape", propertyID: "shape.size", time: 4))
+        let removed = await store.snapshot()
+        let removedSize = VexelObjectFields(removed.layers[0].content?.objectValue ?? [:]).animatable("size")
+        guard case .animated(let remainingTrack)? = removedSize else { return XCTFail("Removing one keyframe must preserve the remaining animation track.") }
+        XCTAssertEqual(remainingTrack.keyframes.map(\.time), [0])
+        XCTAssertEqual(remainingTrack.value, .array([.number(240), .number(120)]))
+    }
+
+    func testPropertyDescriptorValidationIsAtomicAndSupportsThreeDimensionalTracks() async throws {
+        let object = VexelLayer(id: "object", type: .object3D, start: 0, duration: 8, content: .object([:]))
+        let store = try makeStore(layers: [object])
+
+        try await store.execute(.setPropertyValue(layerID: "object", propertyID: "position3D", value: .array([.number(1), .number(2), .number(3)]), atTime: nil))
+        try await store.execute(.setPropertyKeyframe(layerID: "object", propertyID: "rotation3D", keyframe: VexelKeyframe(time: 3, value: .array([.number(10), .number(20), .number(30)]))))
+
+        let beforeInvalid = await store.snapshot()
+        do {
+            try await store.execute(.setPropertyValue(layerID: "object", propertyID: "opacity3D", value: .number(2), atTime: nil))
+            XCTFail("Out-of-range opacity must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
+        }
+        let afterInvalid = await store.snapshot()
+        XCTAssertEqual(afterInvalid, beforeInvalid)
+
+        try await store.execute(.removePropertyKeyframe(layerID: "object", propertyID: "rotation3D", time: 3))
+        let final = await store.snapshot()
+        XCTAssertEqual(final.layers[0].transform3D?.properties["rotation"], nil)
+        XCTAssertEqual(final.layers[0].transform3D?.properties["position"], .constant(.array([.number(1), .number(2), .number(3)])))
+    }
+
+    func testDescriptorKeyframeUpsertAndRemovalPreserveEasingAndTrackMetadata() async throws {
+        let animation = VexelAnimationTrack(
+            keyframes: [VexelKeyframe(
+                time: 2,
+                value: .number(10),
+                easing: .preset("easeOut"),
+                unknownFields: ["futureKeyframeFlag": .bool(true)]
+            )],
+            value: .number(5),
+            loop: .pingpong,
+            expression: "time",
+            expressionEnabled: false,
+            unknownFields: ["futureTrackFlag": .string("preserve")]
+        )
+        let layer = VexelLayer(id: "shape", type: .shape, start: 0, duration: 8, content: .object([
+            "roundness": .object([
+                "keyframes": .array([.object([
+                    "time": .number(2),
+                    "value": .number(10),
+                    "easing": .string("easeOut"),
+                    "futureKeyframeFlag": .bool(true)
+                ])]),
+                "value": .number(5),
+                "loop": .string("pingpong"),
+                "expression": .string("time"),
+                "expressionEnabled": .bool(false),
+                "futureTrackFlag": .string("preserve")
+            ])
+        ]))
+        let store = try makeStore(layers: [layer])
+
+        try await store.execute(.setPropertyKeyframe(
+            layerID: "shape",
+            propertyID: "shape.roundness",
+            keyframe: VexelKeyframe(time: 2, value: .number(12))
+        ))
+        var snapshot = await store.snapshot()
+        guard case .animated(let updated)? = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:]).animatable("roundness") else {
+            return XCTFail("The property must remain animated.")
+        }
+        XCTAssertEqual(updated.keyframes.first?.easing, animation.keyframes.first?.easing)
+        XCTAssertEqual(updated.keyframes.first?.unknownFields["futureKeyframeFlag"], .bool(true))
+        XCTAssertEqual(updated.unknownFields["futureTrackFlag"], .string("preserve"))
+
+        try await store.execute(.removePropertyKeyframe(layerID: "shape", propertyID: "shape.roundness", time: 2))
+        snapshot = await store.snapshot()
+        guard case .animated(let emptyTrack)? = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:]).animatable("roundness") else {
+            return XCTFail("Removing the last keyframe must retain animation metadata.")
+        }
+        XCTAssertTrue(emptyTrack.keyframes.isEmpty)
+        XCTAssertEqual(emptyTrack.value, .number(5))
+        XCTAssertEqual(emptyTrack.loop, .pingpong)
+        XCTAssertEqual(emptyTrack.expression, "time")
+        XCTAssertEqual(emptyTrack.expressionEnabled, false)
+        XCTAssertEqual(emptyTrack.unknownFields["futureTrackFlag"], .string("preserve"))
+    }
+
+    func testPropertyCatalogSeparatesTwoDimensionalAndThreeDimensionalNullTransforms() {
+        let twoD = VexelLayer(id: "null2d", type: .null, start: 0, duration: 5, content: .object(["threeD": .bool(false)]))
+        let threeD = VexelLayer(id: "null3d", type: .null, start: 0, duration: 5, content: .object(["threeD": .bool(true)]))
+
+        let twoDIDs = Set(VexelPropertyCatalog.descriptors(for: twoD).map(\.id))
+        let threeDIDs = Set(VexelPropertyCatalog.descriptors(for: threeD).map(\.id))
+        XCTAssertTrue(twoDIDs.contains("position"))
+        XCTAssertFalse(twoDIDs.contains("position3D"))
+        XCTAssertTrue(threeDIDs.contains("position3D"))
+        XCTAssertFalse(threeDIDs.contains("position"))
+    }
+
+    func testDescriptorValueEditAtPlayheadUpdatesKeyframeAndPreservesTrackMetadata() async throws {
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            content: .object([
+                "roundness": .object([
+                    "keyframes": .array([
+                        .object(["time": .number(0), "value": .number(10)]),
+                        .object(["time": .number(2), "value": .number(30)])
+                    ]),
+                    "value": .number(5),
+                    "loop": .string("pingpong"),
+                    "futureTrackFlag": .string("keep")
+                ])
+            ])
+        )
+        let store = try makeStore(layers: [layer])
+        try await store.execute(.setPropertyValue(
+            layerID: "shape",
+            propertyID: "shape.roundness",
+            value: .number(22),
+            atTime: 1
+        ))
+
+        let snapshot = await store.snapshot()
+        guard case .animated(let track)? = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:]).animatable("roundness") else {
+            return XCTFail("Editing an animated property at the playhead must update its animation track.")
+        }
+        XCTAssertEqual(track.keyframes.map(\.time), [0, 1, 2])
+        XCTAssertEqual(track.keyframes.first(where: { $0.time == 1 })?.value, .number(22))
+        XCTAssertEqual(track.value, .number(5))
+        XCTAssertEqual(track.loop, .pingpong)
+        XCTAssertEqual(track.unknownFields["futureTrackFlag"], .string("keep"))
+    }
+
+    private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
+        let document = ProjectDocument.starter(title: "Editing store")
+        var native = try VexelNativeProject(document: document)
+        native.layers = layers
+        return try VexelEditingStore(project: native)
+    }
+}

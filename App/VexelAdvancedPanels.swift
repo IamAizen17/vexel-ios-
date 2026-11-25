@@ -5,6 +5,14 @@ struct VexelPropertiesSheet: View {
     let layerName: String
     let layerKind: VexelTimelineTrack.Kind?
     let onAddEffect: () -> Void
+    let effectIDs: [String]
+    let onRemoveEffect: (String) -> Void
+    let position: [Double]
+    let onPositionCommit: (Double, Double) -> Void
+    let transformValues: [String: [Double]]
+    let onTransformCommit: (String, [Double]) -> Void
+    let textValues: [String: JSONValue]
+    let onTextCommit: (VexelTextProperty, JSONValue) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var tab = "Transform"
 
@@ -30,7 +38,15 @@ struct VexelPropertiesSheet: View {
                     layerName: layerName,
                     layerKind: layerKind,
                     onCurve: {},
-                    onAddEffect: onAddEffect
+                    onAddEffect: onAddEffect,
+                    effectIDs: effectIDs,
+                    onRemoveEffect: onRemoveEffect,
+                    position: position,
+                    onPositionCommit: onPositionCommit,
+                    transformValues: transformValues,
+                    onTransformCommit: onTransformCommit,
+                    textValues: textValues,
+                    onTextCommit: onTextCommit
                 )
                 Spacer(minLength: 0)
             }
@@ -403,6 +419,7 @@ struct VexelEffectDetailSheet: View {
                                 ForEach(effect.params) { parameter in
                                     parameterControl(parameter)
                                 }
+                                .disabled(true)
                             }
                         }
                     }
@@ -423,9 +440,9 @@ struct VexelEffectDetailSheet: View {
                         }
                     }
 
-                    VexelActionButton(title: "Apply effect (engine pending)", systemImage: "plus", prominent: true) {}
-                        .disabled(true)
-                    Text("Values in this panel are an editing preview only. No project effect is created until the effect command and parameter serialization are ported.")
+                    VexelActionButton(title: "Add to effect stack", systemImage: "plus", prominent: true) { onApply(); dismiss() }
+                        .disabled(targetLayerName == nil)
+                    Text("Effect identifiers can be added to the layer stack. Parameter editing and GPU execution are disabled until serialization and the shader runtime are integrated.")
                         .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                 }
                 .padding(16)

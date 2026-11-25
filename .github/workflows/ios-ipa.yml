@@ -1,77 +1,129 @@
-name: iOS Build
+name: Build Vexel IPA
 
 on:
-  push:
-    branches: [main, "feat/**"]
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ios-build-${{ github.ref }}-${{ github.event_name }}
+  group: vexel-ipa-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Core tests
-    runs-on: macos-15
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-      - name: Select Xcode
-        run: |
-          sudo xcode-select -s /Applications/Xcode.app
-          xcodebuild -version
-          swift --version
-      - name: Run Swift package tests
-        run: swift test --package-path Packages/VexelCore
-
   build-ipa:
     name: Build unsigned iOS IPA
     runs-on: macos-15
-    needs: test
+    timeout-minutes: 45
     steps:
-      - name: Check out source
+      - name: Check out selected branch
         uses: actions/checkout@v4
+
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app
-      - name: Verify source effect registry
-        run: python3 scripts/verify_effect_registry.py
-      - name: Install XcodeGen
-        run: brew install xcodegen
-      - name: Generate Xcode project
-        run: xcodegen generate
-      - name: Archive for physical iOS devices
+        shell: bash
         run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          swift --version
+
+      - name: Verify project configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f project.yml
+          test -d App
+          test -d Packages
+          test -f scripts/verify_effect_registry.py
+          test -f scripts/verify_engine_port_status.py
+          python3 scripts/verify_effect_registry.py
+          python3 scripts/verify_engine_port_status.py
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          test -f Vexel.xcodeproj/project.pbxproj
+
+      - name: Resolve Swift packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project Vexel.xcodeproj \
+            -scheme Vexel
+
+      - name: Archive for iPhone and iPad
+        shell: bash
+        run: |
+          set -euo pipefail
           xcodebuild archive \
             -project Vexel.xcodeproj \
             -scheme Vexel \
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/Vexel.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO
+            -derivedDataPath "$RUNNER_TEMP/VexelDerivedData" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee "$RUNNER_TEMP/xcodebuild-archive.log"
+
       - name: Package unsigned IPA
+        shell: bash
         run: |
+          set -euo pipefail
           APP_PATH="$RUNNER_TEMP/Vexel.xcarchive/Products/Applications/Vexel.app"
+          IPA_DIR="$RUNNER_TEMP/ipa"
+          IPA_PATH="$GITHUB_WORKSPACE/Vexel-unsigned.ipa"
+
           test -d "$APP_PATH"
-          mkdir -p "$RUNNER_TEMP/ipa/Payload"
-          ditto "$APP_PATH" "$RUNNER_TEMP/ipa/Payload/Vexel.app"
-          cd "$RUNNER_TEMP/ipa"
-          ditto -c -k --sequesterRsrc --keepParent Payload "$GITHUB_WORKSPACE/Vexel-unsigned.ipa"
-      - name: Upload IPA artifact
+          mkdir -p "$IPA_DIR/Payload"
+          ditto "$APP_PATH" "$IPA_DIR/Payload/Vexel.app"
+
+          EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$IPA_DIR/Payload/Vexel.app/Info.plist")"
+          test -n "$EXECUTABLE"
+          test -f "$IPA_DIR/Payload/Vexel.app/$EXECUTABLE"
+          plutil -lint "$IPA_DIR/Payload/Vexel.app/Info.plist"
+
+          ditto -c -k --sequesterRsrc --keepParent "$IPA_DIR/Payload" "$IPA_PATH"
+          test -s "$IPA_PATH"
+          unzip -t "$IPA_PATH"
+          shasum -a 256 "$IPA_PATH" | tee "$IPA_PATH.sha256"
+
+          {
+            echo "## Vexel IPA build"
+            echo ""
+            echo "- Result: successful"
+            echo "- Platform: iOS (iPhone and iPad)"
+            echo "- Configuration: Release"
+            echo "- Signing: unsigned"
+            echo "- Artifact: Vexel-unsigned.ipa"
+            echo "- Commit: $GITHUB_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
           name: Vexel-unsigned-IPA
-          path: Vexel-unsigned.ipa
+          path: |
+            Vexel-unsigned.ipa
+            Vexel-unsigned.ipa.sha256
           if-no-files-found: error
           retention-days: 14
-      - name: Upload archive for diagnostics
+
+      - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: Vexel-xcarchive-diagnostics
-          path: ${{ runner.temp }}/Vexel.xcarchive
+          name: Vexel-ipa-build-log
+          path: ${{ runner.temp }}/xcodebuild-archive.log
           if-no-files-found: ignore
           retention-days: 3

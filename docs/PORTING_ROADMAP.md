@@ -2,23 +2,23 @@
 
 ## Locked product decisions
 - iPhone and iPad from the first supported release.
-- Full feature parity with the accessible Kinesis Editor reference.
+- Full feature parity with the Android reference editor.
 - Original Vexel interface designed for touch and adaptive iPad workspaces.
 - Native project extension: .vexelproj.
 - Development workflow supports phone-based editing and cloud macOS builds.
 
-## Stage 1 - UI port completion (current)
-Port every source screen, modal, panel, inspector group and workflow to native SwiftUI before beginning engine implementation. Compare each page against the pinned source revision and maintain docs/UI_PORT.md as the acceptance matrix. Controls must be wired, disabled, or explicitly marked as engine-pending; no fake success behavior.
+## Stage 1 - Product foundation and integrity (current)
+Close P0 project-integrity work: effect-aware semantic validation, archive compatibility evidence, unknown-field preservation, asset lifecycle and truthful build/test documentation. The source app remains a behavioral reference only; Vexel's final UI is an original Alight Motion-inspired design, not a Compose screen port.
 
-Exit: every source UI route has a SwiftUI counterpart or documented intentional redesign, with iPhone/iPad layout smoke tests and a successful CI build.
+Exit: imports are validated before acceptance, project data survives supported round trips, archive limitations are documented, and CI verifies package tests plus the iOS Simulator build.
 
 ## Stage 2 - Source contract and compatibility audit
-Pin source files, read KnsprojJson serializers and every migration, inspect schemas and representative valid/invalid fixtures, map ViewModel commands to core operations, inspect every effect implementation and shader, and trace media/export behavior. Record unknowns and evidence labels.
+Pin source files, read source project serializers and every migration, inspect schemas and representative valid/invalid fixtures, map ViewModel commands to core operations, inspect every effect implementation and shader, and trace media/export behavior. Record unknowns and evidence labels.
 
-Exit: typed field matrix for format v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
+Exit: typed field matrix for the legacy Android schema v12, editing operation map, effect parameter contracts, archive limits, and representative golden fixtures.
 
 ## Stage 3 - Project foundation
-Create typed Swift project models with unknown-field preservation. Implement secure ZIP read/write for .vexelproj, .knsproj v12 importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
+Create typed Swift project models with unknown-field preservation. Implement secure native `.vexelproj` read/write and Vexel project compatibility importer, semantic validation, migrations, compatibility reports, asset extraction/relinking, atomic save, autosave and recovery.
 
 Exit: source projects import, preserve unknown data, save/reopen and pass structural equivalence tests.
 
@@ -62,4 +62,4 @@ Not investigated; Investigated; Specified; Implemented; Unit-tested; Golden-test
 A feature is not complete because a UI control exists.
 
 ## Priority
-Finish and sign off the redesigned UI first, preserve project data second, editing semantics third, preview correctness fourth, export correctness fifth, and visual polish continuously.
+Preserve and validate project data first; establish one canonical editing state and complete editing semantics next; design and implement the original Vexel UI against stable command/view-model contracts in parallel; then deliver deterministic scene evaluation, preview rendering, effects, media and export. Visual polish continues throughout.

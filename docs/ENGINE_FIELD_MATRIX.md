@@ -1,4 +1,4 @@
-# Kinesis Engine Source Contract and iOS Field Matrix
+# Vexel Engine Port Contract and Legacy Compatibility Field Matrix
 
 ## Audit baseline
 
@@ -15,8 +15,8 @@ Source: `core/model/Project.kt`.
 
 | Source field | Type / meaning | iOS model |
 |---|---|---|
-| `format` | Literal `knsproj` | Import discriminator; never rewrite to `vexelproj` during decode |
-| `formatVersion` | Current writer version 12 | Source version retained for migrations/reporting |
+| `format` | Android source discriminator, recognized only by the Vexel importer | Recognize only inside the Vexel project importer; convert to the canonical Vexel model |
+| `formatVersion` | Legacy source schema version 12; Vexel writes its own versioned schema | Source version retained for migrations/reporting |
 | `generator` | Optional producer string | Preserve |
 | `meta` | Title, description, author, createdAt, modifiedAt | Typed metadata plus unknown-field preservation |
 | `composition` | Canvas, frame rate, duration, background, motion blur, environment | Typed composition |
@@ -25,7 +25,7 @@ Source: `core/model/Project.kt`.
 | `editorView` | Viewport mode and free editor camera | Persisted editor-only state, excluded from rendered output |
 | `layers` | Top-level painter-order layers | Recursive typed layer tree |
 
-The root uses `project.json` inside a ZIP archive. Unknown JSON must be retained by the iOS importer, even when the current Vexel renderer cannot interpret it. The existing generic `ProjectDocument` is only a preservation scaffold and is not the source model.
+The Android source archive uses `project.json`. Vexel's native archive uses `vexel.json`; the old entry name is accepted only by `VexelProjectImporter`. Unknown JSON must be retained by the importer, even when the current Vexel renderer cannot interpret it. The generic `ProjectDocument` remains a preservation scaffold, not the complete source model.
 
 ## 2. Composition contract
 
@@ -140,7 +140,7 @@ The Swift implementation should make sampling pure and deterministic, then test 
 
 ## 7. Effects contract
 
-Sources: `model/Effects.kt`, `model/EffectRegistry.kt`, generated `tools/knsproj/effects.json`.
+Sources: `model/Effects.kt`, `model/EffectRegistry.kt`, the generated Android effect registry.
 
 - The generated registry at the pinned revision is canonical: 73 effect IDs across 13 categories.
 - Each definition carries ID, category, localized names, target, backdrop-read requirement and typed parameter definitions.
@@ -195,7 +195,7 @@ Sources: `scene/SceneEvaluator.kt`, `scene/RenderModel.kt`, `app/render/Composit
 
 The key deterministic boundary is:
 
-`KnsProject + composition time -> FrameScene -> renderer`
+`VexelProject + composition time -> FrameScene -> renderer`
 
 Scene evaluation:
 - Resolves camera and lights, layer active intervals, nested group timing, parent transforms, animation and expressions.
@@ -230,15 +230,20 @@ The Swift validator should use stable issue codes and JSON paths. A project with
 
 ## 12. Archive contract
 
-Source: `format/KnsprojArchive.kt`.
+Source: the Android archive implementation.
 
-ZIP entries:
-- Required `project.json`.
+Android source ZIP entries:
+- Legacy import document: `project.json`.
 - Referenced `assets/<file>`.
 - Optional `thumbnail.jpg`.
 
-Source limits:
-- `project.json`: 64 MiB.
+Vexel native ZIP entries:
+- Required `vexel.json`.
+- Referenced `assets/<file>`.
+- Optional Vexel thumbnail metadata when implemented.
+
+Document size limit:
+- 64 MiB for native and imported project documents.
 - Aggregate uncompressed entry data: 8 GiB.
 - Entry count: 10,000.
 - Unsafe absolute paths, drive/colon paths and parent traversal are rejected.
@@ -266,7 +271,7 @@ These are behavioral specifications to translate into Swift tests, not evidence 
 ## 14. iOS port implementation order
 
 1. **Import model:** complete typed v12 model, exact serializers, unknown-field preservation, all migrations and structured compatibility report.
-2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and .knsproj adapter.
+2. **Archive:** secure streaming ZIP import/export, asset staging, checksum verification, atomic save, .vexelproj format and import-only Android source adapter.
 3. **Validation:** port source semantic validation and stable issue codes.
 4. **Editing store:** immutable project commands, layer-tree operations, timeline operations, coalesced history and selection.
 5. **Animation:** typed animatables, easing, expressions and keyframe operations.
@@ -275,4 +280,4 @@ These are behavioral specifications to translate into Swift tests, not evidence 
 8. **Media/audio:** AVFoundation decode, AVAudioEngine preview, deterministic offline PCM mixer and proxies.
 9. **Export:** shared render path, AVAssetWriter, cancellation, progress and output validation.
 
-The current app has timeline presentation state and source-driven effect controls, but no canonical KnsProject model, importer, command store, renderer or export pipeline. Do not mark those milestones complete based on UI controls.
+The current app has timeline presentation state and source-driven effect controls, but no canonical VexelProject model, importer, command store, renderer or export pipeline. Do not mark those milestones complete based on UI controls.

@@ -40,10 +40,7 @@ struct VexelEffectDefinition: Decodable, Identifiable {
     let params: [VexelEffectParameter]
 }
 
-private struct VexelEffectRegistryDocument: Decodable {
-    let categories: [VexelEffectCategory]
-    let effects: [VexelEffectDefinition]
-}
+private typealias VexelEffectRegistryDocument = VexelCore.VexelEffectCatalog
 
 struct VexelEffectItem: Identifiable {
     let definition: VexelEffectDefinition
@@ -66,17 +63,39 @@ enum VexelEffectCatalog {
             let value = try? JSONDecoder().decode(VexelEffectRegistryDocument.self, from: data)
         else {
             assertionFailure("The canonical effects.json registry is missing or invalid.")
-            return VexelEffectRegistryDocument(categories: [], effects: [])
+            return VexelEffectRegistryDocument(version: 1, categories: [], effects: [])
         }
         return value
     }()
 
-    static let categories: [String] = registry.categories.map(\.en)
-    static let all: [VexelEffectItem] = registry.effects.map(VexelEffectItem.init)
+    static var validationCatalog: VexelCore.VexelEffectCatalog { registry }
+
+    static let categories: [String] = registry.categories.map(\.englishName)
+    static let all: [VexelEffectItem] = registry.effects.map { source in
+        let definition = VexelEffectDefinition(
+            id: source.id,
+            category: source.category,
+            pt: source.portugueseName ?? source.englishName,
+            en: source.englishName,
+            target: source.target,
+            needsBackdrop: source.needsBackdrop,
+            params: source.parameters.map { parameter in
+                VexelEffectParameter(
+                    name: parameter.name,
+                    type: parameter.type.rawValue,
+                    defaultValue: parameter.defaultValue ?? .null,
+                    min: parameter.minimum,
+                    max: parameter.maximum,
+                    choices: parameter.choices
+                )
+            }
+        )
+        return VexelEffectItem(definition: definition)
+    }
     static let effectCount = all.count
 
     static func categoryName(for id: String) -> String {
-        registry.categories.first(where: { $0.id == id })?.en ?? id
+        registry.categories.first(where: { $0.id == id })?.englishName ?? id
     }
 
     static func effects(in category: String) -> [VexelEffectItem] {

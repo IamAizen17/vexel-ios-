@@ -1,7 +1,7 @@
 # Vexel iOS Architecture
 
 ## Product contract
-Native iPhone and iPad motion-graphics editor. Target full functional parity with the accessible Kinesis Editor reference while introducing an original Vexel interface. Parity means matching project semantics and observable editing/rendering behavior, not copying Android UI.
+Native iPhone and iPad motion-graphics editor. Target full functional parity with the Android reference editor while introducing an original Vexel interface. Parity means matching project semantics and observable editing/rendering behavior, not copying Android UI.
 
 ## Principles
 - One project model and editing engine across iPhone and iPad.
@@ -16,7 +16,7 @@ Native iPhone and iPad motion-graphics editor. Target full functional parity wit
 - App: SwiftUI lifecycle, navigation and document scenes.
 - DesignSystem: tokens, controls and adaptive layout primitives.
 - Editor: workspace, timeline, inspector, media browser and gestures.
-- Project: Codable model, Vexel archive, KNS importer, validation and migrations.
+- Project: Codable Vexel model, native Vexel archive, Vexel project compatibility importer, validation and migrations.
 - Engine: animation, timeline math, expressions, scene evaluation and undo/redo.
 - Renderer: Metal render graph, effects, geometry, text and resource management.
 - Media: AVFoundation video, AVAudioEngine preview/mixing, image processing and speech.

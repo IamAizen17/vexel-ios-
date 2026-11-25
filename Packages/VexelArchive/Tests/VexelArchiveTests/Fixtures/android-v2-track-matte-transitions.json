@@ -1,0 +1,12 @@
+{
+  "format": "knsproj",
+  "formatVersion": 2,
+  "generator": "knsproj skill examples",
+  "meta": {"title": "Track matte and transitions"},
+  "composition": {"width": 1080, "height": 1080, "fps": 30, "duration": 5, "background": "#101522"},
+  "layers": [
+    {"id": "wipe", "type": "shape", "start": 0, "duration": 4, "transform": {"position": {"keyframes": [{"time": 0.2, "value": [-1000, -250], "easing": "easeOutCubic"}, {"time": 1.6, "value": [0, -250]}]}}, "shape": {"kind": "rectangle", "size": [1000, 260], "fill": {"color": "#FFFFFF"}}},
+    {"id": "title", "type": "text", "start": 0, "duration": 4, "transform": {"position": [0, -250]}, "text": {"content": "REVELADO", "font": {"family": "sans-serif", "weight": 800}, "fontSize": 190, "color": "#FFC857"}, "matte": {"layer": "wipe", "mode": "alpha"}},
+    {"id": "card", "type": "shape", "start": 0.3, "duration": 4.4, "shape": {"kind": "rectangle", "size": [700, 260], "fill": {"color": "#4C8DFF"}, "roundness": 50}, "transitionIn": {"type": "slideUp", "duration": 0.6, "easing": "easeOutCubic", "distance": 300}, "transitionOut": {"type": "fade", "duration": 0.5}}
+  ]
+}

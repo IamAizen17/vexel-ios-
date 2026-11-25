@@ -1,0 +1,78 @@
+name: iOS Continuous Integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/modular-engine-architecture
+    paths:
+      - .github/workflows/ios-ci.yml
+      - project.yml
+      - App/VexelNavigation.swift
+      - App/VexelEditorWorkspace.swift
+      - App/VexelToolPanels.swift
+      - App/VexelAdvancedPanels.swift
+      - App/VexelMotion.swift
+      - AppUITests/**
+      - Packages/VexelCore/Sources/VexelCore/**
+      - Packages/VexelCore/Tests/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Test packages and build iOS app
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Verify Apple toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Verify source effect registry
+        run: python3 scripts/verify_effect_registry.py
+
+      - name: Verify engine and shader port coverage
+        run: python3 scripts/verify_engine_port_status.py
+
+      - name: Build and test Swift packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package in Packages/*; do
+            if [ -f "$package/Package.swift" ]; then
+              echo "::group::Build $package"
+              swift build --package-path "$package"
+              if [ -d "$package/Tests" ]; then
+                swift test --package-path "$package"
+              fi
+              echo "::endgroup::"
+            fi
+          done
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run app tests and build iOS simulator target
+        run: |
+          xcodebuild test \
+            -project Vexel.xcodeproj \
+            -scheme Vexel \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            CODE_SIGNING_ALLOWED=NO

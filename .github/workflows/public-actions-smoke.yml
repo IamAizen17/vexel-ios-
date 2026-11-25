@@ -1,0 +1,65 @@
+name: Public Actions Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-actions-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: Verify public GitHub-hosted Actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify runner and repository workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -d .github/workflows
+          commit="$(git rev-parse HEAD)"
+          branch="${GITHUB_REF_NAME}"
+          runner="${RUNNER_OS} / ${RUNNER_ARCH}"
+          {
+            echo "## Public Actions smoke test"
+            echo ""
+            echo "- Result: passed"
+            echo "- Repository: ${GITHUB_REPOSITORY}"
+            echo "- Ref: ${branch}"
+            echo "- Commit: ${commit}"
+            echo "- Runner: ${runner}"
+            echo "- Workspace checkout: verified"
+          } >> "${GITHUB_STEP_SUMMARY}"
+          printf 'Public Actions smoke test passed on %s at %s\n' "${runner}" "${commit}"
+
+  macos-smoke-test:
+    name: Verify public macOS Actions runner
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify Apple build toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          swift --version
+          {
+            echo ""
+            echo "## macOS runner"
+            echo ""
+            echo "- Result: passed"
+            echo "- Runner: ${RUNNER_OS} / ${RUNNER_ARCH}"
+            echo "- Xcode: available"
+            echo "- Swift: available"
+          } >> "${GITHUB_STEP_SUMMARY}"

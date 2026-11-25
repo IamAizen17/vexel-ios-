@@ -1,4 +1,4 @@
-# Source engine audit
+# Vexel engine source audit
 
 ## Audit baseline
 
@@ -25,20 +25,20 @@ The core targets Kotlin/JVM/Java 17. It is not a Kotlin Multiplatform module. A 
 
 Observed in core/model/Project.kt:
 
-- Format ID: knsproj; current format version: 12.
+- The Android source format uses a legacy discriminator and schema version 12. Vexel recognizes it only at the import boundary and immediately converts the document to native Vexel format.
 - Root document contains generator, metadata, composition, assets, timeline markers, editor viewport state and ordered top-level layers.
 - Composition includes dimensions, floating-point FPS, duration, background, motion-blur settings and 3D environment.
 - Assets are typed as image, video, audio, model or font and carry a relative archive path plus optional media metadata and SHA-256.
 - Layer types include text, shape, image, video, audio, group, 3D object, 3D model, camera, light and null.
 - Layer data includes timing, visibility/lock, sibling parent, blend mode, 2D/3D transforms, effects, masks, matte, transitions, type-specific content and nested children.
 
-Observed in core/format/KnsprojJson.kt:
+Observed in the Android project JSON serializer:
 
 - The reader checks the format ID and integer version before typed decoding.
 - Projects newer than version 12 and versions below 1 are rejected; older versions are migrated one version at a time.
 - The serializer ignores unknown JSON keys and omits null/default fields on output. This means a future iOS importer should preserve unknown fields separately if round-trip forward compatibility is a product requirement.
 
-Migration history observed in Migrations inside core/format/KnsprojJson.kt:
+Migration history observed in the Android project serializer's migration table:
 
 - v1 to v2 expands the old colorAdjust effect into hueShift, brightnessContrast and saturation entries while preserving the original parameter/keyframe payloads.
 - v2 to v3 and v3 to v4 add optional expression/text animator and null/camera fields.
@@ -47,7 +47,7 @@ Migration history observed in Migrations inside core/format/KnsprojJson.kt:
 - v7 to v8 adds markers and audio/video EQ; v8 to v9 adds editorView, TimeSlice and cutout brush strokes.
 - v9 to v10 and v10 to v11 add effect entries; v11 to v12 renames the media roto recipe to cutout while preserving legacy read compatibility.
 
-Observed in core/format/KnsprojArchive.kt:
+Observed in the Android archive implementation:
 
 - ZIP container with required project.json, assets/** and optional thumbnail.jpg.
 - Limits: 64 MiB project JSON, 8 GiB aggregate uncompressed input and 10,000 entries.
@@ -116,7 +116,7 @@ Observed in app/render/Compositor.kt:
 
 ## Effects contract
 
-Observed in core/model/EffectRegistry.kt and generated tools/knsproj/effects.json:
+Observed in core/model/EffectRegistry.kt and the generated Android effect registry:
 
 - 73 effect IDs, 13 categories, one canonical registry.
 - Registry entries define stable ID, localized names, category, target, backdrop requirements, typed parameters, defaults, valid ranges, slider ranges, units, choices and conditional visibility.
@@ -152,7 +152,7 @@ Observed in core/plugin/**, app/plugins/** and native/**:
 The existing SwiftUI port has all 73 effect IDs with matching English names and categories. The main navigation areas and major tool surfaces exist, but this is not yet a one-to-one interaction port:
 
 - Reference onboarding has four pages, skip, language selection (System/English/Portuguese) and theme selection. iOS now represents all four pages, skip and the preference controls; localization is not yet implemented.
-- Reference home includes a two-column project grid, import/export, duplicate/delete, recovery and import warnings/errors, presets, settings and plugin installation. iOS home currently uses an in-memory project list and its import path is a placeholder.
+- Reference home includes a two-column project grid, import/export, duplicate/delete, recovery and import warnings/errors, presets, settings and plugin installation. iOS now has a persisted project index, project asset directories, duplicate/delete, ZIP import/export and an import compatibility review sheet; recovery snapshots and plugin installation remain incomplete.
 - Reference settings include language, appearance, preview resolution/3D quality, proxy usage, storage safety/mirroring/snapshots, fonts, third-party licenses, app version and project format. iOS now represents language, appearance, preview scale/quality, proxies, auto-keyframe, layer names, mirroring and snapshots; font management and a full license browser remain missing, and several preferences are not engine-bound.
 - Reference timeline includes gesture-driven navigation, nested group rows, duration-aware clips, pinch zoom, playhead auto-follow, marker flags, frame snapping, clip move/trim handles, keyframe diamonds, PCM waveform, visibility/lock and layer-name display controls. Vexel now has a scrollable native timeline with zoom, seeking, marker flags, nested group-row support, clip move/trim gestures, visibility/lock and keyframe affordances. PCM waveform remains pending the media decoder; timeline edits currently mutate local project state rather than the canonical engine.
 - Reference editor connects selection, multi-selection, undo/redo, split/duplicate, keyframes, transforms, viewport modes, real camera, layer tree and export to a ViewModel. iOS now has a source-aligned property tab structure and timeline/effect presentation state, but inspector and editing values are still local presentation state. A real-camera settings page and saved-versions empty state have since been added, but capture/review and snapshot restore are still missing.
@@ -162,10 +162,10 @@ The existing SwiftUI port has all 73 effect IDs with matching English names and 
 ## Known source discrepancies / audit cautions
 
 - Repository prose mentions a 69-effect library in at least one place, but the generated registry at the pinned commit contains 73. Treat the generated registry and its tests as canonical.
-- The current iOS ProjectDocument is a generic JSON container with a Vexel-specific version 1 validation contract. It is not yet a typed model of KnsProject v12 and must not be treated as a completed .knsproj importer.
+- The current iOS ProjectDocument remains a lossless JSON envelope with a Vexel v2 migration contract, supplemented by typed native schema models. Semantic validation covers composition limits, asset paths/references, duplicate IDs, layer hierarchy, mattes, timing, media ranges, cutout data, editor-view bounds, source scene limits and keyframe ordering. App import acceptance additionally validates known effect parameter types, values and ranges against the canonical effect registry. Expression syntax validation and full source semantic parity remain incomplete.
 - A new source field matrix now records root/composition/layer/content contracts, local-time rules, transform semantics, animation/easing, effect serialization, expression sandbox limits, validator issue families, archive limits and source tests to port.
-- The current Swift validator is materially less strict than the source semantic validator. Do not rely on it for untrusted project import.
-- No source build, Android runtime, iOS build, or device comparison was executed during this source audit.
+- The Swift validator still does not implement every source rule. In particular, expression syntax checking is unavailable until a constrained expression engine exists, and several type-specific animator/camera/light/effect-target rules remain to be audited. Import processing applies structural/semantic validation before review and effect-aware validation before acceptance; keep the remaining gaps explicit.
+- The source Android project/runtime was not built or executed as part of this audit. The iOS repository has since passed GitHub Actions package tests and an iOS Simulator build on the commits recorded in task.md; physical-device behavior remains unverified.
 
 ## Next audit targets
 
