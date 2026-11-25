@@ -905,7 +905,11 @@ struct VexelEditorWorkspace: View {
         }
     }
 
-    private func addLayer(named name: String, kind: VexelTimelineTrack.Kind) {
+    private func addLayer(
+        named name: String,
+        kind: VexelTimelineTrack.Kind,
+        shapeKind: String = "rectangle"
+    ) {
         let resolvedName = uniqueLayerName(name)
         let id = UUID().uuidString
         let type: VexelLayerType
@@ -930,7 +934,7 @@ struct VexelEditorWorkspace: View {
         case .visual:
             type = .shape
             content = .object([
-                "kind": .string("rectangle"),
+                "kind": .string(shapeKind),
                 "size": .array([.number(400), .number(400)]),
                 "fill": .object(["color": .string("#55CDBE")])
             ])
@@ -1294,7 +1298,7 @@ struct VexelEditorWorkspace: View {
                 toggleLayerProperty(at: action, prefix: "toggle-lock-id:", property: "locked")
             } else if action.hasPrefix("add-shape:") {
                 let shapeName = String(action.dropFirst("add-shape:".count))
-                addLayer(named: shapeName + " Layer", kind: .visual)
+                addLayer(named: shapeName + " Layer", kind: .visual, shapeKind: shapeName.lowercased())
                 selectedTool = nil
             } else if action.hasPrefix("effect:") {
                 guard let selectedTrackID else {

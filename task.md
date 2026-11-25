@@ -203,6 +203,8 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Remove nonfunctional audio mixer/EQ placeholder sliders and clearly identify audio processing as planned.
 - [x] Route audio import through the system document picker with audio-only content types, separate from the image/video Photos picker.
 - [x] Bind layer-panel selection, visibility and lock controls to stable timeline track IDs and canonical editing-store commands; expose unavailable model/audio processing capabilities as disabled or read-only.
+- [x] Render the selected 2D rectangle, ellipse, polygon, star and line primitive types in the live scene preview; disable the path tool until path editing is implemented.
+- [x] Add UI regression coverage for layer-panel visibility and lock commits.
 - [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
 
 **P1.3 Animation and deterministic scene model**

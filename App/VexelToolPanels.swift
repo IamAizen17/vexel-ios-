@@ -174,11 +174,14 @@ struct VexelToolSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             VexelSectionLabel(title: "2D primitives")
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(["Rectangle", "Ellipse", "Polygon", "Star", "Line", "Path"], id: \.self) { shape in
+                ForEach(["Rectangle", "Ellipse", "Polygon", "Star", "Line"], id: \.self) { shape in
                     toolTile(shape, symbol: shapeSymbol(shape)) {
                         onAction("add-shape:\(shape)")
                     }
                 }
+                toolTile("Path · Soon", symbol: "scribble") {}
+                    .disabled(true)
+                    .opacity(0.45)
             }
             VexelSectionLabel(title: "3D primitives")
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {

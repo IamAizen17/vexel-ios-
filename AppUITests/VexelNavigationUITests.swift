@@ -273,4 +273,29 @@ final class VexelNavigationUITests: XCTestCase {
     }
 
 
+    func testLayerPanelVisibilityAndLockControlsCommitToTheProject() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+
+        app.buttons["editor.tool.layers"].tap()
+        let visibility = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "layers.visibility.")).firstMatch
+        XCTAssertTrue(visibility.waitForExistence(timeout: 5))
+        visibility.tap()
+        XCTAssertTrue(app.buttons["Show Rectangle Layer"].waitForExistence(timeout: 5))
+
+        let lock = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "layers.lock.")).firstMatch
+        XCTAssertTrue(lock.waitForExistence(timeout: 5))
+        lock.tap()
+        XCTAssertTrue(app.buttons["Unlock Rectangle Layer"].waitForExistence(timeout: 5))
+    }
+
+
 }

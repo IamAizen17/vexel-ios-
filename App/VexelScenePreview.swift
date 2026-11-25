@@ -167,6 +167,10 @@ struct VexelScenePreview: View {
                 switch layer.shapeKind?.lowercased() {
                 case "ellipse", "circle", "oval":
                     path = Path(ellipseIn: rect)
+                case "polygon":
+                    path = Self.regularPolygon(in: rect, sides: 6)
+                case "star":
+                    path = Self.star(in: rect, points: 5, innerRatio: 0.44)
                 case "line":
                     var line = Path()
                     line.move(to: CGPoint(x: rect.minX, y: 0))
@@ -181,6 +185,40 @@ struct VexelScenePreview: View {
                     layerContext.fill(path, with: .color(color))
                 }
             }
+        }
+    }
+
+    private static func regularPolygon(in rect: CGRect, sides: Int) -> Path {
+        let count = max(3, sides)
+        return Path { path in
+            for index in 0..<count {
+                let angle = CGFloat(index) * 2 * .pi / CGFloat(count) - .pi / 2
+                let point = CGPoint(
+                    x: rect.midX + cos(angle) * rect.width / 2,
+                    y: rect.midY + sin(angle) * rect.height / 2
+                )
+                if index == 0 { path.move(to: point) }
+                else { path.addLine(to: point) }
+            }
+            path.closeSubpath()
+        }
+    }
+
+    private static func star(in rect: CGRect, points: Int, innerRatio: CGFloat) -> Path {
+        let count = max(3, points) * 2
+        return Path { path in
+            for index in 0..<count {
+                let outer = index.isMultiple(of: 2)
+                let radius = (outer ? 1.0 : innerRatio)
+                let angle = CGFloat(index) * .pi / CGFloat(max(3, points)) - .pi / 2
+                let point = CGPoint(
+                    x: rect.midX + cos(angle) * rect.width / 2 * radius,
+                    y: rect.midY + sin(angle) * rect.height / 2 * radius
+                )
+                if index == 0 { path.move(to: point) }
+                else { path.addLine(to: point) }
+            }
+            path.closeSubpath()
         }
     }
 
