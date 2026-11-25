@@ -175,7 +175,7 @@ struct VexelToolSheet: View {
                 Label("Imported assets will be listed in the project media bin.", systemImage: "info.circle")
                     .font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
             }
-            VexelActionButton(title: "Open cutout brush", systemImage: "scribble.variable") { advancedPage = .cutout }
+            VexelActionButton(title: "Cutout brush · Coming soon", systemImage: "scribble.variable") {}.disabled(true)
             Spacer()
         }
     }
