@@ -257,4 +257,20 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertEqual(clip.value as? String, "Selected")
     }
 
+    func testPresetLibrarySelectionPersistsCompositionDefaults() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.tab.presets"].tap()
+        app.buttons["preset.high-frame-rate"].tap()
+        XCTAssertTrue(app.staticTexts["High frame rate"].waitForExistence(timeout: 10))
+        app.buttons["chevron.left"].tap()
+        app.buttons["home.createProject"].tap()
+
+        XCTAssertEqual(Int(String((app.textFields["newProject.width"].value as? String ?? "").filter { $0.isNumber })), 1920)
+        XCTAssertEqual(Int(String((app.textFields["newProject.height"].value as? String ?? "").filter { $0.isNumber })), 1080)
+        XCTAssertTrue(app.staticTexts["60 frames per second"].exists)
+    }
+
+
 }

@@ -188,8 +188,8 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
 - [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
 - [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.
-- [x] Persist last-used new-composition dimensions, frame rate and duration locally; restore them in the next creation flow and provide an explicit reset to defaults.
-- [x] Add UI regression coverage for restoring a previously created composition preset and resetting the defaults.
+- [x] Persist last-used new-composition dimensions, frame rate and duration locally from both the new-composition flow and direct preset-library creation; restore them in the next creation flow and provide an explicit reset to defaults.
+- [x] Add UI regression coverage for restoring a previously created composition preset, direct preset-library persistence and resetting the defaults.
 - [x] Implement the primary editor workspace with preview, transport, layer timeline, contextual tools and property editing; continue refinement and device validation.
 - [x] Implement a dedicated compact-height iPhone landscape workspace with a side-by-side preview/transport and timeline/tool column.
 - [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on simulators and physical devices.
@@ -202,7 +202,7 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Mark unsupported 3D model/font import, voiceover capture and cutout processing as unavailable instead of exposing nonfunctional actions.
 - [x] Remove nonfunctional audio mixer/EQ placeholder sliders and clearly identify audio processing as planned.
 - [x] Route audio import through the system document picker with audio-only content types, separate from the image/video Photos picker.
-- [ ] Bind every implemented control to the canonical store and expose incomplete capabilities honestly.
+- [x] Bind layer-panel selection, visibility and lock controls to stable timeline track IDs and canonical editing-store commands; expose unavailable model/audio processing capabilities as disabled or read-only.
 - [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
 
 **P1.3 Animation and deterministic scene model**

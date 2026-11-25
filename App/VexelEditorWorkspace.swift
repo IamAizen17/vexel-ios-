@@ -44,7 +44,6 @@ struct VexelEditorWorkspace: View {
 
     @State private var selectedTool: VexelEditorTool?
     @State private var activeDockTool: VexelEditorTool?
-    @State private var selectedLayer = 0
     @State private var selectedTab = "Transform"
     @State private var showExport = false
     @State private var showCompositionSettings = false
@@ -362,7 +361,7 @@ struct VexelEditorWorkspace: View {
         .sheet(item: $selectedTool) { tool in
             VexelToolSheet(
                 tool: tool,
-                layerNames: $layerNames,
+                tracks: timelineDraftTracks,
                 selectedLayerName: selectedTimelineTrack?.name,
                 selectedLayerKind: selectedTimelineTrack?.kind,
                 onAction: { action in handleToolAction(action, for: tool) },
@@ -1131,17 +1130,23 @@ struct VexelEditorWorkspace: View {
         performEditingCommand(.removeEffect(layerID: sourceID, type: effectID))
     }
 
+    private func timelineTrack(with id: UUID, in tracks: [VexelTimelineTrack]) -> VexelTimelineTrack? {
+        for track in tracks {
+            if track.id == id { return track }
+            if let nested = timelineTrack(with: id, in: track.children) { return nested }
+        }
+        return nil
+    }
+
     private func selectLayer(at action: String, prefix: String) {
-        guard let index = Int(action.dropFirst(prefix.count)),
-              project.timelineTracks.indices.contains(index) else { return }
-        selectedLayer = index
-        selectedTrackID = project.timelineTracks[index].id
+        guard let id = UUID(uuidString: String(action.dropFirst(prefix.count))),
+              timelineTrack(with: id, in: project.timelineTracks) != nil else { return }
+        selectedTrackID = id
     }
 
     private func toggleLayerProperty(at action: String, prefix: String, property: String) {
-        guard let index = Int(action.dropFirst(prefix.count)),
-              project.timelineTracks.indices.contains(index) else { return }
-        let track = project.timelineTracks[index]
+        guard let id = UUID(uuidString: String(action.dropFirst(prefix.count))),
+              let track = timelineTrack(with: id, in: project.timelineTracks) else { return }
         let sourceID = track.sourceID ?? track.id.uuidString
         if property == "visible" {
             performEditingCommand(.setLayerVisibility(id: sourceID, visible: !track.visible))
@@ -1280,12 +1285,12 @@ struct VexelEditorWorkspace: View {
         case "shortcut:mask", "shortcut:track-matte", "shortcut:transitions", "shortcut:text-animators":
             showingNotice = "This operation is disabled until its editing and rendering implementation is available."
         default:
-            if action.hasPrefix("select-layer:") {
-                selectLayer(at: action, prefix: "select-layer:")
-            } else if action.hasPrefix("toggle-visibility:") {
-                toggleLayerProperty(at: action, prefix: "toggle-visibility:", property: "visible")
-            } else if action.hasPrefix("toggle-lock:") {
-                toggleLayerProperty(at: action, prefix: "toggle-lock:", property: "locked")
+            if action.hasPrefix("select-layer-id:") {
+                selectLayer(at: action, prefix: "select-layer-id:")
+            } else if action.hasPrefix("toggle-visibility-id:") {
+                toggleLayerProperty(at: action, prefix: "toggle-visibility-id:", property: "visible")
+            } else if action.hasPrefix("toggle-lock-id:") {
+                toggleLayerProperty(at: action, prefix: "toggle-lock-id:", property: "locked")
             } else if action.hasPrefix("add-shape:") {
                 let shapeName = String(action.dropFirst("add-shape:".count))
                 addLayer(named: shapeName + " Layer", kind: .visual)

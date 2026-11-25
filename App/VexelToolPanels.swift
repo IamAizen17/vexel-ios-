@@ -21,7 +21,7 @@ private enum VexelAdvancedEditorPage: Identifiable {
 
 struct VexelToolSheet: View {
     let tool: VexelEditorTool
-    @Binding var layerNames: [String]
+    let tracks: [VexelTimelineTrack]
     let selectedLayerName: String?
     let selectedLayerKind: VexelTimelineTrack.Kind?
     let onAction: (String) -> Void
@@ -82,37 +82,83 @@ struct VexelToolSheet: View {
         }
     }
 
+    private var flattenedTracks: [VexelTimelineTrack] {
+        func flatten(_ values: [VexelTimelineTrack]) -> [VexelTimelineTrack] {
+            values.flatMap { [$0] + flatten($0.children) }
+        }
+        return flatten(tracks)
+    }
+
     private var layersPage: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                VexelSectionLabel(title: "Composition layers", trailing: "\(layerNames.count) TOTAL")
+                VexelSectionLabel(title: "Composition layers", trailing: "\(flattenedTracks.count) TOTAL")
                 Spacer()
-                Button { onAction("add-layer") } label: { Image(systemName: "plus.circle.fill").foregroundStyle(VexelPalette.accent).font(.system(size: 21)) }
+                Button { onAction("add-layer") } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(VexelPalette.accent)
+                        .font(.system(size: 21))
+                }
+                .accessibilityLabel("Add layer")
             }
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(Array(layerNames.enumerated()), id: \.offset) { index, name in
-                        HStack(spacing: 10) {
-                            Image(systemName: index == 2 ? "waveform" : (index == 0 ? "textformat" : "square"))
-                                .foregroundStyle(index == 2 ? VexelPalette.pink : VexelPalette.accent)
-                                .frame(width: 32, height: 32).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 8))
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(name).font(.system(size: 12, weight: .semibold)).foregroundStyle(VexelPalette.text)
-                                Text(index == 2 ? "Audio · Stereo" : "2D Layer · Visible").font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
+            if flattenedTracks.isEmpty {
+                VexelEmptyState(
+                    symbol: "square.3.layers.3d",
+                    title: "No layers yet",
+                    detail: "Add a shape, text layer or media asset to begin."
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(flattenedTracks) { track in
+                            HStack(spacing: 8) {
+                                Button {
+                                    onAction("select-layer-id:\(track.id.uuidString)")
+                                } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: track.kind == .audio ? "waveform" : (track.kind == .text ? "textformat" : (track.isGroup ? "folder" : (track.kind == .rendered3D ? "cube" : "square"))))
+                                            .foregroundStyle(track.kind == .audio ? VexelPalette.pink : VexelPalette.accent)
+                                            .frame(width: 32, height: 32)
+                                            .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 8))
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(track.name)
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundStyle(VexelPalette.text)
+                                                .lineLimit(1)
+                                            Text("\(track.kind.rawValue.uppercased()) · \(track.visible ? "VISIBLE" : "HIDDEN")")
+                                                .font(.system(size: 8, weight: .medium, design: .monospaced))
+                                                .foregroundStyle(VexelPalette.secondary)
+                                        }
+                                        Spacer(minLength: 0)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("layers.select.\(track.id.uuidString)")
+                                Button {
+                                    onAction("toggle-visibility-id:\(track.id.uuidString)")
+                                } label: {
+                                    Image(systemName: track.visible ? "eye" : "eye.slash")
+                                        .foregroundStyle(track.visible ? VexelPalette.secondary : VexelPalette.amber)
+                                        .frame(width: 30, height: 36)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(track.visible ? "Hide \(track.name)" : "Show \(track.name)")
+                                .accessibilityIdentifier("layers.visibility.\(track.id.uuidString)")
+                                Button {
+                                    onAction("toggle-lock-id:\(track.id.uuidString)")
+                                } label: {
+                                    Image(systemName: track.locked ? "lock.fill" : "lock.open")
+                                        .foregroundStyle(track.locked ? VexelPalette.amber : VexelPalette.secondary)
+                                        .frame(width: 30, height: 36)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(track.locked ? "Unlock \(track.name)" : "Lock \(track.name)")
+                                .accessibilityIdentifier("layers.lock.\(track.id.uuidString)")
                             }
-                            Spacer()
-                            Button { onAction("toggle-visibility:\(index)") } label: {
-                                Image(systemName: "eye").foregroundStyle(VexelPalette.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            Button { onAction("toggle-lock:\(index)") } label: {
-                                Image(systemName: "lock.open").foregroundStyle(VexelPalette.secondary)
-                            }
-                            .buttonStyle(.plain)
+                            .padding(9)
+                            .background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture { onAction("select-layer:\(index)") }
-                        .padding(10).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
                     }
                 }
             }
@@ -185,7 +231,7 @@ struct VexelToolSheet: View {
             VexelSectionLabel(title: "3D scene objects")
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(["Cube", "Sphere", "Cylinder", "Cone", "Plane", "Torus", "Text 3D", "Null 3D", "Camera", "Environment"], id: \.self) { name in
-                    toolTile(name, symbol: "cube.transparent") { layerNames.insert(name, at: 0) }
+                    toolTile(name, symbol: "cube.transparent") {}.disabled(true)
                 }
             }
             Spacer()

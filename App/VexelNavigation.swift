@@ -602,6 +602,12 @@ struct VexelHomeView: View {
                     ForEach(ProjectPreset.all) { preset in
                         Button {
                             let project = VexelProjectItem(title: preset.name, width: preset.width, height: preset.height, fps: preset.fps, duration: preset.duration)
+                            VexelCompositionDefaults(
+                                width: preset.width,
+                                height: preset.height,
+                                fps: preset.fps,
+                                duration: preset.duration
+                            ).save()
                             projects.insert(project, at: 0)
                             onOpen(project)
                         } label: {
@@ -786,67 +792,6 @@ struct ProjectPreset: Identifiable {
         ProjectPreset(name: "Cinematic 4K", width: 3840, height: 2160, fps: 24, duration: 30),
         ProjectPreset(name: "High frame rate", width: 1920, height: 1080, fps: 60, duration: 15)
     ]
-}
-
-private struct NewProjectSheet: View {
-    let onCreate: (VexelProjectItem) -> Void
-    @Environment(\.dismiss) private var dismiss
-    @State private var title = "Untitled Composition"
-    @State private var width = 1080.0
-    @State private var height = 1920.0
-    @State private var fps = 30.0
-    @State private var duration = 10.0
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Composition") {
-                    TextField("Project name", text: $title).accessibilityIdentifier("newProject.name")
-                    HStack {
-                        numericField("Width", value: $width)
-                        numericField("Height", value: $height)
-                    }
-                    Picker("Frame rate", selection: $fps) {
-                        ForEach([24.0, 25.0, 30.0, 50.0, 60.0, 120.0], id: \.self) { Text("\(Int($0)) FPS").tag($0) }
-                    }
-                    HStack {
-                        Text("Duration")
-                        Spacer()
-                        Text("\(Int(duration)) sec").foregroundStyle(.secondary)
-                    }
-                    Slider(value: $duration, in: 1...120, step: 1)
-                }
-                Section("Canvas presets") {
-                    ForEach(ProjectPreset.all) { preset in
-                        Button(preset.name) {
-                            width = Double(preset.width); height = Double(preset.height); fps = Double(preset.fps); duration = preset.duration
-                        }
-                        .accessibilityIdentifier("preset.\(preset.name.lowercased().replacingOccurrences(of: " ", with: "-"))")
-                    }
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(VexelPalette.background)
-            .navigationTitle("New composition")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
-                        onCreate(VexelProjectItem(title: title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Composition" : title, width: Int(width), height: Int(height), fps: Int(fps), duration: duration))
-                    }
-                    .accessibilityIdentifier("newProject.create")
-                }
-            }
-        }
-    }
-
-    private func numericField(_ label: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
-            TextField(label, value: value, format: .number).keyboardType(.numberPad)
-        }
-    }
 }
 
 struct VexelSettingsPage: View {
