@@ -18,6 +18,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
     public let storage: VexelPropertyStorage
     public let valueKind: VexelPropertyValueKind
     public let defaultValue: JSONValue
+    public let storageKey: String
     public let minimum: Double?
     public let maximum: Double?
     public let supportedLayerTypes: [VexelLayerType]
@@ -28,6 +29,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         storage: VexelPropertyStorage,
         valueKind: VexelPropertyValueKind,
         defaultValue: JSONValue,
+        storageKey: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil,
         supportedLayerTypes: [VexelLayerType]
@@ -37,6 +39,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         self.storage = storage
         self.valueKind = valueKind
         self.defaultValue = defaultValue
+        self.storageKey = storageKey ?? id
         self.minimum = minimum
         self.maximum = maximum
         self.supportedLayerTypes = supportedLayerTypes
@@ -77,9 +80,9 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         guard supports(layer) else { return nil }
         switch storage {
         case .transform(let is3D):
-            return (is3D ? layer.transform3D : layer.transform)?.properties[id]
+            return (is3D ? layer.transform3D : layer.transform)?.properties[storageKey]
         case .content:
-            return VexelObjectFields(layer.content?.objectValue ?? [:]).animatable(id)
+            return VexelObjectFields(layer.content?.objectValue ?? [:]).animatable(storageKey)
         case .contentObject(let parent, let key):
             return VexelObjectFields(layer.content?.objectValue ?? [:]).object(parent)?.animatable(key)
         }
@@ -102,9 +105,9 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
             if case .animated(var animation)? = fields.animatable(id) {
                 animation.value = value
-                fields.setAnimatable(.animated(animation), for: id)
+                fields.setAnimatable(.animated(animation), for: storageKey)
             } else {
-                fields.setAnimatable(.constant(value), for: id)
+                fields.setAnimatable(.constant(value), for: storageKey)
             }
             layer.content = .object(fields.values)
         case .contentObject(let parent, let key):
@@ -170,7 +173,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
             if is3D { layer.transform3D = transform } else { layer.transform = transform }
         case .content:
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
-            fields.setAnimatable(value, for: id)
+            fields.setAnimatable(value, for: storageKey)
             layer.content = .object(fields.values)
         case .contentObject(let parent, let key):
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
@@ -185,11 +188,11 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         switch storage {
         case .transform(let is3D):
             var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
-            transform.properties.removeValue(forKey: id)
+            transform.properties.removeValue(forKey: storageKey)
             if is3D { layer.transform3D = transform } else { layer.transform = transform }
         case .content:
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
-            fields.setAnimatable(nil, for: id)
+            fields.setAnimatable(nil, for: storageKey)
             layer.content = .object(fields.values)
         case .contentObject(let parent, let key):
             var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
@@ -219,22 +222,22 @@ public enum VexelPropertyCatalog {
         .init(id: "scale", title: "Scale", storage: .transform(is3D: false), valueKind: .vector(2), defaultValue: .array([.number(1), .number(1)]), minimum: -100, maximum: 100, supportedLayerTypes: visual2D),
         .init(id: "rotation", title: "Rotation", storage: .transform(is3D: false), valueKind: .scalar, defaultValue: .number(0), minimum: -360000, maximum: 360000, supportedLayerTypes: visual2D),
         .init(id: "opacity", title: "Opacity", storage: .transform(is3D: false), valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 1, supportedLayerTypes: visual2D),
-        .init(id: "position3D", title: "Position", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: visual3D),
-        .init(id: "anchor3D", title: "Anchor", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: visual3D),
-        .init(id: "scale3D", title: "Scale", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(1), .number(1), .number(1)]), minimum: -100, maximum: 100, supportedLayerTypes: visual3D),
-        .init(id: "rotation3D", title: "Rotation", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), minimum: -360000, maximum: 360000, supportedLayerTypes: visual3D),
-        .init(id: "opacity3D", title: "Opacity", storage: .transform(is3D: true), valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 1, supportedLayerTypes: visual3D),
-        .init(id: "text.fontSize", title: "Font size", storage: .content, valueKind: .scalar, defaultValue: .number(96), minimum: 1, maximum: 2048, supportedLayerTypes: [.text]),
-        .init(id: "text.letterSpacing", title: "Letter spacing", storage: .content, valueKind: .scalar, defaultValue: .number(0), minimum: -10, maximum: 10, supportedLayerTypes: [.text]),
-        .init(id: "text.color", title: "Text color", storage: .content, valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.text]),
-        .init(id: "shape.size", title: "Size", storage: .content, valueKind: .vector(2), defaultValue: .array([.number(100), .number(100)]), minimum: 0, maximum: 8192, supportedLayerTypes: [.shape]),
-        .init(id: "shape.roundness", title: "Roundness", storage: .content, valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 4096, supportedLayerTypes: [.shape]),
-        .init(id: "shape.sides", title: "Sides", storage: .content, valueKind: .scalar, defaultValue: .number(5), minimum: 3, maximum: 128, supportedLayerTypes: [.shape]),
-        .init(id: "shape.innerRatio", title: "Inner ratio", storage: .content, valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
-        .init(id: "media.volume", title: "Volume", storage: .content, valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 4, supportedLayerTypes: [.video, .audio]),
-        .init(id: "material.metallic", title: "Metallic", storage: .contentObject(parent: "material", key: "metallic"), valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
-        .init(id: "material.roughness", title: "Roughness", storage: .contentObject(parent: "material", key: "roughness"), valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
-        .init(id: "material.emissive", title: "Emissive", storage: .contentObject(parent: "material", key: "emissive"), valueKind: .any, defaultValue: .number(0), supportedLayerTypes: [.object3D, .model3D])
+        .init(id: "position3D", title: "Position", storage: .transform(is3D: true), storageKey: "position", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: visual3D),
+        .init(id: "anchor3D", title: "Anchor", storage: .transform(is3D: true), storageKey: "anchor", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: visual3D),
+        .init(id: "scale3D", title: "Scale", storage: .transform(is3D: true), storageKey: "scale", valueKind: .vector(3), defaultValue: .array([.number(1), .number(1), .number(1)]), minimum: -100, maximum: 100, supportedLayerTypes: visual3D),
+        .init(id: "rotation3D", title: "Rotation", storage: .transform(is3D: true), storageKey: "rotation", valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), minimum: -360000, maximum: 360000, supportedLayerTypes: visual3D),
+        .init(id: "opacity3D", title: "Opacity", storage: .transform(is3D: true), storageKey: "opacity", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 1, supportedLayerTypes: visual3D),
+        .init(id: "text.fontSize", title: "Font size", storage: .content, storageKey: "fontSize", valueKind: .scalar, defaultValue: .number(96), minimum: 1, maximum: 2048, supportedLayerTypes: [.text]),
+        .init(id: "text.letterSpacing", title: "Letter spacing", storage: .content, storageKey: "letterSpacing", valueKind: .scalar, defaultValue: .number(0), minimum: -10, maximum: 10, supportedLayerTypes: [.text]),
+        .init(id: "text.color", title: "Text color", storage: .content, storageKey: "color", valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.text]),
+        .init(id: "shape.size", title: "Size", storage: .content, storageKey: "size", valueKind: .vector(2), defaultValue: .array([.number(100), .number(100)]), minimum: 0, maximum: 8192, supportedLayerTypes: [.shape]),
+        .init(id: "shape.roundness", title: "Roundness", storage: .content, storageKey: "roundness", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 4096, supportedLayerTypes: [.shape]),
+        .init(id: "shape.sides", title: "Sides", storage: .content, storageKey: "sides", valueKind: .scalar, defaultValue: .number(5), minimum: 3, maximum: 128, supportedLayerTypes: [.shape]),
+        .init(id: "shape.innerRatio", title: "Inner ratio", storage: .content, storageKey: "innerRatio", valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
+        .init(id: "media.volume", title: "Volume", storage: .content, storageKey: "volume", valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 4, supportedLayerTypes: [.video, .audio]),
+        .init(id: "material.metallic", title: "Metallic", storage: .contentObject(parent: "material", key: "metallic"), storageKey: "metallic", valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
+        .init(id: "material.roughness", title: "Roughness", storage: .contentObject(parent: "material", key: "roughness"), storageKey: "roughness", valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
+        .init(id: "material.emissive", title: "Emissive", storage: .contentObject(parent: "material", key: "emissive"), storageKey: "emissive", valueKind: .any, defaultValue: .number(0), supportedLayerTypes: [.object3D, .model3D])
     ]
 
     public static func descriptor(for id: String) -> VexelPropertyDescriptor? {

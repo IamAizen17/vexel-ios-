@@ -528,30 +528,49 @@ public actor VexelEditingStore {
             guard let descriptor = VexelPropertyCatalog.descriptor(for: propertyID) else {
                 throw VexelEditingStoreError.invalidOperation("Unknown property descriptor: \\(propertyID)")
             }
-            guard Self.updateLayer(layerID, in: &project.layers, { layer in
-                try descriptor.upsertKeyframe(VexelKeyframe(time: atTime, value: value), on: &layer) } else { try descriptor.setBaseValue(value, on: &layer)
-            }) else {
-                throw VexelEditingStoreError.layerNotFound(layerID)
+            var propertyError: Error?
+            let didUpdate = Self.updateLayer(layerID, in: &project.layers, { layer in
+                do {
+                    if let atTime {
+                        try descriptor.upsertKeyframe(VexelKeyframe(time: atTime, value: value), on: &layer)
+                    } else {
+                        try descriptor.setBaseValue(value, on: &layer)
+                    }
+                } catch {
+                    propertyError = error
+                }
+            })
+            guard didUpdate else { throw VexelEditingStoreError.layerNotFound(layerID) }
+            if let propertyError {
+                throw VexelEditingStoreError.invalidOperation(String(describing: propertyError))
             }
 
         case .setPropertyKeyframe(let layerID, let propertyID, let keyframe):
             guard let descriptor = VexelPropertyCatalog.descriptor(for: propertyID) else {
                 throw VexelEditingStoreError.invalidOperation("Unknown property descriptor: \\(propertyID)")
             }
-            guard Self.updateLayer(layerID, in: &project.layers, { layer in
-                try descriptor.upsertKeyframe(keyframe, on: &layer)
-            }) else {
-                throw VexelEditingStoreError.layerNotFound(layerID)
+            var propertyError: Error?
+            let didUpdate = Self.updateLayer(layerID, in: &project.layers, { layer in
+                do { try descriptor.upsertKeyframe(keyframe, on: &layer) }
+                catch { propertyError = error }
+            })
+            guard didUpdate else { throw VexelEditingStoreError.layerNotFound(layerID) }
+            if let propertyError {
+                throw VexelEditingStoreError.invalidOperation(String(describing: propertyError))
             }
 
         case .removePropertyKeyframe(let layerID, let propertyID, let time):
             guard let descriptor = VexelPropertyCatalog.descriptor(for: propertyID) else {
                 throw VexelEditingStoreError.invalidOperation("Unknown property descriptor: \\(propertyID)")
             }
-            guard Self.updateLayer(layerID, in: &project.layers, { layer in
-                try descriptor.removeKeyframe(at: time, on: &layer)
-            }) else {
-                throw VexelEditingStoreError.layerNotFound(layerID)
+            var propertyError: Error?
+            let didUpdate = Self.updateLayer(layerID, in: &project.layers, { layer in
+                do { try descriptor.removeKeyframe(at: time, on: &layer) }
+                catch { propertyError = error }
+            })
+            guard didUpdate else { throw VexelEditingStoreError.layerNotFound(layerID) }
+            if let propertyError {
+                throw VexelEditingStoreError.invalidOperation(String(describing: propertyError))
             }
 
         case .setKeyframe(let layerID, let property, let keyframe, let is3D):

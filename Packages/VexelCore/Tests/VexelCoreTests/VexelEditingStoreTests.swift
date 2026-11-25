@@ -655,7 +655,7 @@ final class VexelEditingStoreTests: XCTestCase {
             start: 0,
             duration: 8,
             content: .object([
-                "size": .object(["value": .array([.number(100), .number(80)]), "futureSizeField": .string("keep")]),
+                "size": .object(["value": .array([.number(100), .number(80)]), "keyframes": .array([.object(["time": .number(0), "value": .array([.number(100), .number(80)])])]), "futureSizeField": .string("keep")]),
                 "futureShapeField": .string("keep")
             ])
         )
@@ -678,8 +678,9 @@ final class VexelEditingStoreTests: XCTestCase {
         let snapshot = await store.snapshot()
         let shapeFields = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:])
         XCTAssertEqual(shapeFields.animatable("size"), .animated(VexelAnimationTrack(
-            keyframes: [VexelKeyframe(time: 4, value: .array([.number(300), .number(150)]))],
-            value: .array([.number(240), .number(120)])
+            keyframes: [VexelKeyframe(time: 0, value: .array([.number(100), .number(80)])), VexelKeyframe(time: 4, value: .array([.number(300), .number(150)]))],
+            value: .array([.number(240), .number(120)]),
+            unknownFields: ["futureSizeField": .string("keep")]
         )))
         XCTAssertEqual(shapeFields.string("futureShapeField"), "keep")
         XCTAssertEqual(shapeFields.object("size")?.string("futureSizeField"), "keep")
@@ -707,12 +708,12 @@ final class VexelEditingStoreTests: XCTestCase {
         } catch let error as VexelEditingStoreError {
             guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
         }
-        XCTAssertEqual(await store.snapshot(), beforeInvalid)
+        let afterInvalid = await store.snapshot()
+        XCTAssertEqual(afterInvalid, beforeInvalid)
 
         try await store.execute(.removePropertyKeyframe(layerID: "object", propertyID: "rotation3D", time: 3))
         let final = await store.snapshot()
         XCTAssertEqual(final.layers[0].transform3D?.properties["rotation"], nil)
-        XCTAssertEqual(final.layers[0].transform3D?.properties["rotation3D"], nil)
     }
 
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
