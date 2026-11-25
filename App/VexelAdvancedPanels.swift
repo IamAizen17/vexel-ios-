@@ -90,7 +90,7 @@ struct VexelAudioWorkspace: View {
                             .font(.system(size: 11))
                             .foregroundStyle(VexelPalette.secondary)
                     }
-                    Text("Audio controls are presentation state until AVAudioEngine is connected.")
+                    Text("Imported clips can be previewed. Mixing and processing are not connected yet.")
                         .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                 }
                 .padding(16)
@@ -100,7 +100,8 @@ struct VexelAudioWorkspace: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-            }
+    }
+}
 
 struct VexelCaptionWorkspace: View {
     @Environment(\.dismiss) private var dismiss
