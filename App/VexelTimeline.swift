@@ -310,10 +310,13 @@ struct VexelTimelinePanel: View {
             }
             .frame(width: width, height: rulerHeight)
             .contentShape(Rectangle())
+            .accessibilityIdentifier("timeline.ruler")
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        currentTime = min(duration, max(0, Double(value.location.x / zoom)))
+                        let frameRate = Double(max(fps, 1))
+                        let frameTime = (Double(value.location.x / zoom) * frameRate).rounded() / frameRate
+                        currentTime = min(duration, max(0, frameTime))
                     }
             )
 
@@ -595,7 +598,8 @@ private struct VexelTimelineTrackRow: View {
                     onEditBegan()
                 }
                 guard let origin = trimOrigin else { return }
-                let proposed = origin.duration + Double(value.translation.width / zoom)
+                let absoluteEnd = snapped(containerOffset + origin.start + origin.duration + Double(value.translation.width / zoom))
+                let proposed = absoluteEnd - containerOffset - origin.start
                 track.duration = max(1 / Double(max(fps, 1)), min(containerDuration - origin.start, proposed))
             }
             .onEnded { _ in

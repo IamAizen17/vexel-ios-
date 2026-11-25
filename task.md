@@ -198,7 +198,7 @@ Implementation note: the editor redesign is implemented on feat/p1a-editor-redes
 - [x] Display a real HH:MM:SS:FF preview timecode and test that it follows transport position.
 - [x] Mark interpolation and export as unavailable until their runtime pipelines are connected; disable placeholder actions.
 - [x] Disable mask, track-matte, transition and unbound composition-inspector controls until their backing store/renderer commands are implemented.
-- [x] Add UI regression tests for timeline clip selection, layer visibility, editor preview/playback/inspector availability and the compact landscape layout.
+- [x] Add UI regression tests for timeline clip selection, layer visibility, ruler scrubbing, clip trimming, editor preview/playback/inspector availability and compact landscape layout.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, clip selection, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings only after a successful in-editor settings command, and restore custom FPS values in the next creation flow.
 - [x] Add UI coverage for in-editor FPS changes becoming the next composition defaults.
@@ -209,7 +209,7 @@ Implementation note: the editor redesign is implemented on feat/p1a-editor-redes
 - [x] Bind layer-panel selection, visibility and lock controls to stable timeline track IDs and canonical editing-store commands; expose unavailable model/audio processing capabilities as disabled or read-only.
 - [x] Render the selected 2D rectangle, ellipse, polygon, star and line primitive types in the live scene preview; disable the path tool until path editing is implemented.
 - [x] Add UI regression coverage for layer-panel visibility and lock commits.
-- [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
+- [x] Add UI tests for navigation, selection, timeline ruler scrubbing, clip trimming, accessibility and composition-default state restoration.
 
 **P1.3 Animation and deterministic scene model**
 - [x] Establish a deterministic `FrameScene` contract from a native project document and composition time.

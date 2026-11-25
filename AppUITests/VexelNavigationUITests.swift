@@ -336,4 +336,48 @@ final class VexelNavigationUITests: XCTestCase {
     }
 
 
+    func testTimelineRulerScrubbingUpdatesFrameTimecode() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+
+        let timecode = app.staticTexts["editor.timecode"]
+        XCTAssertTrue(timecode.waitForExistence(timeout: 5))
+        let ruler = app.descendants(matching: .any)["timeline.ruler"]
+        XCTAssertTrue(ruler.waitForExistence(timeout: 5))
+        ruler.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.5)).tap()
+        XCTAssertNotEqual(timecode.label, "00:00:00:00")
+    }
+
+    func testTimelineTrimHandleChangesClipDuration() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+
+        let zoomOut = app.buttons["timeline.zoom.out"]
+        XCTAssertTrue(zoomOut.waitForExistence(timeout: 5))
+        for _ in 0..<5 { zoomOut.tap() }
+
+        let clip = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "timeline.clip."))
+            .firstMatch
+        XCTAssertTrue(clip.waitForExistence(timeout: 5))
+        let initialWidth = clip.frame.width
+        let trimHandle = clip.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5))
+        let trimTarget = clip.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+        trimHandle.press(forDuration: 0.2, thenDragTo: trimTarget)
+        XCTAssertLessThan(clip.frame.width, initialWidth - 10)
+    }
+
+
 }
