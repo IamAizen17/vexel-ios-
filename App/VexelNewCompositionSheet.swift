@@ -123,7 +123,9 @@ struct VexelNewCompositionSheet: View {
                                         .foregroundStyle(fps == rate ? Color.black : VexelPalette.soft)
                                         .frame(maxWidth: .infinity).frame(height: 36)
                                         .background(fps == rate ? VexelPalette.accent : VexelPalette.field, in: RoundedRectangle(cornerRadius: 9))
-                                }.buttonStyle(.plain)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("newProject.fps.\(Int(rate))")
                             }
                         }
                         Text("\(Int(fps)) frames per second").font(.system(size: 9)).foregroundStyle(VexelPalette.secondary)
@@ -134,7 +136,9 @@ struct VexelNewCompositionSheet: View {
                             Spacer()
                             Text("\(Int(duration)) SEC").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(VexelPalette.accent)
                         }
-                        Slider(value: $duration, in: 1...120, step: 1).tint(VexelPalette.accent)
+                        Slider(value: $duration, in: 1...120, step: 1)
+                            .tint(VexelPalette.accent)
+                            .accessibilityIdentifier("newProject.duration")
                         HStack {
                             Text("1 SECOND")
                             Spacer()
@@ -181,6 +185,7 @@ struct VexelNewCompositionSheet: View {
             TextField(label, value: value, format: .number)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
                 .keyboardType(.numberPad).multilineTextAlignment(.leading)
+                .accessibilityIdentifier("newProject.\(label.lowercased())")
                 .padding(.horizontal, 12).frame(height: 42)
                 .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 9))
         }

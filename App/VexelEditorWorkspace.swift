@@ -572,7 +572,13 @@ struct VexelEditorWorkspace: View {
             fps: project.fps,
             onMarkerEdit: { editingMarker = $0 },
             onNotice: { showingNotice = $0 },
-            onGraph: { showGraph = true },
+            onGraph: {
+                guard !selectedPropertyDescriptors.isEmpty else {
+                    showingNotice = "Select a layer with supported properties before opening the graph editor."
+                    return
+                }
+                showGraph = true
+            },
             onTrackTimingCommit: { trackID, start, duration in
                 guard let sourceID = sourceLayerID(for: trackID) else {
                     showingNotice = "The edited timeline layer could not be resolved."
