@@ -53,7 +53,7 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(anchorX.waitForExistence(timeout: 5))
         anchorX.tap()
         anchorX.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12) + "42" + XCUIKeyboardKey.return.rawValue)
-        XCTAssertEqual(Double(anchorX.value as? String ?? ""), 42, accuracy: 0.01)
+        XCTAssertEqual(Double(anchorX.value as? String ?? "") ?? .nan, 42, accuracy: 0.01)
 
         let positionX = app.textFields["inspector.position.x"]
         XCTAssertTrue(positionX.waitForExistence(timeout: 5))
