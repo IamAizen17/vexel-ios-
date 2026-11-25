@@ -3,7 +3,7 @@
 Last reviewed: 2026-11-25
 Reference repository: https://github.com/IamAizen17/vexel-editor
 iOS implementation repository: https://github.com/IamAizen17/vexel-ios-
-Active implementation branch: `feat/p1a-editor-redesign-v9`
+Active implementation branch: `feat/p1a-editor-redesign-v10`
 Related engine PR: https://github.com/IamAizen17/vexel-ios-/pull/2
 
 This is the active project handoff, implementation status, and prioritized backlog. A checked item means the implementation exists and has supporting evidence; it does not automatically mean complete source parity or production readiness. Keep implementation status, test status, and device validation separate.
@@ -267,6 +267,18 @@ Successful workflow references:
 - [x] Final P0 regression run `45370528079` passed on `2a80cc2ed58d5d3533c017375e07e0d3aa629265`: archive/import (32 tests, 1 skipped), core (54), renderer (3), shader compiler (5), and app persistence/bridge XCTest (4), all with zero failures. XcodeGen project generation and iPhone simulator app test/build step also passed (`** TEST SUCCEEDED **`). The branch's current `c0b95f9` commit only restores manual-only CI triggers and does not change tested source code.
 - Latest IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45376506274
 - Previous IPA: https://github.com/IamAizen17/vexel-ios-/actions/runs/45356750586
+
+## P1.A redesign verification (2026-11-25)
+
+Implementation branch: `feat/p1a-editor-redesign-v10`  
+Code head: `08521b6cff4e1c3b54487a172ef6637b42b851a9`
+
+- [x] Review the branch diff and verify the new composition-default model, editor layout changes, timeline callbacks and test target paths are present.
+- [x] Compile and run a standalone Swift smoke test for composition-default load, save, validation and reset behavior.
+- [ ] Run the app XCTest and UI test suites on an iOS simulator.
+- [ ] Validate iPhone portrait, iPhone landscape, iPad portrait and iPad landscape on simulators and physical devices.
+
+The iOS CI workflow is configured for manual dispatch. This execution environment has Swift 6.2 on Linux and no Xcode toolchain, and the available GitHub integration does not expose workflow dispatch. The SwiftUI app build, XCTest suite and device layout therefore remain unverified for this branch head.
 
 ## 7. Required engineering workflow
 

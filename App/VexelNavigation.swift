@@ -327,7 +327,7 @@ struct VexelHomeView: View {
                 showingNewProject = false
                 onOpen(project)
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingPlugins) {
