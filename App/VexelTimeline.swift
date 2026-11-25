@@ -90,7 +90,7 @@ struct VexelTimelinePanel: View {
     private var contentWidth: CGFloat { max(320, CGFloat(duration) * zoom + 32) }
     private var timelineHeight: CGFloat {
         let natural = rulerHeight + CGFloat(visibleRowCount) * rowHeight + CGFloat(max(visibleRowCount, 1)) * 3
-        return compact ? min(104, max(84, natural)) : min(210, max(112, natural))
+        return compact ? min(84, max(72, natural)) : min(210, max(112, natural))
     }
 
     private var snapPoints: [Double] {
@@ -219,7 +219,7 @@ struct VexelTimelinePanel: View {
             }
         }
         .padding(.horizontal, compact ? 8 : 14)
-        .padding(.vertical, compact ? 6 : 10)
+        .padding(.vertical, compact ? 4 : 10)
         .background(VexelPalette.sheet)
     }
 

@@ -22,13 +22,14 @@ struct VexelNewCompositionSheet: View {
 
     private var selectedPresetName: String? {
         ProjectPreset.all.first {
-            $0.width == Int(width) && $0.height == Int(height) && $0.fps == Int(fps)
+            Double($0.width) == width && Double($0.height) == height && Double($0.fps) == fps
         }?.name
     }
 
     private var canCreate: Bool {
         width.isFinite && height.isFinite && duration.isFinite &&
-        width >= 16 && width <= 8192 && height >= 16 && height <= 8192 &&
+        width >= 16 && width <= 8192 && width.rounded() == width &&
+        height >= 16 && height <= 8192 && height.rounded() == height &&
         duration >= 1 && duration <= 120 && frameRates.contains(fps)
     }
 

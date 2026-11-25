@@ -334,7 +334,7 @@ struct VexelEditorWorkspace: View {
                 .padding(14)
             } else {
                 previewCanvas
-                    .frame(maxHeight: isCompactLandscape ? 112 : .infinity)
+                    .frame(maxHeight: isCompactLandscape ? 90 : .infinity)
                 transportBar
                 timelinePanel
                 if !layerNames.isEmpty && !isCompactLandscape { selectionBar }
@@ -494,7 +494,8 @@ struct VexelEditorWorkspace: View {
             VexelIconButton(symbol: "slider.horizontal.3") { showCompositionSettings = true }
             VexelIconButton(symbol: "square.and.arrow.up", active: true) { showExport = true }
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .padding(.horizontal, isCompactLandscape ? 8 : 12)
+        .padding(.vertical, isCompactLandscape ? 4 : 9)
         .background(VexelPalette.bar)
         .overlay(alignment: .bottom) { Rectangle().fill(VexelPalette.line).frame(height: 1) }
     }
@@ -702,7 +703,7 @@ struct VexelEditorWorkspace: View {
 
     private var toolBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
+            HStack(spacing: isCompactLandscape ? 3 : 4) {
                 ForEach(VexelEditorTool.allCases.filter(\.isAvailable)) { tool in
                     Button {
                         activeDockTool = tool
@@ -713,7 +714,7 @@ struct VexelEditorWorkspace: View {
                             Text(tool.rawValue).font(.system(size: isCompactLandscape ? 7 : 8, weight: .semibold))
                         }
                         .foregroundStyle(activeDockTool == tool ? VexelPalette.accent : VexelPalette.soft)
-                        .frame(width: isCompactLandscape ? 52 : 57, height: isCompactLandscape ? 40 : 54)
+                        .frame(width: isCompactLandscape ? 50 : 57, height: isCompactLandscape ? 36 : 54)
                         .background(activeDockTool == tool ? VexelPalette.accent.opacity(0.12) : VexelPalette.field.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
                         .overlay(RoundedRectangle(cornerRadius: 9).stroke(activeDockTool == tool ? VexelPalette.accent.opacity(0.55) : VexelPalette.line.opacity(0.35), lineWidth: 1))
                     }
