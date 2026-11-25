@@ -149,7 +149,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
         case .some(.constant(let current)):
             animation = VexelAnimationTrack(value: current)
         case .none:
-            animation = VexelAnimationTrack(value: defaultValue)
+            animation = VexelAnimationTrack()
         }
         if let index = animation.keyframes.firstIndex(where: { abs($0.time - keyframe.time) < 0.000001 }) {
             var replacement = keyframe
