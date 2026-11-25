@@ -8,12 +8,10 @@ struct VexelCompositionDefaults: Codable, Equatable {
 
     static let storageKey = "vexel.composition.defaults"
     static let `default` = VexelCompositionDefaults(width: 1080, height: 1920, fps: 30, duration: 10)
-    private static let supportedFrameRates: Set<Int> = [24, 25, 30, 50, 60, 120]
-
     var isValid: Bool {
         (16...8192).contains(width) &&
         (16...8192).contains(height) &&
-        Self.supportedFrameRates.contains(fps) &&
+        (1...120).contains(fps) &&
         duration.isFinite &&
         (1...120).contains(duration)
     }

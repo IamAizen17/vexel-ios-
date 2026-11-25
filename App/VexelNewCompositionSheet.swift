@@ -20,6 +20,10 @@ struct VexelNewCompositionSheet: View {
         _duration = State(initialValue: saved.duration)
     }
 
+    private var availableFrameRates: [Double] {
+        Array(Set(frameRates + [fps])).sorted()
+    }
+
     private var selectedPresetName: String? {
         ProjectPreset.all.first {
             Double($0.width) == width && Double($0.height) == height && Double($0.fps) == fps
@@ -30,7 +34,7 @@ struct VexelNewCompositionSheet: View {
         width.isFinite && height.isFinite && duration.isFinite &&
         width >= 16 && width <= 8192 && width.rounded() == width &&
         height >= 16 && height <= 8192 && height.rounded() == height &&
-        duration >= 1 && duration <= 120 && frameRates.contains(fps)
+        duration >= 1 && duration <= 120 && fps >= 1 && fps <= 120 && fps.rounded() == fps
     }
 
     var body: some View {
@@ -118,7 +122,7 @@ struct VexelNewCompositionSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         VexelSectionLabel(title: "Frame rate")
                         HStack(spacing: 6) {
-                            ForEach(frameRates, id: \.self) { rate in
+                            ForEach(availableFrameRates, id: \.self) { rate in
                                 Button { fps = rate } label: {
                                     Text("\(Int(rate))").font(.system(size: 11, weight: .semibold, design: .monospaced))
                                         .foregroundStyle(fps == rate ? Color.black : VexelPalette.soft)

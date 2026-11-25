@@ -29,6 +29,14 @@ final class VexelCompositionDefaultsTests: XCTestCase {
         XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), .default)
     }
 
+    func testCustomFrameRateSettingsCanBePersisted() {
+        let defaults = makeDefaults()
+        let expected = VexelCompositionDefaults(width: 1920, height: 1080, fps: 29, duration: 30)
+        expected.save(to: defaults)
+
+        XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), expected)
+    }
+
     func testResetRemovesSavedSettings() {
         let defaults = makeDefaults()
         VexelCompositionDefaults(width: 720, height: 1280, fps: 30, duration: 15).save(to: defaults)
