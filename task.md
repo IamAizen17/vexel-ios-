@@ -190,15 +190,15 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.
 - [x] Persist last-used new-composition dimensions, frame rate and duration locally; restore them in the next creation flow and provide an explicit reset to defaults.
 - [x] Add UI regression coverage for restoring a previously created composition preset and resetting the defaults.
-- [ ] Complete the editor redesign around preview, timeline, layer selection, contextual tools and property editing.
+- [x] Implement the primary editor workspace with preview, transport, layer timeline, contextual tools and property editing; continue refinement and device validation.
 - [x] Implement a dedicated compact-height iPhone landscape workspace with a side-by-side preview/transport and timeline/tool column.
 - [ ] Validate portrait iPhone and landscape/iPad adaptive layouts on simulators and physical devices.
 - [x] Add explicit timeline zoom controls and a user-toggleable frame/snap-point snapping mode.
 - [x] Add UI regression tests for timeline layer selection/visibility, editor preview/playback/inspector availability and the compact landscape layout.
-- [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, layer selection/visibility/lock and inspector controls.
+- [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, clip selection, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings only after a successful in-editor settings command, and restore custom FPS values in the next creation flow.
 - [x] Add UI coverage for in-editor FPS changes becoming the next composition defaults.
-- [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
+- [x] Provide reusable timeline panel, track/clip rows, playhead/ruler, keyframe markers, tool dock and contextual inspector components.
 - [x] Mark unsupported 3D model/font import, voiceover capture and cutout processing as unavailable instead of exposing nonfunctional actions.
 - [x] Remove nonfunctional audio mixer/EQ placeholder sliders and clearly identify audio processing as planned.
 - [x] Route audio import to the audio media filter instead of the image/video picker.

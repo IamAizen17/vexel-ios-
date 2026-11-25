@@ -502,8 +502,13 @@ private struct VexelTimelineTrackRow: View {
             .overlay(RoundedRectangle(cornerRadius: 5).stroke(selectedTrackID == track.id ? VexelPalette.accent : .clear, lineWidth: 1.5))
             .contentShape(Rectangle())
             .gesture(moveGesture)
+            .simultaneousGesture(TapGesture().onEnded {
+                selectedTrackID = track.id
+                onSelect(track.name)
+            })
             .opacity(track.locked ? 0.62 : 1)
             .accessibilityLabel("\(track.name) timeline clip")
+            .accessibilityIdentifier("timeline.clip.\(track.id.uuidString)")
     }
 
     private var moveGesture: some Gesture {

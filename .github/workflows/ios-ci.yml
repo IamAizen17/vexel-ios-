@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feat/modular-engine-architecture
+      - feat/p1a-editor-redesign-v12
     paths:
       - .github/workflows/ios-ci.yml
       - project.yml
@@ -13,6 +14,10 @@ on:
       - App/VexelToolPanels.swift
       - App/VexelAdvancedPanels.swift
       - App/VexelMotion.swift
+      - App/VexelTimeline.swift
+      - App/VexelNewCompositionSheet.swift
+      - App/VexelCompositionDefaults.swift
+      - AppTests/**
       - AppUITests/**
       - Packages/VexelCore/Sources/VexelCore/**
       - Packages/VexelCore/Tests/**

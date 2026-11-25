@@ -1309,7 +1309,6 @@ struct VexelEditorWorkspace: View {
 }
 
 private struct MediaPicker: View {
-    var audioOnly = false
     let onSelect: (PhotosPickerItem) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var selection: PhotosPickerItem?
@@ -1317,8 +1316,8 @@ private struct MediaPicker: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 18) {
-                PhotosPicker(selection: $selection, matching: audioOnly ? .any(of: [.audio]) : .any(of: [.images, .videos])) {
-                    Label(audioOnly ? "Choose media" : "Choose image", systemImage: "photo")
+                PhotosPicker(selection: $selection, matching: .any(of: [.images, .videos])) {
+                    Label("Choose image or video", systemImage: "photo")
                         .font(.system(size: 14, weight: .semibold)).foregroundStyle(VexelPalette.text)
                         .padding(16).frame(maxWidth: .infinity)
                         .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 12))
@@ -1327,7 +1326,7 @@ private struct MediaPicker: View {
                 Spacer()
             }
             .padding(18).background(VexelPalette.background)
-            .navigationTitle(audioOnly ? "Add audio" : "Add media")
+            .navigationTitle("Add media")
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .onChange(of: selection) { item in if let item { onSelect(item); dismiss() } }
         }
