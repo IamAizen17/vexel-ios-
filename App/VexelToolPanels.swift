@@ -1014,8 +1014,8 @@ struct VexelGraphEditor: View {
                         let timeSpan = max(lastTime - firstTime, 1)
                         let minTime = firstTime - (timeSpan - (lastTime - firstTime)) * 0.5
                         let maxTime = minTime + timeSpan
-                        let minValue = points.map(\.value).min() ?? 0
-                        let maxValue = points.map(\.value).max() ?? 1
+                        let minValue = points.map { $0.value }.min() ?? 0
+                        let maxValue = points.map { $0.value }.max() ?? 1
                         let valueSpan = max(maxValue - minValue, 0.001)
                         let lowerValue = minValue - valueSpan * 0.12
                         let upperValue = maxValue + valueSpan * 0.12
