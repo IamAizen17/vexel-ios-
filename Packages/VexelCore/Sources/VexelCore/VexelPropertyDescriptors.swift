@@ -46,7 +46,18 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
     }
 
     public func supports(_ layer: VexelLayer) -> Bool {
-        supportedLayerTypes.contains(layer.type)
+        guard supportedLayerTypes.contains(layer.type) else { return false }
+        if layer.type == .null {
+            let is3D: Bool
+            if case .bool(let value)? = layer.content?.objectValue?["threeD"] {
+                is3D = value
+            } else {
+                is3D = false
+            }
+            guard case .transform(let descriptorIs3D) = storage else { return false }
+            return descriptorIs3D == is3D
+        }
+        return true
     }
 
     public func validate(_ value: JSONValue) throws {
@@ -156,7 +167,7 @@ public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
 
     public func removeKeyframe(at time: Double, on layer: inout VexelLayer) throws {
         guard supports(layer) else { throw VexelPropertyDescriptorError.unsupportedLayer(id) }
-        guard time.isFinite, time >= 0 else { throw VexelPropertyDescriptorError.invalidTime }
+        guard time.isFinite, time >= 0, time <= (layer.duration ?? 3600) else { throw VexelPropertyDescriptorError.invalidTime }
         guard case .animated(var animation)? = value(in: layer) else { return }
         animation.keyframes.removeAll { abs($0.time - time) < 0.000001 }
         if animation.keyframes.isEmpty {
@@ -224,7 +235,7 @@ public enum VexelPropertyDescriptorError: Error, Equatable, Sendable {
 
 public enum VexelPropertyCatalog {
     private static let visual2D: [VexelLayerType] = [.text, .shape, .image, .video, .group, .null]
-    private static let visual3D: [VexelLayerType] = [.object3D, .model3D]
+    private static let visual3D: [VexelLayerType] = [.object3D, .model3D, .camera, .light, .null]
     private static let scalarTypes: [VexelLayerType] = [.text, .shape, .image, .video, .audio, .object3D, .model3D, .camera, .light]
 
     public static let all: [VexelPropertyDescriptor] = [

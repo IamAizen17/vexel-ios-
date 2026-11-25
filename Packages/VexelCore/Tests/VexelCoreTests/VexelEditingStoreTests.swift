@@ -796,6 +796,55 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(emptyTrack.unknownFields["futureTrackFlag"], .string("preserve"))
     }
 
+    func testPropertyCatalogSeparatesTwoDimensionalAndThreeDimensionalNullTransforms() {
+        let twoD = VexelLayer(id: "null2d", type: .null, start: 0, duration: 5, content: .object(["threeD": .bool(false)]))
+        let threeD = VexelLayer(id: "null3d", type: .null, start: 0, duration: 5, content: .object(["threeD": .bool(true)]))
+
+        let twoDIDs = Set(VexelPropertyCatalog.descriptors(for: twoD).map(\.id))
+        let threeDIDs = Set(VexelPropertyCatalog.descriptors(for: threeD).map(\.id))
+        XCTAssertTrue(twoDIDs.contains("position"))
+        XCTAssertFalse(twoDIDs.contains("position3D"))
+        XCTAssertTrue(threeDIDs.contains("position3D"))
+        XCTAssertFalse(threeDIDs.contains("position"))
+    }
+
+    func testDescriptorValueEditAtPlayheadUpdatesKeyframeAndPreservesTrackMetadata() async throws {
+        let layer = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            content: .object([
+                "roundness": .object([
+                    "keyframes": .array([
+                        .object(["time": .number(0), "value": .number(10)]),
+                        .object(["time": .number(2), "value": .number(30)])
+                    ]),
+                    "value": .number(5),
+                    "loop": .string("pingpong"),
+                    "futureTrackFlag": .string("keep")
+                ])
+            ])
+        )
+        let store = try makeStore(layers: [layer])
+        try await store.execute(.setPropertyValue(
+            layerID: "shape",
+            propertyID: "shape.roundness",
+            value: .number(22),
+            atTime: 1
+        ))
+
+        let snapshot = await store.snapshot()
+        guard case .animated(let track)? = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:]).animatable("roundness") else {
+            return XCTFail("Editing an animated property at the playhead must update its animation track.")
+        }
+        XCTAssertEqual(track.keyframes.map(\.time), [0, 1, 2])
+        XCTAssertEqual(track.keyframes.first(where: { $0.time == 1 })?.value, .number(22))
+        XCTAssertEqual(track.value, .number(5))
+        XCTAssertEqual(track.loop, .pingpong)
+        XCTAssertEqual(track.unknownFields["futureTrackFlag"], .string("keep"))
+    }
+
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
         let document = ProjectDocument.starter(title: "Editing store")
         var native = try VexelNativeProject(document: document)

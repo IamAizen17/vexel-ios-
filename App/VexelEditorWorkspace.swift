@@ -133,18 +133,26 @@ struct VexelEditorWorkspace: View {
         return tabs
     }
 
+    private func propertyEditTimeIfAnimated(_ propertyID: String) -> Double? {
+        guard let layer = selectedNativeLayer,
+              let descriptor = VexelPropertyCatalog.descriptor(for: propertyID),
+              case .animated? = descriptor.value(in: layer) else { return nil }
+        return keyframeLocalPlayheadTime
+    }
+
     private func commitSelectedPosition(x: Double, y: Double) {
         guard let track = selectedTimelineTrack,
               let sourceID = track.sourceID ?? selectedTrackID?.uuidString else { return }
         let is3D = track.kind == .rendered3D
+        let propertyID = is3D ? "position3D" : "position"
         let vector: [JSONValue] = is3D
             ? [.number(x), .number(y), .number(selectedPosition.count > 2 ? selectedPosition[2] : 0)]
             : [.number(x), .number(y)]
-        performEditingCommand(.setTransformValue(
-            id: sourceID,
-            property: "position",
-            value: .constant(.array(vector)),
-            is3D: is3D
+        performEditingCommand(.setPropertyValue(
+            layerID: sourceID,
+            propertyID: propertyID,
+            value: .array(vector),
+            atTime: propertyEditTimeIfAnimated(propertyID)
         ))
     }
 
@@ -221,13 +229,19 @@ struct VexelEditorWorkspace: View {
               let sourceID = track.sourceID ?? selectedTrackID?.uuidString,
               !values.isEmpty, values.allSatisfy(\.isFinite) else { return }
         let is3D = track.kind == .rendered3D
-        let value: VexelAnimatableValue
+        let propertyID = is3D ? "\(property)3D" : property
+        let value: JSONValue
         if property == "opacity" || (property == "rotation" && !is3D) {
-            value = .constant(.number(values[0]))
+            value = .number(values[0])
         } else {
-            value = .constant(.array(values.map { .number($0) }))
+            value = .array(values.map { .number($0) })
         }
-        performEditingCommand(.setTransformValue(id: sourceID, property: property, value: value, is3D: is3D))
+        performEditingCommand(.setPropertyValue(
+            layerID: sourceID,
+            propertyID: propertyID,
+            value: value,
+            atTime: propertyEditTimeIfAnimated(propertyID)
+        ))
     }
 
     private var selectedTextValues: [String: JSONValue] {
@@ -278,7 +292,22 @@ struct VexelEditorWorkspace: View {
     private func commitSelectedTextProperty(property: VexelTextProperty, value: JSONValue) {
         guard let track = selectedTimelineTrack, track.kind == .text,
               let sourceID = track.sourceID ?? selectedTrackID?.uuidString else { return }
-        performEditingCommand(.setTextProperty(id: sourceID, property: property, value: value))
+        let descriptorID: String?
+        switch property {
+        case .fontSize: descriptorID = "text.fontSize"
+        case .letterSpacing: descriptorID = "text.letterSpacing"
+        default: descriptorID = nil
+        }
+        if let descriptorID {
+            performEditingCommand(.setPropertyValue(
+                layerID: sourceID,
+                propertyID: descriptorID,
+                value: value,
+                atTime: propertyEditTimeIfAnimated(descriptorID)
+            ))
+        } else {
+            performEditingCommand(.setTextProperty(id: sourceID, property: property, value: value))
+        }
     }
 
     private var isWide: Bool { horizontalSizeClass == .regular }
