@@ -12,6 +12,7 @@ on:
       - App/VexelEditorWorkspace.swift
       - App/VexelToolPanels.swift
       - App/VexelAdvancedPanels.swift
+      - App/VexelMotion.swift
       - AppUITests/**
       - Packages/VexelCore/Sources/VexelCore/**
       - Packages/VexelCore/Tests/**

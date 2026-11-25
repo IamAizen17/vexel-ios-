@@ -1,4 +1,5 @@
 import SwiftUI
+import VexelCore
 
 extension AnyTransition {
     static let vexelPanel = AnyTransition.move(edge: .bottom)
