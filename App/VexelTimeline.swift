@@ -69,6 +69,7 @@ struct VexelTimelinePanel: View {
     let fps: Int
     let onMarkerEdit: (VexelMarker) -> Void
     let onNotice: (String) -> Void
+    let onGraph: () -> Void
     let onTrackTimingCommit: (UUID, Double, Double) -> Void
     let onTrackVisibilityChange: (UUID, Bool) -> Void
     let onTrackLockChange: (UUID, Bool) -> Void
@@ -122,7 +123,7 @@ struct VexelTimelinePanel: View {
                         .foregroundStyle(VexelPalette.accent)
                 }
                 .buttonStyle(.plain)
-                Button { onNotice("The graph editor is a separate workspace. Keyframe values will appear here after the animation engine is connected.") } label: {
+                Button(action: onGraph) {
                     Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(VexelPalette.accent)
@@ -402,6 +403,15 @@ private struct VexelTimelineTrackRow: View {
         .frame(width: max(72, CGFloat(track.duration) * zoom), height: 28)
         .background(clipColor.opacity(track.visible ? 0.82 : 0.24), in: RoundedRectangle(cornerRadius: 5))
         .overlay(RoundedRectangle(cornerRadius: 5).stroke(selectedTrackID == track.id ? VexelPalette.accent : .clear, lineWidth: 1.5))
+        .overlay(alignment: .topLeading) {
+            ForEach(track.keyframes.filter { $0.isFinite && $0 >= 0 && $0 <= track.duration }, id: \.self) { time in
+                Image(systemName: "diamond.fill")
+                    .font(.system(size: 6, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .offset(x: CGFloat(time) * zoom + 7, y: 4)
+                    .accessibilityHidden(true)
+            }
+        }
         .overlay(alignment: .leading) {
             Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
                 .gesture(trimStartGesture)

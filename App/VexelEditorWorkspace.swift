@@ -43,6 +43,7 @@ struct VexelEditorWorkspace: View {
     let onProjectChange: (VexelProjectItem) -> Void
 
     @State private var selectedTool: VexelEditorTool?
+    @State private var activeDockTool: VexelEditorTool?
     @State private var selectedLayer = 0
     @State private var selectedTab = "Transform"
     @State private var showExport = false
@@ -571,6 +572,7 @@ struct VexelEditorWorkspace: View {
             fps: project.fps,
             onMarkerEdit: { editingMarker = $0 },
             onNotice: { showingNotice = $0 },
+            onGraph: { showGraph = true },
             onTrackTimingCommit: { trackID, start, duration in
                 guard let sourceID = sourceLayerID(for: trackID) else {
                     showingNotice = "The edited timeline layer could not be resolved."
@@ -694,14 +696,18 @@ struct VexelEditorWorkspace: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 4) {
                 ForEach(VexelEditorTool.allCases.filter(\.isAvailable)) { tool in
-                    Button { selectedTool = tool } label: {
+                    Button {
+                        activeDockTool = tool
+                        selectedTool = tool
+                    } label: {
                         VStack(spacing: 5) {
                             Image(systemName: tool.symbol).font(.system(size: 16, weight: .medium))
                             Text(tool.rawValue).font(.system(size: 8, weight: .semibold))
                         }
-                        .foregroundStyle(VexelPalette.soft)
+                        .foregroundStyle(activeDockTool == tool ? VexelPalette.accent : VexelPalette.soft)
                         .frame(width: 57, height: 54)
-                        .background(VexelPalette.field.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
+                        .background(activeDockTool == tool ? VexelPalette.accent.opacity(0.12) : VexelPalette.field.opacity(0.55), in: RoundedRectangle(cornerRadius: 9))
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(activeDockTool == tool ? VexelPalette.accent.opacity(0.55) : VexelPalette.line.opacity(0.35), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
                     .disabled(!tool.isAvailable)
