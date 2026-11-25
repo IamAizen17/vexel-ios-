@@ -116,7 +116,10 @@ struct VexelTimelinePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 5 : 8) {
             HStack {
-                VexelSectionLabel(title: "Timeline", trailing: "\(visibleRowCount) TRACKS · \(markers.count) MARKERS")
+                VexelSectionLabel(
+                    title: "Timeline",
+                    trailing: compact ? nil : "\(visibleRowCount) TRACKS · \(markers.count) MARKERS"
+                )
                 Spacer()
                 Button {
                     onEditBegan()
@@ -125,9 +128,16 @@ struct VexelTimelinePanel: View {
                     onEditEnded()
                     onMarkerEdit(marker)
                 } label: {
-                    Label("Marker", systemImage: "flag")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(VexelPalette.accent)
+                    Group {
+                        if compact {
+                            Image(systemName: "flag")
+                        } else {
+                            Label("Marker", systemImage: "flag")
+                        }
+                    }
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(VexelPalette.accent)
+                    .frame(minWidth: compact ? 28 : nil, minHeight: 28)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("timeline.marker.add")
@@ -166,9 +176,16 @@ struct VexelTimelinePanel: View {
                 .accessibilityLabel("Zoom timeline in")
                 .accessibilityIdentifier("timeline.zoom.in")
                 Button(action: onGraph) {
-                    Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(VexelPalette.accent)
+                    Group {
+                        if compact {
+                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                        } else {
+                            Label("Graph", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                        }
+                    }
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(VexelPalette.accent)
+                    .frame(minWidth: compact ? 28 : nil, minHeight: 28)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("timeline.graph")
