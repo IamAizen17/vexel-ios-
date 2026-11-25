@@ -378,14 +378,23 @@ struct VexelEditorWorkspace: View {
                 project: project,
                 onSavedVersions: { showSavedVersions = true },
                 onSave: { draft in
-                    VexelCompositionDefaults(width: draft.width, height: draft.height, fps: draft.fps, duration: draft.duration).save()
-                    performEditingCommand(.updateProjectSettings(
-                        title: draft.title,
-                        width: draft.width,
-                        height: draft.height,
-                        fps: Double(draft.fps),
-                        duration: draft.duration
-                    ))
+                    performEditingCommand(
+                        .updateProjectSettings(
+                            title: draft.title,
+                            width: draft.width,
+                            height: draft.height,
+                            fps: Double(draft.fps),
+                            duration: draft.duration
+                        ),
+                        onSuccess: {
+                            VexelCompositionDefaults(
+                                width: draft.width,
+                                height: draft.height,
+                                fps: draft.fps,
+                                duration: draft.duration
+                            ).save()
+                        }
+                    )
                 }
             )
             .presentationDetents([.medium, .large])
@@ -807,7 +816,8 @@ struct VexelEditorWorkspace: View {
     private func performEditingCommand(
         _ command: VexelEditingCommand,
         selecting sourceID: String? = nil,
-        onFailure: (() -> Void)? = nil
+        onFailure: (() -> Void)? = nil,
+        onSuccess: (() -> Void)? = nil
     ) {
         guard let store = editingStore else {
             showingNotice = "The editing engine is unavailable. Reopen the project and try again."
@@ -833,6 +843,7 @@ struct VexelEditorWorkspace: View {
                 canUndoEdits = await store.canUndo
                 canRedoEdits = await store.canRedo
                 onProjectChange(updated)
+                onSuccess?()
             } catch {
                 onFailure?()
                 showingNotice = error.localizedDescription

@@ -167,14 +167,14 @@ struct VexelNewCompositionSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                        onCreate(VexelProjectItem(title: name.isEmpty ? "Untitled Composition" : name,
+                                                  width: Int(width), height: Int(height), fps: Int(fps), duration: duration))
                         VexelCompositionDefaults(
                             width: Int(width),
                             height: Int(height),
                             fps: Int(fps),
                             duration: duration
                         ).save()
-                        onCreate(VexelProjectItem(title: name.isEmpty ? "Untitled Composition" : name,
-                                                  width: Int(width), height: Int(height), fps: Int(fps), duration: duration))
                     }
                     .disabled(!canCreate)
                     .accessibilityIdentifier("newProject.create")
