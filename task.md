@@ -198,6 +198,9 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, layer selection/visibility/lock and inspector controls.
 - [x] Persist the latest composition settings when changed in the in-editor composition settings sheet as well as when a new composition is created.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
+- [x] Mark unsupported 3D model/font import and voiceover capture as unavailable instead of routing them to the image picker.
+- [x] Remove nonfunctional audio mixer/EQ placeholder sliders and clearly identify audio processing as planned.
+- [x] Route audio import to the audio media filter instead of the image/video picker.
 - [ ] Bind every implemented control to the canonical store and expose incomplete capabilities honestly.
 - [ ] Add UI tests for navigation, selection, timeline gestures, accessibility and state restoration.
 

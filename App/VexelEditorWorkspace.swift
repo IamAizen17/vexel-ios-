@@ -519,6 +519,7 @@ struct VexelEditorWorkspace: View {
             VexelIconButton(symbol: "arrow.uturn.backward", disabled: !canUndoEdits) { undoEdit() }
             VexelIconButton(symbol: "arrow.uturn.forward", disabled: !canRedoEdits) { redoEdit() }
             VexelIconButton(symbol: "slider.horizontal.3") { showCompositionSettings = true }
+                .accessibilityIdentifier("editor.composition.settings")
             VexelIconButton(symbol: "square.and.arrow.up", active: true) { showExport = true }
         }
         .padding(.horizontal, isCompactLandscape ? 8 : 12)
@@ -1316,7 +1317,7 @@ private struct MediaPicker: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 18) {
-                PhotosPicker(selection: $selection, matching: .any(of: [.images, .videos])) {
+                PhotosPicker(selection: $selection, matching: audioOnly ? .any(of: [.audio]) : .any(of: [.images, .videos])) {
                     Label(audioOnly ? "Choose media" : "Choose image", systemImage: "photo")
                         .font(.system(size: 14, weight: .semibold)).foregroundStyle(VexelPalette.text)
                         .padding(16).frame(maxWidth: .infinity)

@@ -63,45 +63,32 @@ struct VexelPropertiesSheet: View {
 
 struct VexelAudioWorkspace: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var master = 0.85
-    @State private var trackOne = 0.72
-    @State private var trackTwo = 0.62
-    @State private var noiseReduction = false
-    @State private var normalize = true
-    @State private var eq: [Double] = [0, 0, 0, 0, 0]
-
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     VexelSectionLabel(title: "Mixer")
                     VexelPanel {
-                        VStack(spacing: 14) {
-                            mixerRow("Master", value: $master, symbol: "speaker.wave.3")
-                            mixerRow("Track 1", value: $trackOne, symbol: "waveform")
-                            mixerRow("Track 2", value: $trackTwo, symbol: "waveform")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Mixer interface preview", systemImage: "slider.horizontal.3")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(VexelPalette.text)
+                            Text("Mixing controls are not connected to the audio engine yet. This panel is read-only until realtime mixing is implemented.")
+                                .font(.system(size: 11))
+                                .foregroundStyle(VexelPalette.secondary)
                         }
                     }
                     VexelSectionLabel(title: "Equalizer", trailing: "5-BAND")
                     VexelPanel {
-                        HStack(alignment: .bottom, spacing: 12) {
-                            ForEach(eq.indices, id: \.self) { index in
-                                VStack(spacing: 7) {
-                                    Text("\(Int(eq[index] * 12))").font(.system(size: 8, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                                    Slider(value: $eq[index], in: -1...1).tint(VexelPalette.accent).rotationEffect(.degrees(-90)).frame(width: 85, height: 26)
-                                    Text(["LOW", "LM", "MID", "HM", "HIGH"][index]).font(.system(size: 8, weight: .bold)).foregroundStyle(VexelPalette.secondary)
-                                }
-                                .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .frame(height: 125)
+                        Text("Equalizer controls will appear when the realtime audio engine is connected.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(VexelPalette.secondary)
                     }
                     VexelSectionLabel(title: "Processing")
                     VexelPanel {
-                        Toggle("Noise reduction", isOn: $noiseReduction).tint(VexelPalette.accent)
-                        Toggle("Normalize audio", isOn: $normalize).tint(VexelPalette.accent)
-                        HStack { Text("Fade in"); Spacer(); Text("0.5 s").foregroundStyle(VexelPalette.secondary) }
-                        HStack { Text("Fade out"); Spacer(); Text("0.5 s").foregroundStyle(VexelPalette.secondary) }
+                        Text("Noise reduction, normalization and fades are not available yet.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(VexelPalette.secondary)
                     }
                     Text("Audio controls are presentation state until AVAudioEngine is connected.")
                         .font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
@@ -114,16 +101,6 @@ struct VexelAudioWorkspace: View {
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
             }
-
-    private func mixerRow(_ title: String, value: Binding<Double>, symbol: String) -> some View {
-        HStack {
-            Image(systemName: symbol).foregroundStyle(VexelPalette.accent).frame(width: 24)
-            Text(title).font(.system(size: 11, weight: .medium)).foregroundStyle(VexelPalette.text).frame(width: 58, alignment: .leading)
-            Slider(value: value, in: 0...1).tint(VexelPalette.accent)
-            Text("\(Int(value.wrappedValue * 100))%").font(.system(size: 9, design: .monospaced)).foregroundStyle(VexelPalette.secondary).frame(width: 30)
-        }
-    }
-}
 
 struct VexelCaptionWorkspace: View {
     @Environment(\.dismiss) private var dismiss

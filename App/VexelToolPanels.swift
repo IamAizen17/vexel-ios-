@@ -169,8 +169,8 @@ struct VexelToolSheet: View {
             mediaRow("Images", detail: "PNG, JPEG, HEIC", symbol: "photo", action: "pick-image")
             mediaRow("Video", detail: "MOV, MP4", symbol: "film", action: "pick-image")
             mediaRow("Audio", detail: "WAV, MP3, M4A", symbol: "waveform", action: "pick-audio")
-            mediaRow("3D models", detail: "GLB, glTF", symbol: "cube", action: "pick-image")
-            mediaRow("Fonts", detail: "OTF, TTF", symbol: "textformat", action: "pick-image")
+            mediaRow("3D models", detail: "GLB, glTF · Import support coming soon", symbol: "cube", action: "unsupported", isEnabled: false)
+            mediaRow("Fonts", detail: "OTF, TTF · Font management coming soon", symbol: "textformat", action: "unsupported", isEnabled: false)
             VexelPanel {
                 Label("Imported assets will be listed in the project media bin.", systemImage: "info.circle")
                     .font(.system(size: 11)).foregroundStyle(VexelPalette.secondary)
@@ -389,24 +389,28 @@ struct VexelToolSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             VexelSectionLabel(title: "Audio workspace")
             VexelPanel {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label("Audio mixer", systemImage: "slider.horizontal.3").font(.system(size: 13, weight: .bold)).foregroundStyle(VexelPalette.text)
-                    ForEach(["Master", "Track 1", "Track 2"], id: \.self) { track in
-                        HStack {
-                            Text(track).font(.system(size: 11)).foregroundStyle(VexelPalette.soft)
-                            Slider(value: .constant(0.8)).tint(VexelPalette.accent)
-                            Text("-2 dB").font(.system(size: 9, design: .monospaced)).foregroundStyle(VexelPalette.secondary)
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Timeline audio preview", systemImage: "waveform")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(VexelPalette.text)
+                    Text("Imported audio clips can be placed and previewed on the timeline. Mixer automation, EQ and processing are not connected yet.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(VexelPalette.secondary)
                 }
             }
-            mediaRow("Add audio", detail: "Import audio from Files or Photos", symbol: "waveform", action: "pick-audio")
-            mediaRow("Record voiceover", detail: "Microphone capture", symbol: "mic", action: "record")
-            VexelActionButton(title: "Open mixer and EQ", systemImage: "slider.horizontal.3", prominent: true) { advancedPage = .audio }
-            VexelSectionLabel(title: "Audio processing")
-            ForEach(["Waveform display", "Noise reduction", "Fade in / out", "Time stretch", "Beat markers"], id: \.self) { item in
-                HStack { Text(item).font(.system(size: 12)).foregroundStyle(VexelPalette.text); Spacer(); Image(systemName: "chevron.right").foregroundStyle(VexelPalette.secondary) }
-                    .padding(11).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 9))
+            mediaRow("Add audio", detail: "Choose a supported audio file", symbol: "waveform", action: "pick-audio")
+            mediaRow("Record voiceover", detail: "Microphone capture · Coming soon", symbol: "mic", action: "unsupported", isEnabled: false)
+            VexelSectionLabel(title: "Audio processing", trailing: "PLANNED")
+            ForEach(["Mixer and automation", "Equalizer", "Noise reduction", "Fade in / out", "Time stretch", "Beat detection"], id: \.self) { item in
+                HStack {
+                    Text(item).font(.system(size: 12)).foregroundStyle(VexelPalette.secondary)
+                    Spacer()
+                    Text("SOON")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(VexelPalette.secondary)
+                }
+                .padding(11)
+                .background(VexelPalette.card.opacity(0.6), in: RoundedRectangle(cornerRadius: 9))
             }
             Spacer()
         }
@@ -520,19 +524,37 @@ struct VexelToolSheet: View {
         }
     }
 
-    private func mediaRow(_ title: String, detail: String, symbol: String, action: String) -> some View {
+    private func mediaRow(
+        _ title: String,
+        detail: String,
+        symbol: String,
+        action: String,
+        isEnabled: Bool = true
+    ) -> some View {
         Button { onAction(action) } label: {
             HStack(spacing: 12) {
-                Image(systemName: symbol).foregroundStyle(VexelPalette.accent).frame(width: 34, height: 34).background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 9))
+                Image(systemName: symbol)
+                    .foregroundStyle(isEnabled ? VexelPalette.accent : VexelPalette.secondary)
+                    .frame(width: 34, height: 34)
+                    .background(VexelPalette.field, in: RoundedRectangle(cornerRadius: 9))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(VexelPalette.text)
+                    Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(isEnabled ? VexelPalette.text : VexelPalette.secondary)
                     Text(detail).font(.system(size: 10)).foregroundStyle(VexelPalette.secondary)
                 }
                 Spacer()
-                Image(systemName: "plus.circle").foregroundStyle(VexelPalette.accent)
+                if isEnabled {
+                    Image(systemName: "plus.circle").foregroundStyle(VexelPalette.accent)
+                } else {
+                    Text("SOON")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundStyle(VexelPalette.secondary)
+                }
             }
-            .padding(10).background(VexelPalette.card, in: RoundedRectangle(cornerRadius: 11))
-        }.buttonStyle(.plain)
+            .padding(10)
+            .background(VexelPalette.card.opacity(isEnabled ? 1 : 0.55), in: RoundedRectangle(cornerRadius: 11))
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
     }
 
     private func toolTile(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
