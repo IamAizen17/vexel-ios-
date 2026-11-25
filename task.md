@@ -185,7 +185,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
 - [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
-- [ ] Redesign the new-composition setup sheet.
+- [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.
 - [ ] Complete the editor redesign around preview, timeline, layer selection, contextual tools and property editing.
 - [ ] Validate portrait iPhone and landscape/iPad adaptive layouts.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.

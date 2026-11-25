@@ -322,7 +322,7 @@ struct VexelHomeView: View {
         }
         .vexelScreenBackground()
         .sheet(isPresented: $showingNewProject) {
-            NewProjectSheet { project in
+            VexelNewCompositionSheet { project in
                 projects.insert(project, at: 0)
                 showingNewProject = false
                 onOpen(project)
