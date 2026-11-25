@@ -310,6 +310,7 @@ private struct VexelTimelineTrackRow: View {
 
     @State private var moveOrigin: Double?
     @State private var trimOrigin: (start: Double, duration: Double)?
+    private let headerWidth: CGFloat = 116
 
     private var clipColor: Color {
         switch track.kind {
