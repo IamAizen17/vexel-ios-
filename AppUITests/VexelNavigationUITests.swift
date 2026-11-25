@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 final class VexelNavigationUITests: XCTestCase {
     private func launchApp() -> XCUIApplication {
