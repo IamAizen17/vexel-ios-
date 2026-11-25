@@ -29,6 +29,20 @@ final class VexelCompositionDefaultsTests: XCTestCase {
         XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), .default)
     }
 
+    func testFrameRateOutsideSupportedRangeIsRejected() {
+        let defaults = makeDefaults()
+        VexelCompositionDefaults(width: 1080, height: 1920, fps: 0, duration: 10).save(to: defaults)
+
+        XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), .default)
+    }
+
+    func testDurationAboveSupportedRangeIsRejected() {
+        let defaults = makeDefaults()
+        VexelCompositionDefaults(width: 1080, height: 1920, fps: 30, duration: 3601).save(to: defaults)
+
+        XCTAssertEqual(VexelCompositionDefaults.load(from: defaults), .default)
+    }
+
     func testCustomFrameRateSettingsCanBePersisted() {
         let defaults = makeDefaults()
         let expected = VexelCompositionDefaults(width: 1920, height: 1080, fps: 29, duration: 300)

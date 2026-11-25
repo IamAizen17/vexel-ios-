@@ -184,7 +184,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 
-Implementation note: the canvas-first composition setup is implemented as a dedicated SwiftUI sheet with presets, editable dimensions, frame-rate selection, duration control and bounds validation. Last-used composition defaults are persisted locally after successful project creation and can be reset in the creation sheet. The editor workspace redesign and adaptive validation remain open.
+Implementation note: the canvas-first composition setup is implemented as a dedicated SwiftUI sheet with presets, editable dimensions, custom frame-rate restoration, duration control (1–3600 seconds) and bounds validation. Last-used composition defaults are persisted locally after successful project creation or successful in-editor composition-setting commits, and can be reset in the creation sheet. The editor workspace redesign and adaptive validation remain open.
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
 - [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
 - [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.
@@ -279,15 +279,16 @@ Successful workflow references:
 
 ## P1.A redesign verification (2026-11-25)
 
-Implementation branch: `feat/p1a-editor-redesign-v10`  
-Code head: `bf96d678fb95040ccc4838f489b8b29240da1909`
+Implementation branch: `feat/p1a-editor-redesign-v12`  
+Latest code head before this status update: `572c23bfa4866d6c82c3f808b6226d58a5ff5686`
 
-- [x] Review the branch diff and verify the new composition-default model, editor layout changes, timeline callbacks and test target paths are present.
-- [x] Compile and run a standalone Swift smoke test for composition-default load, save, validation and reset behavior.
-- [ ] Run the app XCTest and UI test suites on an iOS simulator.
+- [x] Review the v12 editor, timeline, composition settings, design system, tool panels and test target paths before editing.
+- [x] Add UI regression coverage for editor navigation, timeline layer selection/visibility, preview/playback/inspector availability, and iPhone landscape layout.
+- [x] Add unit coverage for saved custom frame rates, long durations, invalid settings and reset behavior.
+- [ ] Run the current app XCTest and UI test suites on an iOS simulator.
 - [ ] Validate iPhone portrait, iPhone landscape, iPad portrait and iPad landscape on simulators and physical devices.
 
-The iOS CI workflow is configured for manual dispatch. This execution environment has Swift 6.2 on Linux and no Xcode toolchain, and the available GitHub integration does not expose workflow dispatch. The SwiftUI app build, XCTest suite and device layout therefore remain unverified for this branch head.
+The iOS CI workflow is configured for manual dispatch. This execution environment has Swift 6.2 on Linux and no Xcode toolchain, and the available GitHub integration does not expose workflow dispatch. Historical successful CI runs are for earlier code commits and are not evidence for this v12 head. The current SwiftUI app build, XCTest suite and device layout therefore remain unverified.
 
 ## 7. Required engineering workflow
 
