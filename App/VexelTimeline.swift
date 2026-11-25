@@ -151,7 +151,7 @@ struct VexelTimelinePanel: View {
                         .background(snappingEnabled ? VexelPalette.accent.opacity(0.12) : VexelPalette.field, in: RoundedRectangle(cornerRadius: 7))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(snappingEnabled ? "Disable snapping" : "Enable snapping")
+                .accessibilityLabel(snappingEnabled ? "Disable magnetic snapping" : "Enable magnetic snapping")
                 .accessibilityIdentifier("timeline.snap.toggle")
                 Button {
                     zoom = max(minimumZoom, zoom / 1.25)
@@ -503,11 +503,19 @@ private struct VexelTimelineTrackRow: View {
             .fill(clipColor.opacity(track.visible ? 0.82 : 0.24))
             .frame(width: max(72, CGFloat(track.duration) * zoom), height: 28)
             .overlay(alignment: .leading) {
-                Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
+                Rectangle().fill(.white.opacity(0.8))
+                    .frame(width: 4, height: 18)
+                    .clipShape(Capsule())
+                    .frame(width: 16, height: 36)
+                    .contentShape(Rectangle())
                     .gesture(trimStartGesture)
             }
             .overlay(alignment: .trailing) {
-                Rectangle().fill(.white.opacity(0.8)).frame(width: 4, height: 18).clipShape(Capsule())
+                Rectangle().fill(.white.opacity(0.8))
+                    .frame(width: 4, height: 18)
+                    .clipShape(Capsule())
+                    .frame(width: 16, height: 36)
+                    .contentShape(Rectangle())
                     .gesture(trimEndGesture)
             }
             .overlay(alignment: .topLeading) {
@@ -528,6 +536,8 @@ private struct VexelTimelineTrackRow: View {
             })
             .opacity(track.locked ? 0.62 : 1)
             .accessibilityLabel("\(track.name) timeline clip")
+            .accessibilityValue(selectedTrackID == track.id ? "Selected" : "Not selected")
+            .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("timeline.clip.\(track.id.uuidString)")
     }
 

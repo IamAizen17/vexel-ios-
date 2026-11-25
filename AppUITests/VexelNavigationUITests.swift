@@ -237,4 +237,24 @@ final class VexelNavigationUITests: XCTestCase {
         app.buttons["Cancel"].tap()
     }
 
+    func testTappingTimelineClipSelectsItsLayer() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+        app.buttons["Shapes"].tap()
+        let rectangle = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Rectangle")).firstMatch
+        XCTAssertTrue(rectangle.waitForExistence(timeout: 5))
+        rectangle.tap()
+
+        let clip = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "timeline.clip."))
+            .firstMatch
+        XCTAssertTrue(clip.waitForExistence(timeout: 5))
+        clip.tap()
+        XCTAssertEqual(clip.value as? String, "Selected")
+    }
+
 }
