@@ -183,6 +183,8 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Broaden edit-surface UI coverage across position, anchor, scale, rotation, opacity and keyframe add/remove.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
+
+Implementation note: the composition setup redesign is implemented on `feat/p1a-editor-redesign-work` as a dedicated SwiftUI sheet with canvas presets, editable dimensions, frame-rate selection, duration control and bounds validation. The editor workspace redesign and adaptive validation remain open.
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
 - [x] Redesign the home project library and preset discovery as adaptive project/preset grids with a featured create-composition entry point.
 - [x] Replace the generic form with a compact canvas-first composition setup: visual presets, editable dimensions, frame-rate selection, duration control and input validation.

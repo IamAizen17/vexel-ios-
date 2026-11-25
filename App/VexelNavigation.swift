@@ -772,7 +772,7 @@ private struct ProjectCard: View {
     }
 }
 
-private struct ProjectPreset: Identifiable {
+struct ProjectPreset: Identifiable {
     let id = UUID()
     let name: String
     let width: Int

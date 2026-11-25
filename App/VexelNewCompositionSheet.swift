@@ -8,7 +8,7 @@ struct VexelNewCompositionSheet: View {
     @State private var height = 1920.0
     @State private var fps = 30.0
     @State private var duration = 10.0
-    @State private var selectedPreset: String? = "Portrait"
+    @State private var selectedPreset: String? = "Portrait video"
 
     private let frameRates = [24.0, 25.0, 30.0, 50.0, 60.0, 120.0]
 
