@@ -17,6 +17,9 @@ on:
       - App/VexelTimeline.swift
       - App/VexelNewCompositionSheet.swift
       - App/VexelCompositionDefaults.swift
+      - App/**
+      - Packages/**
+      - scripts/**
       - AppTests/**
       - AppUITests/**
       - Packages/VexelCore/Sources/VexelCore/**
@@ -33,7 +36,7 @@ jobs:
   validate:
     name: Test packages and build iOS app
     runs-on: macos-15
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -73,11 +76,19 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Run app tests and build iOS simulator target
+      - name: Run app tests on iPhone and iPad simulators
+        shell: bash
         run: |
+          set -euo pipefail
           xcodebuild test \
             -project Vexel.xcodeproj \
             -scheme Vexel \
             -configuration Debug \
             -destination "platform=iOS Simulator,name=iPhone 16" \
+            CODE_SIGNING_ALLOWED=NO
+          xcodebuild test \
+            -project Vexel.xcodeproj \
+            -scheme Vexel \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,name=iPad (10th generation)" \
             CODE_SIGNING_ALLOWED=NO

@@ -209,7 +209,11 @@ final class VexelNavigationUITests: XCTestCase {
         let timeline = app.descendants(matching: .any)["editor.timeline"]
         XCTAssertTrue(preview.waitForExistence(timeout: 5))
         XCTAssertTrue(timeline.waitForExistence(timeout: 5))
-        XCTAssertLessThan(preview.frame.midX, timeline.frame.midX)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCTAssertLessThan(preview.frame.midY, timeline.frame.midY)
+        } else {
+            XCTAssertLessThan(preview.frame.midX, timeline.frame.midX)
+        }
         XCTAssertTrue(app.buttons["timeline.zoom.in"].exists)
         XCTAssertTrue(app.buttons["editor.playback.toggle"].exists)
     }
@@ -295,6 +299,24 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertTrue(lock.waitForExistence(timeout: 5))
         lock.tap()
         XCTAssertTrue(app.buttons["Unlock Rectangle Layer"].waitForExistence(timeout: 5))
+    }
+
+
+    func testIPadEditorKeepsTheInspectorVisibleBesideTheWorkspace() {
+        guard UIDevice.current.userInterfaceIdiom == .pad else {
+            throw XCTSkip("This layout assertion is specific to iPad.")
+        }
+
+        let app = launchApp()
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+
+        let inspector = app.descendants(matching: .any)["editor.inspector"]
+        XCTAssertTrue(inspector.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["editor.preview"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["editor.timeline"].exists)
     }
 
 
