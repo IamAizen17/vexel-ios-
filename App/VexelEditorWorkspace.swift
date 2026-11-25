@@ -786,11 +786,15 @@ struct VexelEditorWorkspace: View {
             .padding(.vertical, isCompactLandscape ? 4 : 7)
         }
         .background {
+            #if compiler(>=6.2)
             if #available(iOS 26.0, *) {
                 Capsule().fill(.clear).glassEffect(.regular, in: Capsule())
             } else {
                 Capsule().fill(.ultraThinMaterial)
             }
+            #else
+            Capsule().fill(.ultraThinMaterial)
+            #endif
         }
         .overlay {
             Capsule().strokeBorder(VexelPalette.line.opacity(0.42), lineWidth: 0.7)
