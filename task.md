@@ -176,7 +176,10 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Keep unsupported mask, transition and text animator controls disabled or clearly marked.
 - [x] Replace generic media-import snapshots with one atomic typed asset-and-layer import command; validate safe relative paths, matching layer types and duplicate IDs/paths, and clean up imported files if the command fails.
 - [x] Remove the workspace's generic project snapshot replacement path; current project edits are routed through typed editing-store commands.
-- [ ] Complete reusable property descriptors/keyframe workflows for all supported properties and broaden edit-surface tests.
+- [x] Add a reusable typed property descriptor catalog for supported 2D/3D transforms, text animation values, shape geometry, media volume and 3D material values.
+- [x] Add descriptor-driven base-value, auto-keyframe, keyframe upsert and keyframe removal commands with value/range/time validation and unknown-field preservation.
+- [x] Add store regression coverage for descriptor discovery, text/shape/media/3D property edits, auto-keyframe behavior, metadata preservation and invalid edits.
+- [ ] Connect descriptor-driven keyframe controls to the visible editor timeline/graph UI and add UI-level keyframe editing tests.
 
 **P1.2 Alight Motion-inspired Vexel UI redesign**
 - [x] Establish the original graphite/teal Vexel visual foundation, palette, adaptive surfaces and motion tokens.
@@ -193,7 +196,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 - [x] Implement baseline keyframe interpolation, easing presets, cycle/ping-pong sampling and nested group timing/transforms.
 - [x] Add deterministic scene-evaluation regression tests for interpolation, loop modes and nested groups.
 - [x] Add typed keyframe insertion/removal on native transform properties, preserving existing animation track metadata.
-- [ ] Implement reusable typed property descriptors and keyframe sampling/editing for all supported properties, and constrained expressions.
+- [x] Implement reusable typed property descriptors and descriptor-driven keyframe insertion/removal for the supported property catalog; constrained expressions remain open.
 - [x] Preserve negative source layer/group start times in deterministic scene evaluation.
 - [ ] Complete nested compositions, 2D/3D transforms, camera/light state, masks, mattes, transitions and evaluated effect parameters.
 - [ ] Add golden coverage for representative source projects and broader time samples.
@@ -230,7 +233,7 @@ P1 is active. The canonical-store integration is progressing and must remain dis
 ## 5. Known limitations (do not misreport)
 
 - The timeline remains a reduced UI projection over the canonical typed native project. Timeline reorder, marker, timing, visibility and lock changes use typed commands. Media import now uses one atomic typed asset-and-layer command; the workspace no longer replaces the complete project snapshot for edits.
-- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. Text animators, masks, transitions and several advanced editing surfaces remain unconnected.
+- The workspace delegates undo/redo and committed mutations to `VexelEditingStore`; position, anchor, scale, rotation, opacity and core text content/font properties are connected. The core now exposes descriptor-driven keyframe operations for supported transforms, text animation values, shape geometry, media volume and 3D material values; timeline/graph UI integration is still pending. Text animators, masks and transitions remain unconnected.
 - The scene evaluator is deterministic for the currently supported 2D baseline, keyframe interpolation, easing, loop modes, nested groups and negative source layer/group starts. It is not equivalent to the source scene evaluator and does not yet implement full 3D, camera/light, masks/mattes, transitions or evaluated effect parameters.
 - The Metal renderer and shader compiler remain foundations; a complete render graph is not executing yet.
 - The effect catalogue is not proof that 73 effects execute.

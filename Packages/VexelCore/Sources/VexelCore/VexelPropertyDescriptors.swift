@@ -1,0 +1,247 @@
+import Foundation
+
+public enum VexelPropertyStorage: Equatable, Sendable {
+    case transform(is3D: Bool)
+    case content
+    case contentObject(parent: String, key: String)
+}
+
+public enum VexelPropertyValueKind: Equatable, Sendable {
+    case scalar
+    case vector(Int)
+    case any
+}
+
+public struct VexelPropertyDescriptor: Equatable, Sendable, Identifiable {
+    public let id: String
+    public let title: String
+    public let storage: VexelPropertyStorage
+    public let valueKind: VexelPropertyValueKind
+    public let defaultValue: JSONValue
+    public let minimum: Double?
+    public let maximum: Double?
+    public let supportedLayerTypes: [VexelLayerType]
+
+    public init(
+        id: String,
+        title: String,
+        storage: VexelPropertyStorage,
+        valueKind: VexelPropertyValueKind,
+        defaultValue: JSONValue,
+        minimum: Double? = nil,
+        maximum: Double? = nil,
+        supportedLayerTypes: [VexelLayerType]
+    ) {
+        self.id = id
+        self.title = title
+        self.storage = storage
+        self.valueKind = valueKind
+        self.defaultValue = defaultValue
+        self.minimum = minimum
+        self.maximum = maximum
+        self.supportedLayerTypes = supportedLayerTypes
+    }
+
+    public func supports(_ layer: VexelLayer) -> Bool {
+        supportedLayerTypes.contains(layer.type)
+    }
+
+    public func validate(_ value: JSONValue) throws {
+        let numbers: [Double]
+        switch valueKind {
+        case .scalar:
+            guard let number = value.numberValue, number.isFinite else {
+                throw VexelPropertyDescriptorError.invalidValue(id)
+            }
+            numbers = [number]
+        case .vector(let count):
+            guard let components = value.arrayValue, components.count == count else {
+                throw VexelPropertyDescriptorError.invalidValue(id)
+            }
+            numbers = components.compactMap(\.numberValue)
+            guard numbers.count == count, numbers.allSatisfy(\.isFinite) else {
+                throw VexelPropertyDescriptorError.invalidValue(id)
+            }
+        case .any:
+            numbers = []
+        }
+        if let minimum, numbers.contains(where: { $0 < minimum }) {
+            throw VexelPropertyDescriptorError.invalidValue(id)
+        }
+        if let maximum, numbers.contains(where: { $0 > maximum }) {
+            throw VexelPropertyDescriptorError.invalidValue(id)
+        }
+    }
+
+    public func value(in layer: VexelLayer) -> VexelAnimatableValue? {
+        guard supports(layer) else { return nil }
+        switch storage {
+        case .transform(let is3D):
+            return (is3D ? layer.transform3D : layer.transform)?.properties[id]
+        case .content:
+            return VexelObjectFields(layer.content?.objectValue ?? [:]).animatable(id)
+        case .contentObject(let parent, let key):
+            return VexelObjectFields(layer.content?.objectValue ?? [:]).object(parent)?.animatable(key)
+        }
+    }
+
+    public func setBaseValue(_ value: JSONValue, on layer: inout VexelLayer) throws {
+        guard supports(layer) else { throw VexelPropertyDescriptorError.unsupportedLayer(id) }
+        try validate(value)
+        switch storage {
+        case .transform(let is3D):
+            var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
+            if case .animated(var animation)? = transform.properties[id] {
+                animation.value = value
+                transform.properties[id] = .animated(animation)
+            } else {
+                transform.properties[id] = .constant(value)
+            }
+            if is3D { layer.transform3D = transform } else { layer.transform = transform }
+        case .content:
+            var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
+            if case .animated(var animation)? = fields.animatable(id) {
+                animation.value = value
+                fields.setAnimatable(.animated(animation), for: id)
+            } else {
+                fields.setAnimatable(.constant(value), for: id)
+            }
+            layer.content = .object(fields.values)
+        case .contentObject(let parent, let key):
+            var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
+            var nested = fields.object(parent) ?? VexelObjectFields()
+            if case .animated(var animation)? = nested.animatable(key) {
+                animation.value = value
+                nested.setAnimatable(.animated(animation), for: key)
+            } else {
+                nested.setAnimatable(.constant(value), for: key)
+            }
+            fields[parent] = .object(nested.values)
+            layer.content = .object(fields.values)
+        }
+    }
+
+    public func upsertKeyframe(_ keyframe: VexelKeyframe, on layer: inout VexelLayer) throws {
+        guard supports(layer) else { throw VexelPropertyDescriptorError.unsupportedLayer(id) }
+        guard keyframe.time.isFinite, keyframe.time >= 0,
+              keyframe.time <= (layer.duration ?? 3600) else {
+            throw VexelPropertyDescriptorError.invalidTime
+        }
+        try validate(keyframe.value)
+        var animation: VexelAnimationTrack
+        switch value(in: layer) {
+        case .some(.animated(let existing)):
+            animation = existing
+        case .some(.constant(let current)):
+            animation = VexelAnimationTrack(value: current)
+        case .none:
+            animation = VexelAnimationTrack(value: defaultValue)
+        }
+        if let index = animation.keyframes.firstIndex(where: { abs($0.time - keyframe.time) < 0.000001 }) {
+            animation.keyframes[index] = keyframe
+        } else {
+            animation.keyframes.append(keyframe)
+        }
+        animation.keyframes.sort { $0.time < $1.time }
+        setAnimation(.animated(animation), on: &layer)
+    }
+
+    public func removeKeyframe(at time: Double, on layer: inout VexelLayer) throws {
+        guard supports(layer) else { throw VexelPropertyDescriptorError.unsupportedLayer(id) }
+        guard time.isFinite, time >= 0 else { throw VexelPropertyDescriptorError.invalidTime }
+        guard case .animated(var animation)? = value(in: layer) else { return }
+        animation.keyframes.removeAll { abs($0.time - time) < 0.000001 }
+        if animation.keyframes.isEmpty {
+            if let base = animation.value {
+                setAnimation(.constant(base), on: &layer)
+            } else {
+                removeValue(on: &layer)
+            }
+        } else {
+            setAnimation(.animated(animation), on: &layer)
+        }
+    }
+
+    private func setAnimation(_ value: VexelAnimatableValue, on layer: inout VexelLayer) {
+        switch storage {
+        case .transform(let is3D):
+            var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
+            transform.properties[id] = value
+            if is3D { layer.transform3D = transform } else { layer.transform = transform }
+        case .content:
+            var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
+            fields.setAnimatable(value, for: id)
+            layer.content = .object(fields.values)
+        case .contentObject(let parent, let key):
+            var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
+            var nested = fields.object(parent) ?? VexelObjectFields()
+            nested.setAnimatable(value, for: key)
+            fields[parent] = .object(nested.values)
+            layer.content = .object(fields.values)
+        }
+    }
+
+    private func removeValue(on layer: inout VexelLayer) {
+        switch storage {
+        case .transform(let is3D):
+            var transform = is3D ? (layer.transform3D ?? VexelTransform()) : (layer.transform ?? VexelTransform())
+            transform.properties.removeValue(forKey: id)
+            if is3D { layer.transform3D = transform } else { layer.transform = transform }
+        case .content:
+            var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
+            fields.setAnimatable(nil, for: id)
+            layer.content = .object(fields.values)
+        case .contentObject(let parent, let key):
+            var fields = VexelObjectFields(layer.content?.objectValue ?? [:])
+            var nested = fields.object(parent) ?? VexelObjectFields()
+            nested.setAnimatable(nil, for: key)
+            fields[parent] = .object(nested.values)
+            layer.content = .object(fields.values)
+        }
+    }
+}
+
+public enum VexelPropertyDescriptorError: Error, Equatable, Sendable {
+    case unknownProperty(String)
+    case unsupportedLayer(String)
+    case invalidValue(String)
+    case invalidTime
+}
+
+public enum VexelPropertyCatalog {
+    private static let visual2D: [VexelLayerType] = [.text, .shape, .image, .video, .group, .null]
+    private static let visual3D: [VexelLayerType] = [.object3D, .model3D, .camera, .light]
+    private static let scalarTypes: [VexelLayerType] = [.text, .shape, .image, .video, .audio, .object3D, .model3D, .camera, .light]
+
+    public static let all: [VexelPropertyDescriptor] = [
+        .init(id: "position", title: "Position", storage: .transform(is3D: false), valueKind: .vector(2), defaultValue: .array([.number(0), .number(0)]), supportedLayerTypes: visual2D),
+        .init(id: "anchor", title: "Anchor", storage: .transform(is3D: false), valueKind: .vector(2), defaultValue: .array([.number(0), .number(0)]), supportedLayerTypes: visual2D),
+        .init(id: "scale", title: "Scale", storage: .transform(is3D: false), valueKind: .vector(2), defaultValue: .array([.number(1), .number(1)]), minimum: -100, maximum: 100, supportedLayerTypes: visual2D),
+        .init(id: "rotation", title: "Rotation", storage: .transform(is3D: false), valueKind: .scalar, defaultValue: .number(0), minimum: -360000, maximum: 360000, supportedLayerTypes: visual2D),
+        .init(id: "opacity", title: "Opacity", storage: .transform(is3D: false), valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 1, supportedLayerTypes: visual2D),
+        .init(id: "position3D", title: "Position", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: visual3D),
+        .init(id: "anchor3D", title: "Anchor", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), supportedLayerTypes: visual3D),
+        .init(id: "scale3D", title: "Scale", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(1), .number(1), .number(1)]), minimum: -100, maximum: 100, supportedLayerTypes: visual3D),
+        .init(id: "rotation3D", title: "Rotation", storage: .transform(is3D: true), valueKind: .vector(3), defaultValue: .array([.number(0), .number(0), .number(0)]), minimum: -360000, maximum: 360000, supportedLayerTypes: visual3D),
+        .init(id: "opacity3D", title: "Opacity", storage: .transform(is3D: true), valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 1, supportedLayerTypes: visual3D),
+        .init(id: "text.fontSize", title: "Font size", storage: .content, valueKind: .scalar, defaultValue: .number(96), minimum: 1, maximum: 2048, supportedLayerTypes: [.text]),
+        .init(id: "text.letterSpacing", title: "Letter spacing", storage: .content, valueKind: .scalar, defaultValue: .number(0), minimum: -10, maximum: 10, supportedLayerTypes: [.text]),
+        .init(id: "text.color", title: "Text color", storage: .content, valueKind: .any, defaultValue: .string("#FFFFFF"), supportedLayerTypes: [.text]),
+        .init(id: "shape.size", title: "Size", storage: .content, valueKind: .vector(2), defaultValue: .array([.number(100), .number(100)]), minimum: 0, maximum: 8192, supportedLayerTypes: [.shape]),
+        .init(id: "shape.roundness", title: "Roundness", storage: .content, valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 4096, supportedLayerTypes: [.shape]),
+        .init(id: "shape.sides", title: "Sides", storage: .content, valueKind: .scalar, defaultValue: .number(5), minimum: 3, maximum: 128, supportedLayerTypes: [.shape]),
+        .init(id: "shape.innerRatio", title: "Inner ratio", storage: .content, valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.shape]),
+        .init(id: "media.volume", title: "Volume", storage: .content, valueKind: .scalar, defaultValue: .number(1), minimum: 0, maximum: 4, supportedLayerTypes: [.video, .audio]),
+        .init(id: "material.metallic", title: "Metallic", storage: .contentObject(parent: "material", key: "metallic"), valueKind: .scalar, defaultValue: .number(0), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
+        .init(id: "material.roughness", title: "Roughness", storage: .contentObject(parent: "material", key: "roughness"), valueKind: .scalar, defaultValue: .number(0.5), minimum: 0, maximum: 1, supportedLayerTypes: [.object3D, .model3D]),
+        .init(id: "material.emissive", title: "Emissive", storage: .contentObject(parent: "material", key: "emissive"), valueKind: .any, defaultValue: .number(0), supportedLayerTypes: [.object3D, .model3D])
+    ]
+
+    public static func descriptor(for id: String) -> VexelPropertyDescriptor? {
+        all.first { $0.id == id }
+    }
+
+    public static func descriptors(for layer: VexelLayer) -> [VexelPropertyDescriptor] {
+        all.filter { $0.supports(layer) }
+    }
+}

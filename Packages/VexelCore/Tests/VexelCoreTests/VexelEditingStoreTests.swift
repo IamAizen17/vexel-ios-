@@ -647,6 +647,74 @@ final class VexelEditingStoreTests: XCTestCase {
         XCTAssertEqual(snapshot.layers[0].transform3D?.properties["opacity"], .constant(.number(0.8)))
     }
 
+
+    func testPropertyCatalogCoversSupportedLayerPropertiesAndAutoKeyframes() async throws {
+        let shape = VexelLayer(
+            id: "shape",
+            type: .shape,
+            start: 0,
+            duration: 8,
+            content: .object([
+                "size": .object(["value": .array([.number(100), .number(80)]), "futureSizeField": .string("keep")]),
+                "futureShapeField": .string("keep")
+            ])
+        )
+        let text = VexelLayer(id: "title", type: .text, start: 0, duration: 8, content: .object(["content": .string("Hello")]))
+        let audio = VexelLayer(id: "audio", type: .audio, start: 0, duration: 8, content: .object(["volume": .number(0.5)]))
+        let store = try makeStore(layers: [shape, text, audio])
+
+        let shapeDescriptors = VexelPropertyCatalog.descriptors(for: shape)
+        XCTAssertTrue(shapeDescriptors.contains { $0.id == "shape.size" })
+        XCTAssertTrue(shapeDescriptors.contains { $0.id == "opacity" })
+        XCTAssertFalse(shapeDescriptors.contains { $0.id == "text.fontSize" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: text).contains { $0.id == "text.fontSize" })
+        XCTAssertTrue(VexelPropertyCatalog.descriptors(for: audio).contains { $0.id == "media.volume" })
+
+        try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(240), .number(120)]), atTime: nil))
+        try await store.execute(.setPropertyValue(layerID: "shape", propertyID: "shape.size", value: .array([.number(300), .number(150)]), atTime: 4))
+        try await store.execute(.setPropertyKeyframe(layerID: "title", propertyID: "text.fontSize", keyframe: VexelKeyframe(time: 2, value: .number(144))))
+        try await store.execute(.setPropertyValue(layerID: "audio", propertyID: "media.volume", value: .number(0.8), atTime: nil))
+
+        let snapshot = await store.snapshot()
+        let shapeFields = VexelObjectFields(snapshot.layers[0].content?.objectValue ?? [:])
+        XCTAssertEqual(shapeFields.animatable("size"), .animated(VexelAnimationTrack(
+            keyframes: [VexelKeyframe(time: 4, value: .array([.number(300), .number(150)]))],
+            value: .array([.number(240), .number(120)])
+        )))
+        XCTAssertEqual(shapeFields.string("futureShapeField"), "keep")
+        XCTAssertEqual(shapeFields.object("size")?.string("futureSizeField"), "keep")
+        let textFields = VexelObjectFields(snapshot.layers[1].content?.objectValue ?? [:])
+        XCTAssertEqual(textFields.animatable("fontSize")?.keyframes.first?.time, 2)
+        let audioFields = VexelObjectFields(snapshot.layers[2].content?.objectValue ?? [:])
+        XCTAssertEqual(audioFields.animatable("volume"), .constant(.number(0.8)))
+
+        try await store.execute(.removePropertyKeyframe(layerID: "shape", propertyID: "shape.size", time: 4))
+        let removed = await store.snapshot()
+        XCTAssertEqual(VexelObjectFields(removed.layers[0].content?.objectValue ?? [:]).animatable("size"), .constant(.array([.number(240), .number(120)])))
+    }
+
+    func testPropertyDescriptorValidationIsAtomicAndSupportsThreeDimensionalTracks() async throws {
+        let object = VexelLayer(id: "object", type: .object3D, start: 0, duration: 8, content: .object([:]))
+        let store = try makeStore(layers: [object])
+
+        try await store.execute(.setPropertyValue(layerID: "object", propertyID: "position3D", value: .array([.number(1), .number(2), .number(3)]), atTime: nil))
+        try await store.execute(.setPropertyKeyframe(layerID: "object", propertyID: "rotation3D", keyframe: VexelKeyframe(time: 3, value: .array([.number(10), .number(20), .number(30)]))))
+
+        let beforeInvalid = await store.snapshot()
+        do {
+            try await store.execute(.setPropertyValue(layerID: "object", propertyID: "opacity3D", value: .number(2), atTime: nil))
+            XCTFail("Out-of-range opacity must be rejected.")
+        } catch let error as VexelEditingStoreError {
+            guard case .invalidOperation = error else { return XCTFail("Unexpected error: \\(error)") }
+        }
+        XCTAssertEqual(await store.snapshot(), beforeInvalid)
+
+        try await store.execute(.removePropertyKeyframe(layerID: "object", propertyID: "rotation3D", time: 3))
+        let final = await store.snapshot()
+        XCTAssertEqual(final.layers[0].transform3D?.properties["rotation"], nil)
+        XCTAssertEqual(final.layers[0].transform3D?.properties["rotation3D"], nil)
+    }
+
     private func makeStore(layers: [VexelLayer] = []) throws -> VexelEditingStore {
         let document = ProjectDocument.starter(title: "Editing store")
         var native = try VexelNativeProject(document: document)
