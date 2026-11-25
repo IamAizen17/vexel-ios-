@@ -196,7 +196,8 @@ Implementation note: the canvas-first composition setup is implemented as a dedi
 - [x] Add explicit timeline zoom controls and a user-toggleable frame/snap-point snapping mode.
 - [x] Add UI regression tests for timeline layer selection/visibility, editor preview/playback/inspector availability and the compact landscape layout.
 - [x] Provide stable accessibility identifiers for preview, playback, timeline, graph, marker, zoom/snapping, tool dock, layer selection/visibility/lock and inspector controls.
-- [x] Persist the latest composition settings when changed in the in-editor composition settings sheet as well as when a new composition is created.
+- [x] Persist the latest composition settings only after a successful in-editor settings command, and restore custom FPS values in the next creation flow.
+- [x] Add UI coverage for in-editor FPS changes becoming the next composition defaults.
 - [ ] Finish reusable timeline, clip, track, playhead, keyframe, tool dock and inspector components.
 - [x] Mark unsupported 3D model/font import and voiceover capture as unavailable instead of routing them to the image picker.
 - [x] Remove nonfunctional audio mixer/EQ placeholder sliders and clearly identify audio processing as planned.

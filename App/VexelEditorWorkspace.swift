@@ -1352,9 +1352,13 @@ private struct CompositionSettingsSheet: View {
                 Section("Composition") {
                     TextField("Name", text: $project.title)
                     Stepper("Width: \(project.width)", value: $project.width, in: 16...8192, step: 16)
+                        .accessibilityIdentifier("compositionSettings.width")
                     Stepper("Height: \(project.height)", value: $project.height, in: 16...8192, step: 16)
+                        .accessibilityIdentifier("compositionSettings.height")
                     Stepper("Frame rate: \(project.fps) FPS", value: $project.fps, in: 1...120)
+                        .accessibilityIdentifier("compositionSettings.fps")
                     Slider(value: $project.duration, in: 1...3600, step: 1)
+                        .accessibilityIdentifier("compositionSettings.duration")
                     Text("Duration: \(Int(project.duration)) seconds")
                 }
                 Section("Project history") {
@@ -1367,7 +1371,7 @@ private struct CompositionSettingsSheet: View {
             }
             .scrollContentBackground(.hidden).background(VexelPalette.background)
             .navigationTitle("Composition settings").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { onSave(project); dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { onSave(project); dismiss() }.accessibilityIdentifier("compositionSettings.save") } }
         }
     }
 }

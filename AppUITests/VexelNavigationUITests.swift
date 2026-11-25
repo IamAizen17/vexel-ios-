@@ -192,7 +192,7 @@ final class VexelNavigationUITests: XCTestCase {
         rectangle.tap()
         XCTAssertTrue(app.buttons["editor.action.properties"].waitForExistence(timeout: 5))
         app.buttons["editor.action.properties"].tap()
-        XCTAssertTrue(app.descendants(matching: .any)["editor.inspector"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["editor.inspector.sheet"].waitForExistence(timeout: 5))
     }
 
     func testLandscapeEditorPlacesPreviewBesideTimeline() {
@@ -212,6 +212,29 @@ final class VexelNavigationUITests: XCTestCase {
         XCTAssertLessThan(preview.frame.midX, timeline.frame.midX)
         XCTAssertTrue(app.buttons["timeline.zoom.in"].exists)
         XCTAssertTrue(app.buttons["editor.playback.toggle"].exists)
+    }
+
+    func testInEditorCompositionSettingsBecomeTheNextProjectDefaults() {
+        let app = launchApp()
+
+        XCTAssertTrue(app.staticTexts["Your workspace"].waitForExistence(timeout: 10))
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.textFields["newProject.name"].waitForExistence(timeout: 5))
+        app.buttons["newProject.create"].tap()
+
+        app.buttons["editor.composition.settings"].tap()
+        let frameRate = app.steppers["compositionSettings.fps"]
+        XCTAssertTrue(frameRate.waitForExistence(timeout: 5))
+        frameRate.buttons["Increment"].tap()
+        app.buttons["compositionSettings.save"].tap()
+        XCTAssertTrue(app.staticTexts["1080 × 1920 · 31 FPS"].waitForExistence(timeout: 5))
+
+        app.buttons["chevron.left"].tap()
+        app.buttons["home.createProject"].tap()
+        XCTAssertTrue(app.buttons["newProject.fps.31"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["31 frames per second"].exists)
+        app.buttons["newProject.resetDefaults"].tap()
+        app.buttons["Cancel"].tap()
     }
 
 }

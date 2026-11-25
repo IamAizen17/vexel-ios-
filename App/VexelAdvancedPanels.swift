@@ -56,7 +56,7 @@ struct VexelPropertiesSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
         }
-        .accessibilityIdentifier("editor.inspector")
+        .accessibilityIdentifier("editor.inspector.sheet")
     }
 }
 
